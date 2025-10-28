@@ -1,0 +1,47 @@
+<ion-header class="bg-white" [translucent]="true">
+  <div class="border d-flex justify-content-center p-3 pt-4">
+  <ion-toggle [(ngModel)]="status" (ionChange)="changeStatus()"></ion-toggle>
+  </div>
+</ion-header>
+
+<ion-content [fullscreen]="true">
+
+  
+
+  @if(rideRequests.length == 0){
+    @if (status == false) {
+    <div class="h-75 d-flex align-items-center justify-content-center flex-column" style="line-height: 17px">
+      <div>
+        <p class="m-0">You are<b class="text-danger"> offline</b></p>
+      </div>
+      <div>
+        <small>please go online to start!</small>
+      </div>
+    </div>
+  } @else {
+    <div class="h-75 d-flex align-items-center justify-content-center flex-column" style="line-height: 17px">
+      <div>
+        <p class="m-0">You are<b class="text-success"> online</b> now!</p>
+      </div>
+      <div>
+        <!-- <small>please go online to start!</small> -->
+      </div>
+    </div>
+  }
+  } @else {
+    <div class="w-100 h-100 bg-white">
+      <ion-card>
+  <ion-card-header>
+    <ion-card-title>New Ride Request</ion-card-title>
+  </ion-card-header>
+  <ion-card-content>
+    <p>From: {{ rideRequests?.origin.name }} → To: {{ rideRequests?.destination.name }}</p>
+    <!-- <p>Time left: {{ countdown }}s</p> -->
+    <ion-button color="success" (click)="onAccept()">Accept</ion-button>
+    <ion-button color="danger" (click)="onReject()">Reject</ion-button>
+  </ion-card-content>
+</ion-card>
+    </div>
+  }
+  
+</ion-content>

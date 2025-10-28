@@ -1,0 +1,8 @@
+
+<ion-content [fullscreen]="true">
+<div class="h-75 d-flex align-items-center justify-content-center flex-column m-3">
+  <input class="w-100 p-2" style="border-radius: 10px; border: 1px solid black" type="text" placeholder="mobile number" [(ngModel)]="phoneNumber">
+  <input class="w-100 p-2 mt-2" style="border-radius: 10px; border: 1px solid black" type="password" placeholder="password" [(ngModel)]="password">
+  <button class="btn btn-dark w-100 mt-2" (click)="login()">Login</button>
+</div>
+</ion-content>
