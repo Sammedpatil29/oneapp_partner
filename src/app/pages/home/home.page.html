@@ -67,8 +67,7 @@
 </div>
 
 
-  <!-- NO RIDE REQUESTS -->
-  @if (rideRequests.length == 0) {
+
 
     <!-- OFFLINE -->
     @if (status == false) {
@@ -89,7 +88,8 @@
     <div id="map"></div>
     
   </div>
-  <div class="position-fixed bottom-0 d-flex" style="height: 25vh; width: 100%; z-index: 999; background-color: white; border-radius: 20px 20px 0 0; box-shadow: 0px 0px 5px rgba(0, 0, 0, 0.507)">
+  @if (rideRequests.length == 0) {
+     <div class="position-fixed bottom-0 d-flex" style="height: 25vh; width: 100%; z-index: 999; background-color: white; border-radius: 20px 20px 0 0; box-shadow: 0px 0px 5px rgba(0, 0, 0, 0.507)">
     <!-- From Uiverse.io by Erasmus001 --> 
     <div class="d-flex justify-content-center align-items-center w-100">
       <div id="wifi-loader">
@@ -111,64 +111,77 @@
 
     </div>
     </div>
-    }
+  } @else {
+    <!-- NEW RIDE REQUEST -->
+     <div class="position-fixed bottom-0 d-flex flex-column pb-5 overflow-auto" style="height: 85vh; width: 100%; z-index: 999; background-color: white; border-radius: 20px 20px 0 0; box-shadow: 0px 0px 5px rgba(0, 0, 0, 0.507)">
+   @for (item of rideRequests; track $index) {
+     <div class="px-2 pt-1 w-100">
+    <ion-card class="ride-card shadow-card p-3 rounded-3">
 
-  }
+    <!-- Header with Ride Request -->
+    <ion-card-header class="ion-no-padding mb-2 d-flex justify-content-between align-items-center">
+      <h2 class="card-title text-primary mb-0">🚕 New Ride Request</h2>
+      <span class="badge bg-success">₹{{ item?.fare }}</span>
+    </ion-card-header>
 
-  <!-- NEW RIDE REQUEST -->
-  @else {
-    <div class="p-3">
-      <ion-card class="ride-card">
-
-        <ion-card-header>
-          <ion-card-title class="ion-text-center text-primary">
-            🚕 New Ride Request
-          </ion-card-title>
-        </ion-card-header>
-
-        <ion-card-content>
-
-          <div class="route-box">
-            <p class="label">Pickup</p>
-            <p class="value">{{ rideRequests?.origin.name }}</p>
-          </div>
-
-          <div class="route-box mt-2">
-            <p class="label">Drop</p>
-            <p class="value">{{ rideRequests?.destination.name }}</p>
-          </div>
-
-          <div class="d-flex mt-4 gap-2">
-            <ion-button
-              expand="block"
-              color="success"
-              (click)="onAccept()">
-              Accept
-            </ion-button>
-
-            <ion-button
-              expand="block"
-              color="danger"
-              fill="outline"
-              (click)="onReject()">
-              Reject
-            </ion-button>
-          </div>
-
-        </ion-card-content>
-      </ion-card>
+    <!-- Pickup -->
+    <div class="d-flex align-items-center mt-2">
+      <div class="icon-circle pickup-bg me-3">
+        <ion-icon name="location-outline" color="light"></ion-icon>
+      </div>
+      <div class="route-text">
+        <p class="label mb-0">Pickup</p>
+        <h3 class="value mb-0">{{ item?.origin.name }}</h3>
+      </div>
     </div>
+
+    <!-- Drop -->
+    <div class="d-flex align-items-center mt-3">
+      <div class="icon-circle drop-bg me-3">
+        <ion-icon name="flag-outline" color="light"></ion-icon>
+      </div>
+      <div class="route-text">
+        <p class="label mb-0">Drop</p>
+        <h3 class="value mb-0">{{ item?.destination.name }}</h3>
+      </div>
+    </div>
+
+    <!-- Distance and Fare Details -->
+    <div class="d-flex justify-content-between mt-3 px-1">
+      <div class="badge badge-distance">Distance: {{ item?.distance }} km</div>
+      <div class="badge badge-fare">Fare: ₹{{ item?.fare }}</div>
+    </div>
+
+    <!-- Buttons -->
+    <div class="d-flex mt-4 gap-2 justify-content-center">
+      <ion-button
+        expand="block"
+        color="success"
+        class="btn-accept rounded-pill"
+        (click)="onAccept()">
+        Accept
+      </ion-button>
+
+      <ion-button
+        expand="block"
+        color="danger"
+        fill="outline"
+        class="btn-reject rounded-pill"
+        (click)="onReject()">
+        Reject
+      </ion-button>
+    </div>
+
+  </ion-card>
+</div>
+   }
+
+    </div>
+  }
   }
 
   
 
-</ion-content>
+  
 
-<ion-menu contentId="main-content">
-  <ion-header>
-    <ion-toolbar>
-      <ion-title>Menu Content</ion-title>
-    </ion-toolbar>
-  </ion-header>
-  <ion-content class="ion-padding">This is the menu content.</ion-content>
-</ion-menu>
+</ion-content>

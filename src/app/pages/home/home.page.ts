@@ -4,7 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { IonContent, IonHeader, IonTitle, IonMenuButton, IonMenu, IonToolbar, IonItem, IonLabel, IonToggle,IonIcon, IonCardContent, IonButtons, IonCardTitle, IonCardHeader, IonCard, IonButton } from '@ionic/angular/standalone';
 import { SocketService } from 'src/app/services/socket';
 import { addIcons } from 'ionicons';
-import { powerOutline, radioOutline } from 'ionicons/icons';
+import { powerOutline, radioOutline, locationOutline, flagOutline } from 'ionicons/icons';
 import { Router } from '@angular/router';
 import { Common } from 'src/app/services/common';
 import { Location } from 'src/app/services/location';
@@ -30,7 +30,10 @@ export class HomePage implements OnInit {
   isInsidePolygon: boolean = false
   isLoading: boolean = false
   riderData: any
-  rideRequests:any = []
+  rideRequests:any = [
+  
+]
+
   riderId:any;
 clickSound = new Audio('assets/sounds/notification-ping-372476.mp3');
    map!: any;
@@ -40,11 +43,26 @@ clickSound = new Audio('assets/sounds/notification-ping-372476.mp3');
   lng!: number;
 
   constructor(private socketService: SocketService, private router: Router, private service: Common, private locationService: Location) {
-      addIcons({powerOutline}); }
+      addIcons({powerOutline,locationOutline,flagOutline}); }
 
   async ngOnInit() {
     this.riderId = localStorage.getItem('riderId')
-    this.isLoading = true
+    
+    try {
+      const loc = await this.locationService.getCurrentLocation();
+      this.lat = loc.lat;
+      this.lng = loc.lng;
+      console.log('Location:', loc);
+      
+    } catch (err) {
+      console.error(err);
+    }
+
+   this.isLoading = true
+    this.service.getPolygon().subscribe((res:any)=>{
+      console.log('polygon res', res);
+      this.polygon = res;
+      this.isLoading = true
     this.socketService.onMessage((msg) => {
       this.isLoading = false
       console.log('📩 Received from server:', msg);
@@ -61,28 +79,17 @@ clickSound = new Audio('assets/sounds/notification-ping-372476.mp3');
       this.riderData = msg
       this.getStatus(msg.status)
       this.isLoading = false
-      
     })
     this.isLoading = true
     this.socketService.rideRequest((msg:any) => {
       console.log('rideRequest', msg)
-      this.rideRequests = msg
+      this.rideRequests.push(msg)
+      this.isLoading = false
+    })
       this.isLoading = false
     })
 
-    try {
-      const loc = await this.locationService.getCurrentLocation();
-      this.lat = loc.lat;
-      this.lng = loc.lng;
-      console.log('Location:', loc);
-      
-    } catch (err) {
-      console.error(err);
-    }
-
-    this.getPolygon()
-
-    this.isInsidePolygon = this.checkInsidePolygon(16.725700, 75.059887);
+    this.isInsidePolygon = this.checkInsidePolygon(this.lat, this.lng);
     console.log(this.isInsidePolygon);
   }
 
@@ -215,12 +222,12 @@ clickSound = new Audio('assets/sounds/notification-ping-372476.mp3');
 }
 
 checkInsidePolygon(lat: number, lng: number): boolean {
+  if (!this.polygon.polygon) return false; // polygon not loaded yet
 
   const userPoint = new google.maps.LatLng(lat, lng);
-
   return google.maps.geometry.poly.containsLocation(
     userPoint,
-    this.polygon
+    this.polygon.polygon
   );
 }
 
@@ -234,12 +241,7 @@ checkInsidePolygon(lat: number, lng: number): boolean {
   }
 
   getPolygon(){
-    this.isLoading = true
-    this.service.getPolygon().subscribe((res:any)=>{
-      console.log('polygon res', res);
-      this.polygon = res;
-      this.isLoading = false
-    })
+    
   }
 
   
