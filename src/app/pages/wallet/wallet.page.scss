@@ -1,0 +1,55 @@
+.wallet-card {
+  margin: 16px;
+  padding: 20px;
+  border-radius: 18px;
+  background: linear-gradient(135deg, #2ecc71, #27ae60);
+  color: white;
+  text-align: center;
+}
+
+.wallet-card .label {
+  font-size: 13px;
+  opacity: 0.9;
+}
+
+.wallet-card .balance {
+  margin: 8px 0 16px;
+  font-size: 36px;
+  font-weight: 700;
+}
+
+.wallet-actions {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+}
+
+.wallet-stats {
+  display: flex;
+  justify-content: space-between;
+  padding: 0 16px;
+  margin-top: -12px;
+}
+
+.stat-box {
+  background: white;
+  width: 32%;
+  border-radius: 14px;
+  padding: 12px;
+  text-align: center;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08);
+}
+
+.stat-box small {
+  font-size: 12px;
+  color: #6c757d;
+}
+
+.stat-box .value {
+  margin-top: 4px;
+  font-weight: 600;
+}
+
+.transaction-list ion-item {
+  --padding-start: 14px;
+}

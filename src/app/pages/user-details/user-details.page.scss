@@ -1,0 +1,41 @@
+.detail-card {
+  background: #ffffff;
+  margin: 16px;
+  padding: 16px;
+  border-radius: 16px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08);
+}
+
+.card-title {
+  display: flex;
+  align-items: center;
+  font-weight: 600;
+  margin-bottom: 12px;
+  color: #2ecc71;
+}
+
+.card-title ion-icon {
+  margin-right: 8px;
+  font-size: 18px;
+}
+
+.detail-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 8px 0;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.detail-row:last-child {
+  border-bottom: none;
+}
+
+.label {
+  font-size: 13px;
+  color: #6c757d;
+}
+
+.value {
+  font-size: 14px;
+  font-weight: 500;
+}

@@ -1,0 +1,80 @@
+.ride-status {
+  margin: 16px;
+  padding: 8px;
+  border-radius: 12px;
+  text-align: center;
+  font-weight: 600;
+}
+
+.ride-status.success {
+  background: rgba(46, 204, 113, 0.15);
+  color: #2ecc71;
+}
+
+.detail-card {
+  background: #ffffff;
+  margin: 16px;
+  padding: 14px;
+  border-radius: 16px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08);
+}
+
+.route-row {
+  display: flex;
+  align-items: flex-start;
+}
+
+.route-text {
+  margin-left: 10px;
+}
+
+.route-text small {
+  color: #6c757d;
+}
+
+.route-text p {
+  margin: 2px 0 0;
+  font-weight: 500;
+}
+
+.dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  margin-top: 4px;
+}
+
+.dot.start {
+  background: #2ecc71;
+}
+
+.dot.end {
+  background: #e74c3c;
+}
+
+.route-line {
+  height: 30px;
+  width: 2px;
+  background: #ccc;
+  margin: 6px 0 6px 4px;
+}
+
+.summary-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 8px 0;
+  font-size: 14px;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.summary-row:last-child {
+  border-bottom: none;
+}
+
+.summary-row.total {
+  font-weight: 700;
+}
+
+.title-case-btn {
+  text-transform: none; /* 🔥 removes ALL CAPS */
+}

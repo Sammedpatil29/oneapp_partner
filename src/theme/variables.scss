@@ -1,2 +1,13 @@
 // For information on how to create your own theme, please see:
 // http://ionicframework.com/docs/theming/
+.login-btn {
+  margin-top: 16px;
+  height: 48px;
+  font-weight: 600;
+  --background: black;
+  --border-radius: 8px;
+}
+
+.title-case-btn {
+  text-transform: none !important;
+}

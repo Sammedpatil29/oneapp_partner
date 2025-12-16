@@ -1,0 +1,134 @@
+<ion-header [translucent]="true" class="bg-white pt-4">
+  <ion-toolbar>
+     <ion-buttons slot="start">
+      <ion-button (click)="goBack()">
+        <ion-icon name="arrow-back-outline"></ion-icon>
+      </ion-button>
+    </ion-buttons>
+    <ion-title>Profile Details</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content [fullscreen]="true">
+
+  <!-- USER DETAILS CARD -->
+<div class="detail-card">
+
+  <div class="card-title">
+    <ion-icon name="person-outline"></ion-icon>
+    <span>User Details</span>
+  </div>
+
+  <div class="detail-row">
+    <span class="label">Name</span>
+    <span class="value">{{ profile?.user?.name }}</span>
+  </div>
+
+  <div class="detail-row">
+    <span class="label">Phone</span>
+    <div>
+      <span class="value">{{ profile?.user?.phone }}</span>
+      <span *ngIf="profile?.user?.phoneVerified">
+        ✔
+      </span>
+    </div>
+  </div>
+
+  <div class="detail-row">
+    <span class="label">Email</span>
+    <div>
+      <span class="value">{{ profile?.user?.email }}</span>
+      <span *ngIf="profile?.user?.emailVerified">
+        ✔
+      </span>
+    </div>
+  </div>
+
+  <div class="detail-row">
+    <span class="label">Rider ID</span>
+    <span class="value">{{ profile?.user?.riderId }}</span>
+  </div>
+
+  <div class="detail-row">
+    <span class="label">KYC Status</span>
+    <span
+      class="value"
+      [class.text-success]="profile?.user?.kycStatus === 'VERIFIED'"
+      [class.text-danger]="profile?.user?.kycStatus !== 'VERIFIED'">
+      {{ profile?.user?.kycStatus | titlecase}}
+    </span>
+  </div>
+
+  <div class="detail-row">
+    <span class="label">User Status</span>
+    <span
+      class="value"
+      [class.text-success]="profile?.user?.userStatus === 'ACTIVE'"
+      [class.text-danger]="profile?.user?.userStatus !== 'ACTIVE'">
+      {{ profile?.user?.userStatus | titlecase}}
+    </span>
+  </div>
+
+  <div class="detail-row">
+    <span class="label">Rating</span>
+    <span class="value">{{ profile?.user?.rating }} ⭐</span>
+  </div>
+
+</div>
+
+
+  <!-- VEHICLE DETAILS CARD -->
+<div class="detail-card mt-3">
+
+  <div class="card-title">
+    <ion-icon name="bicycle-outline"></ion-icon>
+    <span>Vehicle Details</span>
+  </div>
+
+  <div class="detail-row">
+    <span class="label">Vehicle Type</span>
+    <span class="value">{{ profile?.vehicle?.type }}</span>
+  </div>
+
+  <div class="detail-row">
+    <span class="label">Model</span>
+    <span class="value">{{ profile?.vehicle?.model }}</span>
+  </div>
+
+  <div class="detail-row">
+    <span class="label">Vehicle Number</span>
+    <span class="value">{{ profile?.vehicle?.number }}</span>
+  </div>
+
+  <div class="detail-row">
+    <span class="label">Fuel Type</span>
+    <span class="value">{{ profile?.vehicle?.fuelType }}</span>
+  </div>
+
+  <div class="detail-row">
+    <span class="label">RC Status</span>
+    <span
+      class="value"
+      [class.text-success]="profile?.vehicle?.rcStatus === 'VERIFIED'"
+      [class.text-danger]="profile?.vehicle?.rcStatus !== 'VERIFIED'">
+      {{ profile?.vehicle?.rcStatus | titlecase}}
+    </span>
+  </div>
+
+</div>
+
+
+  <!-- ACTION BUTTON -->
+  
+  <div class="px-3 pb-2 pt-3">
+    <ion-button expand="block" color="dark" fill="outline" class="title-case-btn">
+      Add New Vehicle
+    </ion-button>
+  </div>
+  <div class="px-3 pt-0 pb-3">
+    <ion-button expand="block" color="danger" fill="outline" class="title-case-btn">
+      Deactivate Account
+    </ion-button>
+  </div>
+
+</ion-content>

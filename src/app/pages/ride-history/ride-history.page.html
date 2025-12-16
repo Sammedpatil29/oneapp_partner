@@ -1,0 +1,71 @@
+<ion-header [translucent]="true" class="bg-white pt-4">
+  <ion-toolbar>
+     <ion-buttons slot="start">
+      <ion-button (click)="goBack()">
+        <ion-icon name="arrow-back-outline"></ion-icon>
+      </ion-button>
+    </ion-buttons>
+    <ion-title>Ride History</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content [fullscreen]="true">
+
+  <!-- SUMMARY STRIP -->
+<div class="history-summary">
+
+  <div class="summary-item">
+    <small>Total Rides</small>
+    <h3>{{ history?.summary?.totalRides }}</h3>
+  </div>
+
+  <div class="summary-item">
+    <small>Total Earnings</small>
+    <h3 class="text-success">
+      ₹{{ history?.summary?.totalEarnings }}
+    </h3>
+  </div>
+
+  <div class="summary-item">
+    <small>Rating</small>
+    <h3>
+      {{ history?.summary?.rating }} ⭐
+    </h3>
+  </div>
+
+</div>
+
+
+  <!-- RIDE LIST -->
+<ion-list class="ride-list">
+
+  <ion-item
+    *ngFor="let ride of history?.rides"
+    lines="none"
+    (click)="openRideDetails(ride)">
+
+    <ion-icon
+      name="navigate-outline"
+      [color]="ride.status === 'COMPLETED' ? 'success' : 'medium'"
+      slot="start">
+    </ion-icon>
+
+    <ion-label>
+      <h3>{{ ride.from }} → {{ ride.to }}</h3>
+      <p>{{ ride.dateLabel }} • {{ ride.time }}</p>
+    </ion-label>
+
+    <ion-note
+      slot="end"
+      color="success"
+      class="fs-5">
+      ₹{{ ride.amount }}
+    </ion-note>
+
+  </ion-item>
+
+</ion-list>
+
+
+</ion-content>
+

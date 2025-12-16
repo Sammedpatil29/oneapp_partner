@@ -8,7 +8,7 @@
     "start": "ng serve",
     "build": "ng build",
     "watch": "ng build --watch --configuration development",
-    "deploy": "ionic build && npx cap run android --target 65PJQ8SCOJRCS8EI",
+    "deploy": "npx ionic build && npx cap run android --target 65PJQ8SCOJRCS8EI",
     "test": "ng test",
     "lint": "ng lint"
   },
@@ -25,6 +25,7 @@
     "@capacitor/android": "7.4.3",
     "@capacitor/app": "7.1.0",
     "@capacitor/core": "^7.4.3",
+    "@capacitor/geolocation": "^8.0.0",
     "@capacitor/haptics": "7.0.2",
     "@capacitor/keyboard": "7.0.3",
     "@capacitor/status-bar": "7.0.3",
@@ -33,6 +34,7 @@
     "ionicons": "^7.0.0",
     "rxjs": "~7.8.0",
     "socket.io-client": "^4.8.1",
+    "swiper": "^12.0.3",
     "tslib": "^2.3.0",
     "zone.js": "~0.15.0"
   },

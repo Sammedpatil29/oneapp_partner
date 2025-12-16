@@ -1,0 +1,30 @@
+.history-summary {
+  display: flex;
+  justify-content: space-between;
+  margin: 16px;
+  padding: 14px;
+  background: white;
+  border-radius: 16px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08);
+}
+
+.summary-item {
+  width: 33%;
+  text-align: center;
+}
+
+.summary-item small {
+  font-size: 12px;
+  color: #6c757d;
+}
+
+.summary-item h3 {
+  margin-top: 4px;
+}
+
+.ride-list ion-item {
+  margin: 6px 12px;
+  border-radius: 12px;
+  --background: #ffffff;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+}

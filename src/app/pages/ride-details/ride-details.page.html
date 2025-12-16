@@ -1,0 +1,122 @@
+<ion-header [translucent]="true" class="bg-white pt-4">
+  <ion-toolbar>
+     <ion-buttons slot="start">
+      <ion-button (click)="goback()">
+        <ion-icon name="arrow-back-outline"></ion-icon>
+      </ion-button>
+    </ion-buttons>
+    <ion-title>Ride Details</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content [fullscreen]="true">
+
+ <!-- RIDE STATUS -->
+<div
+  class="ride-status"
+  [ngClass]="rideDetails?.status === 'COMPLETED' ? 'success' : 'warning'">
+  {{ rideDetails?.status }}
+</div>
+
+
+ <!-- ROUTE CARD -->
+<div class="detail-card">
+
+  <div class="route-row">
+    <div class="dot start"></div>
+    <div class="route-text">
+      <small>Pickup</small>
+      <p>{{ rideDetails?.pickup?.address }}</p>
+    </div>
+  </div>
+
+  <div class="route-line"></div>
+
+  <div class="route-row">
+    <div class="dot end"></div>
+    <div class="route-text">
+      <small>Drop</small>
+      <p>{{ rideDetails?.drop?.address }}</p>
+    </div>
+  </div>
+
+</div>
+
+
+  <!-- RIDE SUMMARY -->
+<div class="detail-card mt-3">
+
+  <div class="summary-row">
+    <span>Date</span>
+    <span>{{ rideDetails?.date | date:'dd MMM yyyy' }}</span>
+  </div>
+
+  <div class="summary-row">
+    <span>Time</span>
+    <span>{{ rideDetails?.time }}</span>
+  </div>
+
+  <div class="summary-row">
+    <span>Distance</span>
+    <span>{{ rideDetails?.distance }}</span>
+  </div>
+
+  <div class="summary-row">
+    <span>Duration</span>
+    <span>{{ rideDetails?.duration }}</span>
+  </div>
+
+</div>
+
+
+  <!-- EARNINGS -->
+<div class="detail-card mt-3">
+
+  <div class="summary-row">
+    <span>Ride Fare</span>
+    <span>₹{{ rideDetails?.fare?.rideFare }}</span>
+  </div>
+
+  <div class="summary-row">
+    <span>Incentive</span>
+    <span>₹{{ rideDetails?.fare?.incentive }}</span>
+  </div>
+
+  <div class="summary-row total">
+    <span>Total Earning</span>
+    <span class="text-success">
+      ₹{{ rideDetails?.fare?.total }}
+    </span>
+  </div>
+
+</div>
+
+
+ <!-- CUSTOMER INFO -->
+<div class="detail-card mt-3">
+
+  <div class="summary-row">
+    <span>Customer</span>
+    <span>{{ rideDetails?.customer?.name }}</span>
+  </div>
+
+  <div class="summary-row">
+    <span>Payment Mode</span>
+    <span>{{ rideDetails?.payment?.mode }}</span>
+  </div>
+
+  <div class="summary-row">
+    <span>Ride ID</span>
+    <span>#{{ rideDetails?.rideId }}</span>
+  </div>
+
+</div>
+
+
+ <div class="p-3">
+    <ion-button expand="block" color="primary" fill="outline" class="title-case-btn" (click)="gotoHelp()">
+      Need Help?
+    </ion-button>
+  </div>
+
+</ion-content>

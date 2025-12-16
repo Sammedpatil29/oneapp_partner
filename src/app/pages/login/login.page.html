@@ -1,8 +1,72 @@
+<ion-content
+  fullscreen
+  class="swiggy-content"
+  [scrollY]="true">
 
-<ion-content [fullscreen]="true">
-<div class="h-75 d-flex align-items-center justify-content-center flex-column m-3">
-  <input class="w-100 p-2" style="border-radius: 10px; border: 1px solid black" type="text" placeholder="mobile number" [(ngModel)]="phoneNumber">
-  <input class="w-100 p-2 mt-2" style="border-radius: 10px; border: 1px solid black" type="password" placeholder="password" [(ngModel)]="password">
-  <button class="btn btn-dark w-100 mt-2" (click)="login()">Login</button>
+  <div class="page">
+
+    <!-- TOP IMAGE -->
+    <div class="top-image" style="background-color: black;">
+      <div style="width: 100px; height: 100px; background-color: orange">
+
+      </div>
+    </div>
+
+    <!-- LOGIN SECTION -->
+    <div class="login-section">
+
+      <div class="header">
+        <h1>Login</h1>
+        <p>Enter your phone number to continue</p>
+      </div>
+
+      <div class="input-box">
+        <label>Phone number</label>
+        <ion-item lines="none">
+          <input
+            type="text"
+            class="native-input"
+            placeholder="Enter phone number"
+            [(ngModel)]="phoneNumber" />
+        </ion-item>
+      </div>
+
+      <div class="input-box mt">
+        <label>Password</label>
+        <ion-item lines="none">
+          <input
+            type="password"
+            class="native-input"
+            placeholder="Enter password"
+            [(ngModel)]="password" />
+        </ion-item>
+      </div>
+
+      <ion-button expand="block" class="login-btn" (click)="login()" [disabled]="isLoading || phoneNumber.length !== 10 || password.length === 0">
+        @if (!isLoading) {
+          LOGIN
+        } @else {
+          <div class="spinner-border spinner-border-sm" role="status">
+  <span class="visually-hidden">Loading...</span>
 </div>
+        }
+      </ion-button>
+      <ion-button expand="block" class="login-btn" (click)="login2()" [disabled]="isLoading || phoneNumber.length !== 10 || password.length === 0">
+        @if (!isLoading) {
+          LOGIN
+        } @else {
+          <div class="spinner-border spinner-border-sm" role="status">
+  <span class="visually-hidden">Loading...</span>
+</div>
+        }
+      </ion-button>
+
+      <p class="terms">
+        By clicking login, I accept the
+        <span>Terms & Conditions</span> &
+        <span>Privacy Policy</span>
+      </p>
+
+    </div>
+  </div>
 </ion-content>

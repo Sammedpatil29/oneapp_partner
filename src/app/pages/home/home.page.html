@@ -1,47 +1,174 @@
-<ion-header class="bg-white" [translucent]="true">
-  <div class="border d-flex justify-content-center p-3 pt-4">
-  <ion-toggle [(ngModel)]="status" (ionChange)="changeStatus()"></ion-toggle>
-  </div>
+@if (isLoading) {
+  <div class="position-fixed w-100 h-100 d-flex align-items-center justify-content-center" style="z-index: 1000; background-color: rgba(255, 255, 255, 0.7);">
+  <app-loader></app-loader>
+</div>
+}
+<ion-header class="bg-white pt-4" [translucent]="true">
+  <ion-toolbar>
+  <ion-title class="ion-text-center">
+    <div class="d-flex align-items-center justify-content-between">
+      <div class="toggle-wrap" [class.online]="status">
+        @if (status == false) {
+          <svg xmlns="http://www.w3.org/2000/svg" height="20px" viewBox="0 -960 960 960" width="20px" fill="#6c757d"><path d="M160-200q-66 0-113-47T0-360q0-57 36.5-101t93.5-55l-28-24H0v-60h180l100 60 160-60h126l-62-80H400v-80h142l84 108 134-68v120h-92l70 92q15-6 30.5-9t31.5-3q66 0 113 47t47 113q0 66-47 113t-113 47q-66 0-113-47t-47-113q0-27 9.5-52.5T676-460l-20-24-136 204H400l-80-70q-5 63-51 106.5T160-200Zm0-80q33 0 56.5-23.5T240-360q0-33-23.5-56.5T160-440q-33 0-56.5 23.5T80-360q0 33 23.5 56.5T160-280Zm294-240-144 54 144-54h130-130Zm346 240q33 0 56.5-23.5T880-360q0-33-23.5-56.5T800-440q-33 0-56.5 23.5T720-360q0 33 23.5 56.5T800-280Zm-322-80 106-160H454l-144 54 120 106h48Z"/></svg>
+        } @else {
+          <svg xmlns="http://www.w3.org/2000/svg" height="20px" viewBox="0 -960 960 960" width="20px" fill="#2dd55b"><path d="M160-200q-66 0-113-47T0-360q0-57 36.5-101t93.5-55l-28-24H0v-60h180l100 60 160-60h126l-62-80H400v-80h142l84 108 134-68v120h-92l70 92q15-6 30.5-9t31.5-3q66 0 113 47t47 113q0 66-47 113t-113 47q-66 0-113-47t-47-113q0-27 9.5-52.5T676-460l-20-24-136 204H400l-80-70q-5 63-51 106.5T160-200Zm0-80q33 0 56.5-23.5T240-360q0-33-23.5-56.5T160-440q-33 0-56.5 23.5T80-360q0 33 23.5 56.5T160-280Zm294-240-144 54 144-54h130-130Zm346 240q33 0 56.5-23.5T880-360q0-33-23.5-56.5T800-440q-33 0-56.5 23.5T720-360q0 33 23.5 56.5T800-280Zm-322-80 106-160H454l-144 54 120 106h48Z"/></svg>
+        }
+</div>
+     <div class="d-flex gap-1">
+       <div class="toggle-wrap" [class.online]="status">
+
+  <span class="status-text">
+    {{ status ? 'ONLINE' : 'OFFLINE' }}
+  </span>
+
+  <ion-toggle
+    color="success"
+    [(ngModel)]="status"
+    (ionChange)="changeStatus()">
+  </ion-toggle>
+
+</div>
+      
+     </div>
+    <div (click)="openProfile()">
+      <svg xmlns="http://www.w3.org/2000/svg" height="30px" viewBox="0 -960 960 960" width="30px" fill="#1f1f1f"><path d="M234-276q51-39 114-61.5T480-360q69 0 132 22.5T726-276q35-41 54.5-93T800-480q0-133-93.5-226.5T480-800q-133 0-226.5 93.5T160-480q0 59 19.5 111t54.5 93Zm246-164q-59 0-99.5-40.5T340-580q0-59 40.5-99.5T480-720q59 0 99.5 40.5T620-580q0 59-40.5 99.5T480-440Zm0 360q-83 0-156-31.5T197-197q-54-54-85.5-127T80-480q0-83 31.5-156T197-763q54-54 127-85.5T480-880q83 0 156 31.5T763-763q54 54 85.5 127T880-480q0 83-31.5 156T763-197q-54 54-127 85.5T480-80Zm0-80q53 0 100-15.5t86-44.5q-39-29-86-44.5T480-280q-53 0-100 15.5T294-220q39 29 86 44.5T480-160Zm0-360q26 0 43-17t17-43q0-26-17-43t-43-17q-26 0-43 17t-17 43q0 26 17 43t43 17Zm0-60Zm0 360Z"/></svg>
+    </div>
+    </div>
+  </ion-title>
+</ion-toolbar>
 </ion-header>
 
 <ion-content [fullscreen]="true">
 
+  <div class="floating-strip border mx-2">
+
+  <div class="floating-row">
+
+    <!-- LEFT: Today's Earnings -->
+    <div class="floating-item">
+      <small class="label">Today</small>
+      <div class="value text-success">₹450</div>
+    </div>
+
+    <!-- MIDDLE: Wallet Balance -->
+    <div class="floating-item middle" (click)="gotoWallet()">
+      <small class="label">Earnings</small>
+      <div class="value text-primary">₹1,250</div>
+    </div>
+
+    <!-- RIGHT: Last Order -->
+    <div class="floating-item">
+      <small class="label">Last Ride</small>
+      <div class="value text-dark">₹120</div>
+    </div>
+
+  </div>
+
+</div>
+
+
+  <!-- NO RIDE REQUESTS -->
+  @if (rideRequests.length == 0) {
+
+    <!-- OFFLINE -->
+    @if (status == false) {
+      <div class="h-100 d-flex align-items-center justify-content-center">
+        <ion-card class="ion-text-center w-90">
+          <ion-card-content>
+            <ion-icon name="power-outline" color="danger" style="font-size: 40px"></ion-icon>
+            <h2 class="mt-2 text-danger">You are Offline</h2>
+            <p class="text-muted">Go online to start receiving rides</p>
+          </ion-card-content>
+        </ion-card>
+      </div>
+    }
+
+    <!-- ONLINE -->
+    @else {
+      <div class="map-wrapper">
+    <div id="map"></div>
+    
+  </div>
+  <div class="position-fixed bottom-0 d-flex" style="height: 25vh; width: 100%; z-index: 999; background-color: white; border-radius: 20px 20px 0 0; box-shadow: 0px 0px 5px rgba(0, 0, 0, 0.507)">
+    <!-- From Uiverse.io by Erasmus001 --> 
+    <div class="d-flex justify-content-center align-items-center w-100">
+      <div id="wifi-loader">
+  <svg viewBox="0 0 86 86" class="circle-outer">
+    <circle r="40" cy="43" cx="43" class="back"></circle>
+    <circle r="40" cy="43" cx="43" class="front"></circle>
+    <circle r="40" cy="43" cx="43" class="new"></circle>
+  </svg>
+  <svg viewBox="0 0 60 60" class="circle-middle">
+    <circle r="27" cy="30" cx="30" class="back"></circle>
+    <circle r="27" cy="30" cx="30" class="front"></circle>
+  </svg>
+  <svg viewBox="0 0 34 34" class="circle-inner">
+    <circle r="14" cy="17" cx="17" class="back"></circle>
+    <circle r="14" cy="17" cx="17" class="front"></circle>
+  </svg>
+  <div data-text="Looking for orders" class="text"></div>
+</div>
+
+    </div>
+    </div>
+    }
+
+  }
+
+  <!-- NEW RIDE REQUEST -->
+  @else {
+    <div class="p-3">
+      <ion-card class="ride-card">
+
+        <ion-card-header>
+          <ion-card-title class="ion-text-center text-primary">
+            🚕 New Ride Request
+          </ion-card-title>
+        </ion-card-header>
+
+        <ion-card-content>
+
+          <div class="route-box">
+            <p class="label">Pickup</p>
+            <p class="value">{{ rideRequests?.origin.name }}</p>
+          </div>
+
+          <div class="route-box mt-2">
+            <p class="label">Drop</p>
+            <p class="value">{{ rideRequests?.destination.name }}</p>
+          </div>
+
+          <div class="d-flex mt-4 gap-2">
+            <ion-button
+              expand="block"
+              color="success"
+              (click)="onAccept()">
+              Accept
+            </ion-button>
+
+            <ion-button
+              expand="block"
+              color="danger"
+              fill="outline"
+              (click)="onReject()">
+              Reject
+            </ion-button>
+          </div>
+
+        </ion-card-content>
+      </ion-card>
+    </div>
+  }
+
   
 
-  @if(rideRequests.length == 0){
-    @if (status == false) {
-    <div class="h-75 d-flex align-items-center justify-content-center flex-column" style="line-height: 17px">
-      <div>
-        <p class="m-0">You are<b class="text-danger"> offline</b></p>
-      </div>
-      <div>
-        <small>please go online to start!</small>
-      </div>
-    </div>
-  } @else {
-    <div class="h-75 d-flex align-items-center justify-content-center flex-column" style="line-height: 17px">
-      <div>
-        <p class="m-0">You are<b class="text-success"> online</b> now!</p>
-      </div>
-      <div>
-        <!-- <small>please go online to start!</small> -->
-      </div>
-    </div>
-  }
-  } @else {
-    <div class="w-100 h-100 bg-white">
-      <ion-card>
-  <ion-card-header>
-    <ion-card-title>New Ride Request</ion-card-title>
-  </ion-card-header>
-  <ion-card-content>
-    <p>From: {{ rideRequests?.origin.name }} → To: {{ rideRequests?.destination.name }}</p>
-    <!-- <p>Time left: {{ countdown }}s</p> -->
-    <ion-button color="success" (click)="onAccept()">Accept</ion-button>
-    <ion-button color="danger" (click)="onReject()">Reject</ion-button>
-  </ion-card-content>
-</ion-card>
-    </div>
-  }
-  
 </ion-content>
+
+<ion-menu contentId="main-content">
+  <ion-header>
+    <ion-toolbar>
+      <ion-title>Menu Content</ion-title>
+    </ion-toolbar>
+  </ion-header>
+  <ion-content class="ion-padding">This is the menu content.</ion-content>
+</ion-menu>

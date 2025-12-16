@@ -1,0 +1,112 @@
+<ion-header [translucent]="true" class="bg-white pt-4">
+  <ion-toolbar>
+     <ion-buttons slot="start">
+      <ion-button (click)="goBack()">
+        <ion-icon name="arrow-back-outline"></ion-icon>
+      </ion-button>
+    </ion-buttons>
+    <ion-title>Earning Summary</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content [fullscreen]="true">
+
+  <!-- WALLET BALANCE CARD -->
+<div class="wallet-card">
+
+  <small class="label">Available Earnings</small>
+  <h1 class="balance">
+    ₹{{ wallet?.balance?.available }}
+  </h1>
+
+  <div class="wallet-actions">
+    @if (wallet.balance.available > 0) {
+      <ion-button size="small" color="success">
+      Take Out
+    </ion-button>
+    } @else if (wallet.balance.available == 0) {
+      <ion-button size="small" color="success" (click)="gotoHome()">
+      Start Earning
+    </ion-button>
+    } @else {
+      <ion-button size="small" color="success">
+      Pay Dues
+    </ion-button>
+    }
+    
+
+    
+  </div>
+
+</div>
+
+
+  <!-- QUICK STATS -->
+<div class="wallet-stats mt-1">
+
+  <div class="stat-box" (click)="gotoRides()">
+    <small>Today</small>
+    <p class="value text-success">
+      ₹{{ wallet?.stats?.today }}
+    </p>
+  </div>
+
+  <div class="stat-box">
+    <small>This Week</small>
+    <p class="value">
+      ₹{{ wallet?.stats?.thisWeek }}
+    </p>
+  </div>
+
+  <div class="stat-box">
+    <small>This Month</small>
+    <p class="value">
+      ₹{{ wallet?.stats?.thisMonth }}
+    </p>
+  </div>
+
+</div>
+
+
+  <!-- TRANSACTION LIST -->
+<ion-list class="transaction-list mt-2">
+
+  <ion-list-header>
+    <ion-label>Recent Transactions</ion-label>
+  </ion-list-header>
+
+  <ion-item *ngFor="let txn of wallet?.transactions">
+
+    <ion-icon
+      slot="start"
+      [name]="txn.type === 'CREDIT'
+        ? 'add-circle-outline'
+        : 'remove-circle-outline'"
+      [color]="txn.type === 'CREDIT'
+        ? 'success'
+        : 'danger'">
+    </ion-icon>
+
+    <ion-label>
+      <h3>{{ txn.title }}</h3>
+      <p>{{ txn.dateLabel }} • {{ txn.time }}</p>
+    </ion-label>
+
+    <ion-note
+      slot="end"
+      [color]="txn.type === 'CREDIT'
+        ? 'success'
+        : 'danger'"
+      class="fs-5">
+
+      {{ txn.type === 'CREDIT' ? '+' : '-' }}₹{{ txn.amount }}
+
+    </ion-note>
+
+  </ion-item>
+
+</ion-list>
+
+
+</ion-content>
+
