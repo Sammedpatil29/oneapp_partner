@@ -9,6 +9,7 @@ import { Router } from '@angular/router';
 import { Common } from 'src/app/services/common';
 import { Location } from 'src/app/services/location';
 import { LoaderComponent } from "src/app/components/loader/loader.component";
+import { IonAlert } from '@ionic/angular/standalone';
 
 addIcons({
   'power-outline': powerOutline,
@@ -22,7 +23,7 @@ declare var google: any;
   templateUrl: './home.page.html',
   styleUrls: ['./home.page.scss'],
   standalone: true,
-  imports: [IonButton, IonCard, IonCardHeader, IonMenu, IonMenuButton, IonCardTitle, IonCardContent, IonToggle, IonIcon, IonLabel, IonItem, IonButtons, IonContent, IonHeader, IonTitle, IonToolbar, CommonModule, FormsModule, LoaderComponent]
+  imports: [IonButton, IonCard,IonAlert, IonCardHeader, IonMenu, IonMenuButton, IonCardTitle, IonCardContent, IonToggle, IonIcon, IonLabel, IonItem, IonButtons, IonContent, IonHeader, IonTitle, IonToolbar, CommonModule, FormsModule, LoaderComponent]
 })
 export class HomePage implements OnInit {
 
@@ -33,7 +34,7 @@ export class HomePage implements OnInit {
   rideRequests:any = [
   
 ]
-
+alertButtons = ['Ok'];
   riderId:any;
 clickSound = new Audio('assets/sounds/notification-ping-372476.mp3');
    map!: any;
@@ -49,12 +50,15 @@ clickSound = new Audio('assets/sounds/notification-ping-372476.mp3');
     this.riderId = localStorage.getItem('riderId')
     
     try {
+      this.isLoading = true
       const loc = await this.locationService.getCurrentLocation();
       this.lat = loc.lat;
       this.lng = loc.lng;
+      this.isLoading = false
       console.log('Location:', loc);
       
     } catch (err) {
+      this.isLoading = false
       console.error(err);
     }
 

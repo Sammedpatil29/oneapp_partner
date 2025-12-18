@@ -7,6 +7,12 @@ const config: CapacitorConfig = {
   plugins: {
     Keyboard: {
       resize: 'body' // 🔥 THIS MAKES INPUT MOVE UP
+    },
+    SplashScreen: {
+      launchShowDuration: 0,
+      launchAutoHide: true,
+      showSpinner: false,
+      backgroundColor: "#000000ff"
     }
   }
 };

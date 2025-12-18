@@ -23,6 +23,8 @@ export class LoginPage implements OnInit {
   ngOnInit() {
     if(localStorage.getItem('riderJwt')){
       this.navCtrl.navigateRoot('/layout')
+    } else {
+      this.navCtrl.navigateRoot('/login')
     }
   }
 

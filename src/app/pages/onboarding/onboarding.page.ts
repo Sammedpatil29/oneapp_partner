@@ -12,7 +12,7 @@ import { IonContent, IonHeader, IonTitle, IonToolbar, IonButton, IonButtons, Ion
   imports: [IonCardContent, IonCard, IonIcon, IonButtons, IonButton, IonContent, IonHeader, IonTitle, IonToolbar, CommonModule, FormsModule]
 })
 export class OnboardingPage implements OnInit {
-userStatus: string = 'verification_pending' // 'verified' | 'verification_pending' | 'rejected'
+userStatus: string = ''
   constructor(private navCtrl: NavController ) { }
 
   ngOnInit() {

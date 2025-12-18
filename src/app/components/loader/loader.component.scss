@@ -1,0 +1,32 @@
+/* HTML: <div class="loader"></div> */
+
+.loader {
+  width: fit-content;
+  font-family: sans-serif;
+  font-size: 30px;
+  padding-bottom: 8px;
+  position: relative;
+  display: inline-flex;
+  gap: 6px;
+
+  background: linear-gradient(currentColor 0 0) 0 100% / 0% 3px no-repeat;
+  animation: l2 2s linear infinite;
+}
+
+/* NIM – BOLD */
+.loader::before {
+  content: "NIM";
+  font-weight: 800;
+}
+
+/* Partner – LIGHT */
+.loader::after {
+  content: "Partner";
+  font-weight: 400;
+}
+
+@keyframes l2 {
+  to {
+    background-size: 100% 3px;
+  }
+}
