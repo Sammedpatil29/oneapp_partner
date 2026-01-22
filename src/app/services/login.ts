@@ -5,7 +5,7 @@ import { Injectable } from '@angular/core';
   providedIn: 'root'
 })
 export class Login {
-  url = 'https://oneapp-express.onrender.com/api/rider/login'
+  url = 'https://oneapp-express-singapore.onrender.com/api/rider/login'
 
   constructor(private http: HttpClient){}
 

@@ -3,7 +3,7 @@
   <app-loader></app-loader>
 </div>
 }
-<ion-header class="bg-white pt-4" [translucent]="true">
+<ion-header class="bg-white pt-2" [translucent]="true">
   <ion-toolbar>
   <ion-title class="ion-text-center">
     <div class="d-flex align-items-center justify-content-between">
@@ -159,7 +159,7 @@
         expand="block"
         color="success"
         class="btn-accept rounded-pill"
-        (click)="onAccept()">
+        (click)="onAccept(item.id)">
         Accept
       </ion-button>
 
@@ -168,7 +168,7 @@
         color="danger"
         fill="outline"
         class="btn-reject rounded-pill"
-        (click)="onReject()">
+        (click)="onReject(item.id)">
         Reject
       </ion-button>
     </div>
@@ -188,8 +188,6 @@
 </ion-content>
  <ion-alert
   trigger="present-alert"
-  header="A Short Title Is Best"
-  subHeader="A Sub Header Is Optional"
-  message="A message should be a short, complete sentence."
+  header="You are a Bike Rider"
   [buttons]="alertButtons"
 ></ion-alert>

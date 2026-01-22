@@ -63,9 +63,9 @@ clickSound = new Audio('assets/sounds/notification-ping-372476.mp3');
     }
 
    this.isLoading = true
-    this.service.getPolygon().subscribe((res:any)=>{
-      console.log('polygon res', res);
-      this.polygon = res;
+    // this.service.getPolygon().subscribe((res:any)=>{
+      // console.log('polygon res', res);
+      // this.polygon = res;
       this.isLoading = true
     this.socketService.onMessage((msg) => {
       this.isLoading = false
@@ -85,17 +85,30 @@ clickSound = new Audio('assets/sounds/notification-ping-372476.mp3');
       this.isLoading = false
     })
     this.isLoading = true
-    this.socketService.rideRequest((msg:any) => {
-      console.log('rideRequest', msg)
-      this.rideRequests.push(msg)
+    this.socketService.rideRequest((msg: any) => {
+  // 1. Create a unique ID or use one from the message
+  const requestId = msg.id || Date.now();
+  const newRequest = { ...msg, requestId, expiresAt: Date.now() + 10000 };
+
+  // 2. Add to your list
+  this.rideRequests.push(newRequest);
+  this.isLoading = false;
+
+  // 3. Set a timer to automatically remove it after 10 seconds
+  setTimeout(() => {
+    this.removeExpiredRequest(requestId);
+  }, 10000);
+});
       this.isLoading = false
-    })
-      this.isLoading = false
-    })
+    // })
 
     this.isInsidePolygon = this.checkInsidePolygon(this.lat, this.lng);
     console.log(this.isInsidePolygon);
   }
+
+  removeExpiredRequest(id: any) {
+  this.rideRequests = this.rideRequests.filter((req:any) => req.requestId !== id);
+}
 
   getStatus(status:any){
     if(status == 'offline'){
@@ -139,14 +152,14 @@ clickSound = new Audio('assets/sounds/notification-ping-372476.mp3');
     this.isLoading = false
   }
 
-  onAccept() {
-    this.socketService.acceptRide(this.rideRequests.rideId, this.riderId);
+  onAccept(rideId:any) {
+    this.socketService.acceptRide(rideId, this.riderId);
     alert('Ride Accepted!');
     this.rideRequests = [];
   }
 
-   onReject() {
-    this.socketService.rejectRide(this.rideRequests.rideId, this.riderId);
+   onReject(rideId:any) {
+    this.socketService.rejectRide(rideId, this.riderId);
     alert('Ride Rejected!');
     this.rideRequests = [];
   }

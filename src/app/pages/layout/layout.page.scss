@@ -1,0 +1,106 @@
+.ride-requests-overlay {
+  position: fixed;
+  bottom: 20px;
+  left: 0;
+  right: 0;
+  z-index: 1000;
+  padding: 0 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.modern-ride-card {
+  background: #ffffff;
+  border-radius: 24px;
+  overflow: hidden;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+  border: 1px solid rgba(0,0,0,0.05);
+  animation: slideUp 0.3s ease-out;
+
+  .incoming-label {
+    font-size: 10px;
+    font-weight: 800;
+    color: #666;
+    letter-spacing: 1px;
+    background: #f0f0f0;
+    padding: 4px 8px;
+    border-radius: 4px;
+  }
+
+  .fare-amount {
+    font-size: 28px;
+    font-weight: 900;
+    color: #1a1a1a;
+    margin: 0;
+  }
+}
+
+// The Route Timeline 
+.route-container {
+  display: flex;
+  gap: 15px;
+  
+  .route-line {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding-top: 5px;
+    
+    .pickup-dot { width: 10px; height: 10px; background: #01257D; border-radius: 50%; }
+    .drop-dot { width: 10px; height: 10px; background: #2ecc71; transform: rotate(45deg); }
+    .line { width: 2px; flex-grow: 1; background: #eee; margin: 4px 0; }
+  }
+
+  .loc-label { font-size: 9px; color: #999; margin: 0; font-weight: 700; }
+  .loc-name { font-size: 15px; font-weight: 600; color: #333; margin: 0; }
+}
+
+.info-strip {
+  display: flex;
+  gap: 20px;
+  border-top: 1px solid #f5f5f5;
+  padding-top: 12px;
+  
+  .info-item {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 13px;
+    font-weight: 600;
+    color: #555;
+    ion-icon { color: #01257D; }
+  }
+}
+
+// Countdown Animation
+.countdown-timer {
+  height: 6px;
+  background: #eee;
+  .timer-fill {
+    height: 100%;
+    background: #01257D;
+    width: 100%;
+    animation: shrink 10s linear forwards;
+  }
+}
+
+.action-grid {
+  display: grid;
+  grid-template-columns: 1fr 2fr;
+  gap: 12px;
+  
+  button {
+    padding: 16px;
+    border-radius: 16px;
+    font-weight: 800;
+    font-size: 14px;
+    border: none;
+  }
+  
+  .btn-reject-modern { background: #fdeaea; color: #e74c3c; }
+  .btn-accept-modern { background: #01257D; color: white; box-shadow: 0 4px 15px rgba(1, 37, 125, 0.3); }
+}
+
+@keyframes shrink { from { width: 100%; } to { width: 0%; } }
+@keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }

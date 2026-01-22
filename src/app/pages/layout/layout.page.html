@@ -1,3 +1,74 @@
 <ion-app>
   <ion-router-outlet></ion-router-outlet>
 </ion-app>
+
+ <div *ngIf="rideRequests?.length > 0" class="ride-requests-overlay">
+  @for(item of rideRequests; track item.rideId) {
+    <div class="modern-ride-card">
+      <div class="countdown-timer">
+        <div class="timer-fill"></div>
+      </div>
+
+      <div class="p-3">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+          <span class="incoming-label">NEW REQUEST</span>
+          <div>
+            <div class="d-flex align-items-center">
+            @if (item?.service_details.type === 'bike') {
+              <span class="incoming-label">Bike</span>
+            } @else if (item?.service_details.type === 'car') {
+              <img src="assets/icon/car.png" class="me-2" style="width: 50px; height: 50px; object-fit: contain;">
+            } @else if (item?.service_details.type === 'van') {
+              <img src="assets/icon/van.png" class="me-2" style="width: 50px; height: 50px; object-fit: contain;">
+            } @else if (item?.service_details.type === 'parcel') {
+              <img src="assets/icon/parcel.png" class="me-2" style="width: 50px; height: 50px; object-fit: contain;">
+            }
+          </div>
+          <h2 class="fare-amount">₹{{ item?.fare }}</h2>
+          </div>
+        </div>
+
+        <div class="route-container">
+          <div class="route-line">
+            <div class="dot pickup-dot"></div>
+            <div class="line"></div>
+            <div class="dot drop-dot"></div>
+          </div>
+          
+          <div class="route-details">
+            <div class="location-box mb-3">
+              <p class="loc-label">PICKUP</p>
+              <h3 class="loc-name text-truncate">{{ item?.trip_details.origin.name }}</h3>
+            </div>
+            <div class="location-box">
+              <p class="loc-label">DROP</p>
+              <h3 class="loc-name text-truncate">{{ item?.trip_details.drop.name }}</h3>
+            </div>
+          </div>
+        </div>
+
+        <div class="info-strip mt-3">
+          <div class="info-item">
+            <ion-icon name="navigate-outline"></ion-icon>
+            <span>{{ item?.distance }} km</span>
+          </div>
+          <div class="info-item">
+            <ion-icon name="time-outline"></ion-icon>
+            <span>{{ item?.duration || '12' }} mins</span>
+          </div>
+        </div>
+
+        <div class="action-grid mt-4">
+          <button class="btn-reject-modern" (click)="onReject(item.rideId)">
+            REJECT
+          </button>
+          <button class="btn-accept-modern" (click)="onAccept(item.rideId)">
+            ACCEPT RIDE
+          </button>
+        </div>
+      </div>
+    </div>
+  }
+</div>
+
+    
