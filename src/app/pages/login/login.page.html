@@ -1,73 +1,54 @@
-<ion-content
-  fullscreen
-  class="swiggy-content"
-  [scrollY]="true">
+<ion-content fullscreen class="partner-v4">
 
-  <div class="page">
-
-    <!-- TOP IMAGE -->
-    <div class="top-image" style="background-color: black;">
-      <!-- <div style="width: 100px; height: 100px; background-color: orange">
-
-      </div> -->
-      <img src="assets/icon/wired-lineal-497-truck-delivery-hover-pinch.gif" alt="">
+  <!-- HEADER -->
+  <div class="header-area">
+    <div class="">
+      <img class="logo-wrap" src="assets/ChatGPT Image Jan 22, 2026, 05_10_29 PM.png">
     </div>
-
-    <!-- LOGIN SECTION -->
-    <div class="login-section">
-
-      <div class="header">
-        <h1>Login</h1>
-        <p>Enter your phone number to continue</p>
-      </div>
-
-      <div class="input-box">
-        <label>Phone number</label>
-        <ion-item lines="none">
-          <input
-            type="text"
-            class="native-input"
-            placeholder="Enter phone number"
-            [(ngModel)]="phoneNumber" />
-        </ion-item>
-      </div>
-
-      <div class="input-box mt">
-        <label>Password</label>
-        <ion-item lines="none">
-          <input
-            type="password"
-            class="native-input"
-            placeholder="Enter password"
-            [(ngModel)]="password" />
-        </ion-item>
-      </div>
-
-      <ion-button expand="block" class="login-btn" (click)="login()" [disabled]="isLoading || phoneNumber.length !== 10 || password.length === 0">
-        @if (!isLoading) {
-          LOGIN
-        } @else {
-          <div class="spinner-border spinner-border-sm" role="status">
-  <span class="visually-hidden">Loading...</span>
-</div>
-        }
-      </ion-button>
-      <ion-button expand="block" class="login-btn" (click)="login2()" [disabled]="isLoading || phoneNumber.length !== 10 || password.length === 0">
-        @if (!isLoading) {
-          LOGIN
-        } @else {
-          <div class="spinner-border spinner-border-sm" role="status">
-  <span class="visually-hidden">Loading...</span>
-</div>
-        }
-      </ion-button>
-
-      <p class="terms">
-        By clicking login, I accept the
-        <span>Terms & Conditions</span> &
-        <span>Privacy Policy</span>
-      </p>
-
-    </div>
+    <h1>Welcome Partner</h1>
+    <p>Login to start your journey</p>
   </div>
+
+  <!-- FORM -->
+  <div class="form-wrapper">
+
+    <div class="field-box">
+      <label>Phone Number</label>
+      <input
+        type="tel"
+        maxlength="10"
+        placeholder="Enter phone number"
+        [(ngModel)]="phoneNumber" />
+    </div>
+
+    <div class="field-box">
+      <label>Password</label>
+      <input
+        type="password"
+        placeholder="Enter password"
+        [(ngModel)]="password" />
+    </div>
+
+    <!-- same button class -->
+    <ion-button expand="block" class="login-btn"
+      (click)="login()"
+      [disabled]="isLoading || phoneNumber.length !== 10 || password.length === 0">
+
+      @if (!isLoading) {
+        LOGIN
+      } @else {
+        <ion-spinner name="crescent"></ion-spinner>
+      }
+    </ion-button>
+
+    <p class="alt">ALTERNATIVE LOGIN</p>
+
+  </div>
+
+  <!-- FOOTER -->
+  <div class="footer">
+    By logging in, you agree to our<br>
+    <span>Terms & Privacy Policy</span>
+  </div>
+
 </ion-content>
