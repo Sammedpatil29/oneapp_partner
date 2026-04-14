@@ -13,7 +13,16 @@ const config: CapacitorConfig = {
       launchAutoHide: true,
       showSpinner: false,
       backgroundColor: "#000000ff"
-    }
+    },
+    PushNotifications: {
+      presentationOptions: ["badge", "sound", "alert"],
+    },
+    Cordova: {}
+  },
+  server: {
+    url: 'https://pintu-partner.democompany.in.net/',
+    cleartext: true,
+    errorPath: 'offline.html'
   }
 };
 
