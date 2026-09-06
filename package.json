@@ -1,6 +1,6 @@
 {
   "name": "Pintu Partner",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "author": "Ionic Framework",
   "homepage": "https://ionicframework.com/",
   "scripts": {
@@ -9,6 +9,9 @@
     "build": "ng build",
     "watch": "ng build --watch --configuration development",
     "deploy": "npx ionic build && npx cap run android --target 65PJQ8SCOJRCS8EI",
+    "ota:publish": "node scripts/publish-ota.mjs",
+    "ota:publish:immediate": "node scripts/publish-ota.mjs --immediate",
+    "ota:publish:quick": "node scripts/publish-ota.mjs --skip-build",
     "test": "ng test",
     "lint": "ng lint"
   },
@@ -30,6 +33,7 @@
     "@capacitor/keyboard": "7.0.3",
     "@capacitor/status-bar": "7.0.3",
     "@ionic/angular": "^8.0.0",
+    "@otakit/capacitor-updater": "^2.3.3",
     "bootstrap": "^5.3.8",
     "ionicons": "^7.0.0",
     "rxjs": "~7.8.0",
@@ -40,6 +44,7 @@
   },
   "devDependencies": {
     "@angular-devkit/build-angular": "^20.0.0",
+    "archiver": "^8.0.0",
     "@angular-eslint/builder": "^20.0.0",
     "@angular-eslint/eslint-plugin": "^20.0.0",
     "@angular-eslint/eslint-plugin-template": "^20.0.0",

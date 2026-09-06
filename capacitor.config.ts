@@ -17,13 +17,18 @@ const config: CapacitorConfig = {
     PushNotifications: {
       presentationOptions: ["badge", "sound", "alert"],
     },
+    OtaKit: {
+      appId: 'io.oneapp.partner',
+      cdnUrl: 'https://pintu-api.democompany.in.net/ota',
+      allowInsecureUrls: true
+    },
     Cordova: {}
   },
-  server: {
-    url: 'https://pintu-partner.democompany.in.net/',
-    cleartext: true,
-    errorPath: 'offline.html'
-  }
+  // server: {
+  //   url: 'https://pintu-api.democompany.in.net/',
+  //   cleartext: true,
+  //   errorPath: 'offline.html'
+  // }
 };
 
 export default config;
