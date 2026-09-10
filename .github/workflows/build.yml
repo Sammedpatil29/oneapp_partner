@@ -42,11 +42,17 @@ jobs:
       - name: Sync Capacitor Android Project
         run: npx cap sync android
 
-      - name: Build Android Release (AAB & APK)
+      - name: Clean Gradle Build Cache & Stale Artifacts
         run: |
           cd android
           chmod +x gradlew
-          ./gradlew assembleRelease bundleRelease --no-daemon
+          ./gradlew clean --no-daemon
+          rm -rf app/build .gradle
+
+      - name: Build Android Release (AAB & APK)
+        run: |
+          cd android
+          ./gradlew assembleRelease bundleRelease --no-daemon --rerun-tasks
 
       - name: Prepare Keystore File
         env:
@@ -114,10 +120,28 @@ jobs:
                 "$ALIGNED_APK"
             fi
 
-            echo "✅ Verifying signed APK..."
+            echo "✅ Verifying signed APK signature..."
             $BUILD_TOOLS_DIR/apksigner verify "$SIGNED_APK"
           else
             echo "⚠️ Unsigned APK not found at $UNSIGNED_APK"
+          fi
+
+      - name: Verify Compiled APK Manifest Permissions
+        run: |
+          BUILD_TOOLS_DIR=$(ls -d $ANDROID_HOME/build-tools/* | sort -V | tail -n 1)
+          SIGNED_APK="android/app/build/outputs/apk/release/pintu-partner-release-signed.apk"
+
+          echo "=================================================="
+          echo "🔍 Inspecting Manifest Permissions in Compiled APK"
+          echo "=================================================="
+          if [ -f "$SIGNED_APK" ]; then
+            $BUILD_TOOLS_DIR/aapt dump permissions "$SIGNED_APK" || echo "aapt dump permissions finished"
+            echo ""
+            echo "📋 Detailed APK Badging Summary:"
+            $BUILD_TOOLS_DIR/aapt dump badging "$SIGNED_APK" | grep -E "package|uses-permission" || true
+          else
+            echo "❌ Signed APK not found for permission validation!"
+            exit 1
           fi
 
       - name: Upload Signed .APK (Ready for Direct Install)

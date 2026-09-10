@@ -1,1 +1,34 @@
-{}
+{
+  "appId": "io.oneapp.partner",
+  "appName": "Pintu Partner",
+  "webDir": "www",
+  "plugins": {
+    "Keyboard": {
+      "resize": "body"
+    },
+    "SplashScreen": {
+      "launchShowDuration": 0,
+      "launchAutoHide": true,
+      "launchFadeOutDuration": 0,
+      "showSpinner": false,
+      "backgroundColor": "#000000ff"
+    },
+    "PushNotifications": {
+      "presentationOptions": [
+        "badge",
+        "sound",
+        "alert"
+      ]
+    },
+    "Geolocation": {},
+    "OtaKit": {
+      "appId": "io.oneapp.partner",
+      "cdnUrl": "https://pintu-api.democompany.in.net/ota",
+      "allowInsecureUrls": true,
+      "resetWhenUpdate": true,
+      "autoDeleteFailedBundles": true
+    },
+    "Cordova": {}
+  }
+}
+
