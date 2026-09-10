@@ -13,7 +13,8 @@
     "ota:publish:immediate": "node scripts/publish-ota.mjs --immediate",
     "ota:publish:quick": "node scripts/publish-ota.mjs --skip-build",
     "test": "ng test",
-    "lint": "ng lint"
+    "lint": "ng lint",
+    "fix:git": "powershell -ExecutionPolicy Bypass -File ../fix-git.ps1"
   },
   "private": true,
   "dependencies": {

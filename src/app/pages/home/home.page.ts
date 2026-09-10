@@ -8,6 +8,7 @@ import {
 } from '@ionic/angular/standalone';
 import { SocketService } from 'src/app/services/socket';
 import { CaptainService } from 'src/app/services/captain.service';
+import { CaptainNativeService } from 'src/app/services/captain-native.service';
 import { Location } from 'src/app/services/location';
 import { Router } from '@angular/router';
 import { LoaderComponent } from 'src/app/components/loader/loader.component';
@@ -103,6 +104,7 @@ export class HomePage implements OnInit, OnDestroy {
   private router = inject(Router);
   public networkService = inject(NetworkService);
   public dialogService = inject(AppDialogService);
+  public captainNative = inject(CaptainNativeService);
 
   constructor() {
     addIcons({
@@ -230,6 +232,8 @@ export class HomePage implements OnInit, OnDestroy {
       riderId: this.riderId
     });
 
+    this.captainNative.setDutyStatus(this.status);
+
     if (this.status) {
       setTimeout(() => {
         this.loadMap();
@@ -293,6 +297,7 @@ export class HomePage implements OnInit, OnDestroy {
       otp: data.otp || '4821',
       paymentMode: 'CASH'
     };
+    this.captainNative.setActiveRide(this.activeRide);
   }
 
   simulateRide() {
@@ -341,14 +346,17 @@ export class HomePage implements OnInit, OnDestroy {
     if (this.activeRide) {
       this.todayStats.earnings += Number(this.activeRide.fare);
       this.todayStats.rides += 1;
+      this.captainNative.updateTodayEarnings(this.todayStats.earnings, this.todayStats.rides);
     }
     this.activeRide = null;
+    this.captainNative.setActiveRide(null);
     this.paymentSuccess = false;
   }
 
   openNavigation(lat?: number, lng?: number, address?: string) {
-    const query = (lat && lng) ? `${lat},${lng}` : encodeURIComponent(address || 'Pickup Point');
-    window.open(`https://www.google.com/maps/dir/?api=1&destination=${query}`, '_system');
+    const targetLat = lat || (this.activeRide?.destination?.lat || this.lat);
+    const targetLng = lng || (this.activeRide?.destination?.lng || this.lng);
+    this.captainNative.launchNavigation(targetLat, targetLng, address || 'Customer Destination');
   }
 
   callCustomer(phone?: string) {

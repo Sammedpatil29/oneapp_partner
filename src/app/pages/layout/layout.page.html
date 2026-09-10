@@ -102,5 +102,10 @@
   }
   </div>
 }
+
+  <!-- Android Permissions Diagnostics Hub Bottom Sheet -->
+  @if (showPermissionsHub) {
+    <app-permissions-hub (closed)="closePermissionsModal()"></app-permissions-hub>
+  }
 </ion-app>
 

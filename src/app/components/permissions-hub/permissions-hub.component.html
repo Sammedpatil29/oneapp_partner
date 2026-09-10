@@ -1,0 +1,136 @@
+<div class="perm-hub-backdrop" (click)="close()">
+  <div class="perm-hub-sheet" (click)="$event.stopPropagation()">
+    <!-- Handle bar -->
+    <div class="sheet-handle"></div>
+
+    <!-- Header -->
+    <div class="sheet-header">
+      <div class="d-flex align-items-center gap-2">
+        <div class="header-icon-circle">
+          <ion-icon name="shield-checkmark"></ion-icon>
+        </div>
+        <div>
+          <h3 class="sheet-title">Captain Device Permissions</h3>
+          <p class="sheet-subtitle">Required for seamless ride dispatch & background run</p>
+        </div>
+      </div>
+      <button class="btn-close-sheet" (click)="close()">
+        <ion-icon name="close"></ion-icon>
+      </button>
+    </div>
+
+    <!-- Health Progress Card -->
+    <div class="health-overview-card" [class.all-good]="permissions.allGranted">
+      <div class="d-flex align-items-center justify-content-between">
+        <div class="health-meta">
+          <span class="health-tag">{{ permissions.allGranted ? 'SYSTEM READY' : 'ACTION REQUIRED' }}</span>
+          <h4 class="health-status-text">{{ permissions.allGranted ? 'All Permissions Granted' : 'Some Permissions Missing' }}</h4>
+        </div>
+        <div class="health-badge-circle" [class.good]="permissions.allGranted">
+          <ion-icon [name]="permissions.allGranted ? 'checkmark-circle' : 'alert-circle'"></ion-icon>
+        </div>
+      </div>
+    </div>
+
+    <!-- Permissions List -->
+    <div class="permissions-list">
+
+      <!-- 1. Draw Over Other Apps -->
+      <div class="perm-card" [class.is-granted]="permissions.overlay">
+        <div class="perm-icon-box overlay">
+          <ion-icon name="browsers-outline"></ion-icon>
+        </div>
+        <div class="perm-content">
+          <div class="d-flex align-items-center justify-content-between">
+            <h4 class="perm-title">Draw Over Other Apps</h4>
+            <span class="status-badge" [class.granted]="permissions.overlay">
+              {{ permissions.overlay ? 'ENABLED' : 'REQUIRED' }}
+            </span>
+          </div>
+          <p class="perm-desc">
+            Enables the floating shortcut bubble & instant ride request popups while navigating with Google Maps.
+          </p>
+          @if (!permissions.overlay) {
+            <button class="btn-grant-action" (click)="grantOverlay()">
+              <span>Enable Overlay Permission</span>
+              <ion-icon name="arrow-forward"></ion-icon>
+            </button>
+          }
+        </div>
+      </div>
+
+      <!-- 2. Unrestricted Battery / Background Run -->
+      <div class="perm-card" [class.is-granted]="permissions.battery">
+        <div class="perm-icon-box battery">
+          <ion-icon name="battery-charging-outline"></ion-icon>
+        </div>
+        <div class="perm-content">
+          <div class="d-flex align-items-center justify-content-between">
+            <h4 class="perm-title">Unrestricted Background Run</h4>
+            <span class="status-badge" [class.granted]="permissions.battery">
+              {{ permissions.battery ? 'OPTIMIZED' : 'RECOMMENDED' }}
+            </span>
+          </div>
+          <p class="perm-desc">
+            Prevents Android OS from putting the captain app to sleep when the screen is locked or in pocket.
+          </p>
+          @if (!permissions.battery) {
+            <button class="btn-grant-action" (click)="grantBattery()">
+              <span>Allow Unrestricted Battery</span>
+              <ion-icon name="arrow-forward"></ion-icon>
+            </button>
+          }
+        </div>
+      </div>
+
+      <!-- 3. High Accuracy GPS -->
+      <div class="perm-card" [class.is-granted]="permissions.location">
+        <div class="perm-icon-box gps">
+          <ion-icon name="navigate-circle-outline"></ion-icon>
+        </div>
+        <div class="perm-content">
+          <div class="d-flex align-items-center justify-content-between">
+            <h4 class="perm-title">High Accuracy GPS Location</h4>
+            <span class="status-badge" [class.granted]="permissions.location">
+              {{ permissions.location ? 'ACTIVE' : 'REQUIRED' }}
+            </span>
+          </div>
+          <p class="perm-desc">
+            Used to track pickup arrival, route navigation, and accurate trip meter calculations.
+          </p>
+          @if (!permissions.location) {
+            <button class="btn-grant-action" (click)="openGpsSettings()">
+              <span>Configure GPS Settings</span>
+              <ion-icon name="arrow-forward"></ion-icon>
+            </button>
+          }
+        </div>
+      </div>
+
+      <!-- 4. Floating Bubble Visibility Toggle -->
+      <div class="perm-card bubble-switch-card">
+        <div class="perm-icon-box bubble">
+          <ion-icon name="layers-outline"></ion-icon>
+        </div>
+        <div class="perm-content d-flex align-items-center justify-content-between">
+          <div>
+            <h4 class="perm-title">Rapido-Style Shortcut Bubble</h4>
+            <p class="perm-desc mb-0">Show floating duty pill on screen</p>
+          </div>
+          <button class="btn-toggle-bubble" [class.active]="bubbleEnabled" (click)="toggleBubble()">
+            {{ bubbleEnabled ? 'VISIBLE' : 'HIDDEN' }}
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <div class="sheet-footer">
+      <button class="btn-refresh-all" (click)="refreshPermissions()">
+        <ion-icon name="refresh-outline"></ion-icon>
+        <span>Re-check Permissions</span>
+      </button>
+    </div>
+  </div>
+</div>
+
