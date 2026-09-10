@@ -109,8 +109,19 @@
               maxlength="10"
               class="form-control-custom-clean flex-grow-1"
               placeholder="98765 43210"
-              [(ngModel)]="personal.phone" />
+              [(ngModel)]="personal.phone"
+              (input)="onPhoneChange()"
+              (blur)="onPhoneChange()" />
+            @if (isCheckingPhone) {
+              <ion-spinner name="crescent" class="spinner-small me-2 text-primary"></ion-spinner>
+            }
           </div>
+          @if (phoneError) {
+            <div class="text-danger small mt-1 d-flex align-items-center gap-1">
+              <ion-icon name="alert-circle-outline" class="fs-6"></ion-icon>
+              <span>{{ phoneError }}</span>
+            </div>
+          }
         </div>
 
         <!-- EMAIL -->
@@ -477,7 +488,7 @@
             (click)="nextStep()">
             @if (isSubmitting) {
               <ion-spinner name="crescent" class="spinner-small me-2"></ion-spinner>
-              <span>Submitting KYC...</span>
+              <span>Creating ZIP &amp; Uploading KYC...</span>
             } @else {
               <ion-icon name="shield-checkmark-outline" class="me-2"></ion-icon>
               <span>Submit &amp; Fast-Track Verify</span>

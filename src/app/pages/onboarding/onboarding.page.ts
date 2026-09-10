@@ -43,6 +43,7 @@ import { AppDialogService } from 'src/app/services/app-dialog.service';
 import { NetworkService } from 'src/app/services/network.service';
 import { HttpClient } from '@angular/common/http';
 import { environment } from 'src/environments/environment';
+import JSZip from 'jszip';
 
 export interface VehicleOption {
   id: string;
@@ -96,8 +97,13 @@ export class OnboardingPage implements OnInit, OnDestroy {
   currentStep: number = 1; // 1: Personal, 2: Vehicle, 3: KYC Documents, 4: Verification Status
   isSubmitting: boolean = false;
   isCheckingStatus: boolean = false;
+  isCheckingPhone: boolean = false;
+  phoneError: string = '';
   createdRiderId: string = '';
   isEmailPreVerified: boolean = false;
+
+  // Local storage for uploaded raw document files (to bundle into ZIP)
+  localDocFiles: { [key: string]: File } = {};
 
   private statusPollInterval: any;
 
@@ -219,9 +225,7 @@ export class OnboardingPage implements OnInit, OnDestroy {
           this.personal.email = parsed.email;
           this.isEmailPreVerified = true;
         }
-        if (parsed.name && !this.personal.fullName) {
-          this.personal.fullName = parsed.name;
-        }
+        // Do NOT populate name based on email - let user add their real legal name
         if (parsed.phone && !this.personal.phone) {
           this.personal.phone = parsed.phone;
         }
@@ -251,20 +255,72 @@ export class OnboardingPage implements OnInit, OnDestroy {
     }
   }
 
+  onPhoneChange() {
+    const cleanPhone = String(this.personal.phone || '').trim();
+    if (cleanPhone.length !== 10) {
+      this.phoneError = cleanPhone.length > 0 ? 'Mobile number must be exactly 10 digits' : '';
+      return;
+    }
+
+    this.isCheckingPhone = true;
+    this.phoneError = '';
+    this.authService.checkPhoneAvailable(cleanPhone, this.createdRiderId).subscribe({
+      next: (res) => {
+        this.isCheckingPhone = false;
+        if (res?.exists) {
+          this.phoneError = 'This mobile number is already linked with another Captain account. Please use a different number.';
+          this.dialogService.showToast('Mobile number already registered with another account!', 'warning', 3500);
+        } else {
+          this.phoneError = '';
+        }
+      },
+      error: () => {
+        this.isCheckingPhone = false;
+      }
+    });
+  }
+
   selectVehicleType(typeId: string) {
     this.vehicle.type = typeId;
   }
 
   nextStep() {
     if (this.currentStep === 1) {
-      if (!this.personal.fullName || !this.personal.phone || this.personal.phone.length !== 10) {
-        this.dialogService.showAlert('Required Fields', 'Please enter your Full Name and a valid 10-digit Mobile Number.', 'warning');
+      const name = (this.personal.fullName || '').trim();
+      const phone = (this.personal.phone || '').trim();
+
+      if (!name || name.length < 2) {
+        this.dialogService.showAlert('Required Field', 'Please enter your Full Legal Name as on your Driving License.', 'warning');
+        return;
+      }
+      if (!phone || phone.length !== 10) {
+        this.dialogService.showAlert('Invalid Mobile', 'Please enter a valid 10-digit mobile number.', 'warning');
+        return;
+      }
+      if (this.phoneError) {
+        this.dialogService.showAlert('Mobile Already Linked', this.phoneError, 'warning');
+        return;
+      }
+      if (this.isCheckingPhone) {
+        this.dialogService.showToast('Verifying mobile number availability... please wait', 'primary', 2000);
         return;
       }
       this.currentStep = 2;
     } else if (this.currentStep === 2) {
-      if (!this.vehicle.model || !this.vehicle.number) {
-        this.dialogService.showAlert('Vehicle Details', 'Please provide your Vehicle Model and Registration Number.', 'warning');
+      const model = (this.vehicle.model || '').trim();
+      const num = (this.vehicle.number || '').trim();
+      const year = (this.vehicle.year || '').trim();
+
+      if (!model || model.length < 2) {
+        this.dialogService.showAlert('Vehicle Details', 'Please enter your vehicle make and model.', 'warning');
+        return;
+      }
+      if (!num || num.length < 4) {
+        this.dialogService.showAlert('Vehicle Details', 'Please provide a valid vehicle registration number (RC).', 'warning');
+        return;
+      }
+      if (!year) {
+        this.dialogService.showAlert('Vehicle Details', 'Please select your vehicle manufacturing year.', 'warning');
         return;
       }
       this.currentStep = 3;
@@ -285,6 +341,9 @@ export class OnboardingPage implements OnInit, OnDestroy {
     const file = event.target.files?.[0];
     if (!file) return;
 
+    // Cache the raw File object locally for final ZIP bundling
+    this.localDocFiles[docKey] = file;
+
     const fileSizeFormatted = (file.size / 1024 < 1024) 
       ? `${(file.size / 1024).toFixed(0)} KB` 
       : `${(file.size / (1024 * 1024)).toFixed(1)} MB`;
@@ -298,92 +357,163 @@ export class OnboardingPage implements OnInit, OnDestroy {
         fileSize: fileSizeFormatted,
         filePreview: e.target.result
       };
-      this.dialogService.showToast(`${this.documents[docKey].name} uploaded! (${fileSizeFormatted}) ✅`, 'success', 2500);
+      this.dialogService.showToast(`${this.documents[docKey].name} selected! (${fileSizeFormatted}) ✅`, 'success', 2000);
     };
     reader.readAsDataURL(file);
   }
 
-  submitOnboardingApplication() {
+  async submitOnboardingApplication() {
+    // 1. Strict Validation for all 5 documents
+    const missingItems: string[] = [];
+
+    if (!this.documents['drivingLicense'].uploaded || !this.localDocFiles['drivingLicense']) {
+      missingItems.push('Driving License (DL) photo/document');
+    }
+    if (!this.documents['drivingLicense'].number?.trim()) {
+      missingItems.push('Driving License Number');
+    }
+
+    if (!this.documents['vehicleRc'].uploaded || !this.localDocFiles['vehicleRc']) {
+      missingItems.push('Vehicle RC Book photo/document');
+    }
+    if (!this.documents['vehicleRc'].number?.trim()) {
+      missingItems.push('Vehicle RC Number');
+    }
+
+    if (!this.documents['insurance'].uploaded || !this.localDocFiles['insurance']) {
+      missingItems.push('Active Vehicle Insurance document');
+    }
+    if (!this.documents['insurance'].validUntil?.trim()) {
+      missingItems.push('Insurance Validity Date');
+    }
+
+    if (!this.documents['aadhaarPan'].uploaded || !this.localDocFiles['aadhaarPan']) {
+      missingItems.push('Aadhaar / PAN Card document');
+    }
+    if (!this.documents['aadhaarPan'].number?.trim()) {
+      missingItems.push('Aadhaar / PAN Card Number');
+    }
+
+    if (!this.documents['selfie'].uploaded || !this.localDocFiles['selfie']) {
+      missingItems.push('Captain Live Photo / Selfie');
+    }
+
+    if (missingItems.length > 0) {
+      this.dialogService.showAlert(
+        'Missing Required Documents',
+        `Please complete the following required items before submitting:\n\n• ${missingItems.join('\n• ')}`,
+        'warning'
+      );
+      return;
+    }
+
     this.isSubmitting = true;
 
-    const kycDocsPayload = {
-      driving_license: {
-        number: this.documents['drivingLicense'].number,
-        status: 'verified',
-        uploaded: this.documents['drivingLicense'].uploaded,
-        file: this.documents['drivingLicense'].fileName
-      },
-      vehicle_rc: {
-        number: this.documents['vehicleRc'].number,
-        status: 'verified',
-        uploaded: this.documents['vehicleRc'].uploaded,
-        file: this.documents['vehicleRc'].fileName
-      },
-      vehicle_insurance: {
-        valid_until: this.documents['insurance'].validUntil,
-        status: 'verified',
-        uploaded: this.documents['insurance'].uploaded,
-        file: this.documents['insurance'].fileName
-      },
-      aadhaar_pan: {
-        number: this.documents['aadhaarPan'].number,
-        status: 'verified',
-        uploaded: this.documents['aadhaarPan'].uploaded,
-        file: this.documents['aadhaarPan'].fileName
-      },
-      selfie: {
-        status: 'verified',
-        uploaded: this.documents['selfie'].uploaded,
-        file: this.documents['selfie'].fileName
+    try {
+      this.dialogService.showToast('Packaging documents into secure ZIP archive... 📦', 'primary', 2500);
+
+      // 2. Bundle all local documents into a ZIP archive via JSZip
+      const zip = new JSZip();
+      const sanitizedPhone = String(this.personal.phone || 'captain').trim();
+      const folder = zip.folder(`kyc_${sanitizedPhone}`);
+
+      for (const [key, file] of Object.entries(this.localDocFiles)) {
+        folder?.file(`${key}_${file.name}`, file);
       }
-    };
 
-    const payload = {
-      name: this.personal.fullName,
-      contact: this.personal.phone,
-      email: this.personal.email,
-      role: 'captain',
-      password: 'captain123',
-      vehicle_type: this.vehicle.type,
-      vehicle_model: this.vehicle.model,
-      vehicle_number: this.vehicle.number.toUpperCase(),
-      fuel_type: this.vehicle.fuelType,
-      image_url: this.documents['selfie'].filePreview || '',
-      kyc_docs: kycDocsPayload,
-      current_location: { lat: 12.9716, lng: 77.5946 },
-      status: 'offline',
-      is_verified: false
-    };
-
-    this.authService.register(payload).subscribe({
-      next: (res) => {
-        this.isSubmitting = false;
-        if (res?.data?.id) {
-          this.createdRiderId = String(res.data.id);
-          localStorage.setItem('riderId', this.createdRiderId);
+      const kycDocsMeta = {
+        driving_license: {
+          number: this.documents['drivingLicense'].number.trim(),
+          filename: this.documents['drivingLicense'].fileName,
+          status: 'pending',
+          uploaded: true
+        },
+        vehicle_rc: {
+          number: this.documents['vehicleRc'].number.trim().toUpperCase(),
+          filename: this.documents['vehicleRc'].fileName,
+          status: 'pending',
+          uploaded: true
+        },
+        vehicle_insurance: {
+          number: this.documents['insurance'].number?.trim() || '',
+          valid_until: this.documents['insurance'].validUntil,
+          filename: this.documents['insurance'].fileName,
+          status: 'pending',
+          uploaded: true
+        },
+        aadhaar_pan: {
+          number: this.documents['aadhaarPan'].number.trim(),
+          filename: this.documents['aadhaarPan'].fileName,
+          status: 'pending',
+          uploaded: true
+        },
+        selfie: {
+          filename: this.documents['selfie'].fileName,
+          status: 'pending',
+          uploaded: true
         }
-        this.currentStep = 4;
-        this.verificationStatus = 'pending';
-        this.startStatusPolling();
-        this.dialogService.showAlert(
-          'Application Submitted! 🎉',
-          'Your KYC documents have been submitted to the verification desk. Fast-track review is in progress.',
-          'success'
-        );
-      },
-      error: (err) => {
-        console.warn('Backend create rider error:', err);
-        this.isSubmitting = false;
-        this.currentStep = 4;
-        this.verificationStatus = 'pending';
-        this.startStatusPolling();
-        this.dialogService.showAlert(
-          'Application Received! 🎉',
-          'Your profile details have been registered. Fast-track verification in progress.',
-          'success'
-        );
+      };
+
+      folder?.file('metadata.json', JSON.stringify({
+        captain: {
+          name: this.personal.fullName.trim(),
+          phone: this.personal.phone.trim(),
+          email: this.personal.email.trim(),
+          city: this.personal.city,
+          emergencyContact: this.personal.emergencyContact
+        },
+        vehicle: this.vehicle,
+        documents: kycDocsMeta,
+        submittedAt: new Date().toISOString()
+      }, null, 2));
+
+      const zipBlob = await zip.generateAsync({ type: 'blob' });
+
+      // 3. Prepare FormData payload with ZIP and rider details
+      const formData = new FormData();
+      formData.append('kycZip', zipBlob, `kyc_${sanitizedPhone}_${Date.now()}.zip`);
+      if (this.createdRiderId) {
+        formData.append('riderId', this.createdRiderId);
       }
-    });
+      formData.append('name', this.personal.fullName.trim());
+      formData.append('contact', this.personal.phone.trim());
+      formData.append('email', this.personal.email.trim());
+      formData.append('vehicle_type', this.vehicle.type);
+      formData.append('vehicle_model', this.vehicle.model.trim());
+      formData.append('vehicle_number', this.vehicle.number.trim().toUpperCase());
+      formData.append('fuel_type', this.vehicle.fuelType);
+      formData.append('vehicle_year', this.vehicle.year);
+      formData.append('kyc_docs', JSON.stringify(kycDocsMeta));
+
+      // 4. Upload ZIP and details to server
+      this.authService.submitKycWithZip(formData).subscribe({
+        next: (res) => {
+          this.isSubmitting = false;
+          if (res?.data?.id) {
+            this.createdRiderId = String(res.data.id);
+            localStorage.setItem('riderId', this.createdRiderId);
+          }
+          this.currentStep = 4;
+          this.verificationStatus = 'pending';
+          this.startStatusPolling();
+          this.dialogService.showAlert(
+            'Application & Documents Submitted! 🎉',
+            'Your vehicle information and KYC documents ZIP have been successfully uploaded to the operations review desk. Fast-track verification is now in progress.',
+            'success'
+          );
+        },
+        error: (err) => {
+          console.error('KYC ZIP upload error:', err);
+          this.isSubmitting = false;
+          const msg = err?.error?.message || 'Failed to upload KYC archive. Please check your internet connection and try again.';
+          this.dialogService.showAlert('Upload Failed', msg, 'error');
+        }
+      });
+    } catch (zipErr: any) {
+      this.isSubmitting = false;
+      console.error('Error generating ZIP:', zipErr);
+      this.dialogService.showAlert('Packaging Error', 'Could not create document archive: ' + zipErr.message, 'error');
+    }
   }
 
   startStatusPolling() {

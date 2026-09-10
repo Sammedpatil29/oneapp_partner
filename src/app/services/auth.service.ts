@@ -140,6 +140,27 @@ export class AuthService {
     );
   }
 
+  checkPhoneAvailable(phone: string, riderId?: string): Observable<{ success: boolean; exists: boolean; message: string }> {
+    let params: any = { phone };
+    if (riderId) params.riderId = riderId;
+    return this.http.get<{ success: boolean; exists: boolean; message: string }>(
+      `${this.apiUrl}/api/rider/check-phone`,
+      { params }
+    );
+  }
+
+  submitKycWithZip(formData: FormData): Observable<any> {
+    const token = this.getToken();
+    const headers: { [header: string]: string } = token ? { Authorization: `Bearer ${token}` } : {};
+    return this.http.post<any>(`${this.apiUrl}/api/rider/upload-kyc-zip`, formData, { headers }).pipe(
+      tap((res) => {
+        if (res?.data?.id) {
+          localStorage.setItem('riderId', String(res.data.id));
+        }
+      })
+    );
+  }
+
   register(data: any): Observable<any> {
     return this.http.post<any>(`${this.apiUrl}/api/rider/create`, data).pipe(
       tap((res) => {

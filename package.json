@@ -1,6 +1,6 @@
 {
   "name": "Pintu Partner",
-  "version": "0.0.9",
+  "version": "0.0.10",
   "author": "Ionic Framework",
   "homepage": "https://ionicframework.com/",
   "scripts": {
@@ -41,6 +41,7 @@
     "@otakit/capacitor-updater": "^2.3.3",
     "bootstrap": "^5.3.8",
     "ionicons": "^7.0.0",
+    "jszip": "^3.10.2",
     "rxjs": "~7.8.0",
     "socket.io-client": "^4.8.1",
     "swiper": "^12.0.3",
@@ -49,7 +50,6 @@
   },
   "devDependencies": {
     "@angular-devkit/build-angular": "^20.0.0",
-    "archiver": "^8.0.0",
     "@angular-eslint/builder": "^20.0.0",
     "@angular-eslint/eslint-plugin": "^20.0.0",
     "@angular-eslint/eslint-plugin-template": "^20.0.0",
@@ -63,6 +63,7 @@
     "@types/jasmine": "~5.1.0",
     "@typescript-eslint/eslint-plugin": "^8.18.0",
     "@typescript-eslint/parser": "^8.18.0",
+    "archiver": "^8.0.0",
     "eslint": "^9.16.0",
     "eslint-plugin-import": "^2.29.1",
     "eslint-plugin-jsdoc": "^48.2.1",
