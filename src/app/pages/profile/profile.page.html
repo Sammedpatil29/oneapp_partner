@@ -1,126 +1,177 @@
-<ion-header [translucent]="true" class="bg-white pt-4">
+<ion-header class="ion-no-border bg-white pt-2">
   <ion-toolbar>
-
     <ion-buttons slot="start">
       <ion-button (click)="goBack()">
-        <ion-icon name="arrow-back-outline"></ion-icon>
+        <ion-icon name="arrow-back-outline" color="dark"></ion-icon>
       </ion-button>
     </ion-buttons>
 
-    <ion-title>My Account</ion-title>
+    <ion-title class="fw-bold text-dark">Captain Profile</ion-title>
 
+    <ion-buttons slot="end">
+      <ion-button (click)="gotoNotifications()">
+        <ion-icon name="notifications-outline" color="dark"></ion-icon>
+      </ion-button>
+    </ion-buttons>
   </ion-toolbar>
 </ion-header>
 
-<ion-content [fullscreen]="true">
-
-  <!-- TOP PROFILE CARD -->
-  <div class="profile-card">
-
-    <div class="profile-top mb-2">
-
-      <div class="avatar">
-        <!-- Optional profile image -->
-        <!-- <img [src]="profile?.rider?.profileImage" *ngIf="profile?.rider?.profileImage"> -->
-      </div>
-
-      <div class="profile-info">
-        <h2>{{ profile['data']?.rider?.name }}</h2>
-        <p>Rider ID • {{ profile['data']?.rider?.id }}</p>
-
-        <div class="d-flex gap-1">
-          <div
-            class="status-pill"
-            [ngClass]="profile['data']?.rider?.status === 'ACTIVE' ? 'online' : 'offline'">
-            {{ profile['data']?.rider?.status }}
+<ion-content class="profile-content" [fullscreen]="true">
+  @if (isLoading) {
+    <app-loader message="Loading Profile..."></app-loader>
+  } @else if (isOffline) {
+    <app-no-network (retry)="fetchProfile()"></app-no-network>
+  } @else if (hasApiError) {
+    <app-api-error (retry)="fetchProfile()"></app-api-error>
+  } @else {
+  <div class="container px-3 py-2">
+    <!-- CAPTAIN HERO PROFILE CARD -->
+    <div class="profile-hero-card p-4 rounded-4 shadow-sm mb-3">
+      <div class="d-flex align-items-center gap-3">
+        <div class="avatar-box position-relative">
+          <div class="avatar-placeholder bg-warning text-dark fw-bold rounded-circle d-flex align-items-center justify-content-center">
+            {{ captain.name.charAt(0).toUpperCase() }}
           </div>
-
-          <div class="status-pill online">
-            Since {{ profile['data']?.rider?.joinedOn | date:'dd/MM/yyyy' }}
+          <span class="badge bg-success rounded-circle position-absolute bottom-0 end-0 p-1 border border-2 border-white"></span>
+        </div>
+        <div class="flex-grow-1 text-white">
+          <div class="d-flex align-items-center gap-2">
+            <h4 class="fw-bold mb-0 text-white">{{ captain.name }}</h4>
+            <span class="badge bg-warning text-dark fw-bold rounded-pill px-2 py-1 small">
+              🏆 {{ captain.captain_level || 'Gold Captain' }}
+            </span>
+          </div>
+          <p class="text-white-50 small mb-1">+91 {{ captain.contact }}</p>
+          <div class="d-flex align-items-center gap-1 small text-warning">
+            <ion-icon name="star" color="warning"></ion-icon>
+            <span class="fw-bold">{{ captain.rating?.average || 4.9 }}</span>
+            <span class="text-white-50">({{ captain.rating?.total_reviews || 142 }} reviews)</span>
           </div>
         </div>
       </div>
 
-    </div>
-
-  </div>
-
-  <!-- QUICK STATS -->
-  <div class="stats-row">
-
-    <div class="stat-box">
-      <small>Today</small>
-      <h3 class="text-success">
-        ₹{{ profile['data']?.earnings?.today }}
-      </h3>
-    </div>
-
-    <div class="stat-box" (click)="gotoWallet()">
-      <small>Earnings</small>
-      <h3 class="text-primary">
-        ₹{{ profile['data']?.wallet?.balance }}
-      </h3>
-    </div>
-
-    <div class="stat-box">
-      <small>Rating</small>
-      <h3>
-        {{ profile['data']?.rider?.rating }} ⭐
-      </h3>
-    </div>
-
-  </div>
-
-  <!-- EXTRA STATS (FROM stats OBJECT) -->
-  <!-- <div class="stats-row">
-
-    <div class="stat-box">
-      <small>Total Rides</small>
-      <h3>
-        {{ profile['data']?.stats?.totalRides }}
-      </h3>
-    </div>
-
-  </div> -->
-
-  <!-- MENU OPTIONS -->
-  <ion-list class="menu-list" style="margin-top: 10px">
-
-    <ion-item button lines="none" (click)="gotoProfile()">
-      <ion-icon name="person-outline" slot="start"></ion-icon>
-      <ion-label>Profile</ion-label>
-    </ion-item>
-
-    <ion-item button lines="none" (click)="gotoRideHistory()">
-      <ion-icon name="notifications-outline" slot="start"></ion-icon>
-      <ion-label>Ride History</ion-label>
-    </ion-item>
-
-    <ion-item button lines="none" (click)="gotoWallet()">
-      <ion-icon name="wallet-outline" slot="start"></ion-icon>
-      <ion-label>Earnings</ion-label>
-    </ion-item>
-
-    <ion-item button lines="none" (click)="sendWhatsApp()">
-      <div class="me-4">
-        <svg xmlns="http://www.w3.org/2000/svg" x="0px" y="0px" width="30" height="30" viewBox="0 0 48 48">
-<path fill="#fff" d="M4.9,43.3l2.7-9.8C5.9,30.6,5,27.3,5,24C5,13.5,13.5,5,24,5c5.1,0,9.8,2,13.4,5.6	C41,14.2,43,18.9,43,24c0,10.5-8.5,19-19,19c0,0,0,0,0,0h0c-3.2,0-6.3-0.8-9.1-2.3L4.9,43.3z"></path><path fill="#fff" d="M4.9,43.8c-0.1,0-0.3-0.1-0.4-0.1c-0.1-0.1-0.2-0.3-0.1-0.5L7,33.5c-1.6-2.9-2.5-6.2-2.5-9.6	C4.5,13.2,13.3,4.5,24,4.5c5.2,0,10.1,2,13.8,5.7c3.7,3.7,5.7,8.6,5.7,13.8c0,10.7-8.7,19.5-19.5,19.5c-3.2,0-6.3-0.8-9.1-2.3	L5,43.8C5,43.8,4.9,43.8,4.9,43.8z"></path><path fill="#cfd8dc" d="M24,5c5.1,0,9.8,2,13.4,5.6C41,14.2,43,18.9,43,24c0,10.5-8.5,19-19,19h0c-3.2,0-6.3-0.8-9.1-2.3	L4.9,43.3l2.7-9.8C5.9,30.6,5,27.3,5,24C5,13.5,13.5,5,24,5 M24,43L24,43L24,43 M24,43L24,43L24,43 M24,4L24,4C13,4,4,13,4,24	c0,3.4,0.8,6.7,2.5,9.6L3.9,43c-0.1,0.3,0,0.7,0.3,1c0.2,0.2,0.4,0.3,0.7,0.3c0.1,0,0.2,0,0.3,0l9.7-2.5c2.8,1.5,6,2.2,9.2,2.2	c11,0,20-9,20-20c0-5.3-2.1-10.4-5.8-14.1C34.4,6.1,29.4,4,24,4L24,4z"></path><path fill="#40c351" d="M35.2,12.8c-3-3-6.9-4.6-11.2-4.6C15.3,8.2,8.2,15.3,8.2,24c0,3,0.8,5.9,2.4,8.4L11,33l-1.6,5.8	l6-1.6l0.6,0.3c2.4,1.4,5.2,2.2,8,2.2h0c8.7,0,15.8-7.1,15.8-15.8C39.8,19.8,38.2,15.8,35.2,12.8z"></path><path fill="#fff" fill-rule="evenodd" d="M19.3,16c-0.4-0.8-0.7-0.8-1.1-0.8c-0.3,0-0.6,0-0.9,0	s-0.8,0.1-1.3,0.6c-0.4,0.5-1.7,1.6-1.7,4s1.7,4.6,1.9,4.9s3.3,5.3,8.1,7.2c4,1.6,4.8,1.3,5.7,1.2c0.9-0.1,2.8-1.1,3.2-2.3	c0.4-1.1,0.4-2.1,0.3-2.3c-0.1-0.2-0.4-0.3-0.9-0.6s-2.8-1.4-3.2-1.5c-0.4-0.2-0.8-0.2-1.1,0.2c-0.3,0.5-1.2,1.5-1.5,1.9	c-0.3,0.3-0.6,0.4-1,0.1c-0.5-0.2-2-0.7-3.8-2.4c-1.4-1.3-2.4-2.8-2.6-3.3c-0.3-0.5,0-0.7,0.2-1c0.2-0.2,0.5-0.6,0.7-0.8	c0.2-0.3,0.3-0.5,0.5-0.8c0.2-0.3,0.1-0.6,0-0.8C20.6,19.3,19.7,17,19.3,16z" clip-rule="evenodd"></path>
-</svg>
+      <!-- PERFORMANCE GRID -->
+      <div class="row mt-4 pt-3 border-top border-secondary g-2 text-center">
+        <div class="col-4">
+          <small class="text-white-50 d-block">Acceptance</small>
+          <span class="fw-bold text-white fs-6">{{ captain.performance?.acceptance_rate || '96%' }}</span>
+        </div>
+        <div class="col-4 border-start border-end border-secondary">
+          <small class="text-white-50 d-block">Cancellation</small>
+          <span class="fw-bold text-white fs-6">{{ captain.performance?.cancellation_rate || '2%' }}</span>
+        </div>
+        <div class="col-4">
+          <small class="text-white-50 d-block">Lifetime Trips</small>
+          <span class="fw-bold text-white fs-6">{{ captain.performance?.lifetime_rides || 384 }}</span>
+        </div>
       </div>
-      <ion-label>Whatsapp Help</ion-label>
-    </ion-item>
+    </div>
 
-  </ion-list>
+    <!-- VEHICLE DETAILS CARD -->
+    <div class="bg-white p-3 rounded-3 border mb-3 shadow-xs">
+      <div class="d-flex justify-content-between align-items-center mb-2">
+        <h6 class="fw-bold text-dark mb-0 d-flex align-items-center gap-2">
+          <ion-icon name="bicycle-outline" color="primary"></ion-icon>
+          Vehicle Details
+        </h6>
+        <span class="badge bg-primary-subtle text-primary rounded-pill px-2 py-1 text-uppercase">
+          {{ captain.vehicle_type }}
+        </span>
+      </div>
+      <div class="d-flex justify-content-between align-items-center pt-2 border-top">
+        <div>
+          <span class="fw-bold text-dark d-block">{{ captain.vehicle_model }}</span>
+          <small class="text-muted">Fuel: {{ captain.fuel_type | uppercase }}</small>
+        </div>
+        <span class="badge bg-light text-dark border fw-bold fs-6 px-3 py-2">
+          {{ captain.vehicle_number }}
+        </span>
+      </div>
+    </div>
 
-  <!-- LOGOUT -->
-  <div class="p-3">
-    <ion-button
-      expand="block"
-      color="danger"
-      fill="outline"
-      (click)="logout()">
-      Logout
-    </ion-button>
+    <!-- KYC & DOCUMENT VERIFICATION BADGES -->
+    <div class="bg-white p-3 rounded-3 border mb-3 shadow-xs">
+      <h6 class="fw-bold text-dark mb-3 d-flex align-items-center gap-2">
+        <ion-icon name="document-text-outline" color="success"></ion-icon>
+        Document Verification (KYC)
+      </h6>
+
+      <div class="d-flex justify-content-between align-items-center py-2 border-bottom">
+        <div>
+          <span class="fw-semibold text-dark d-block">Driving License</span>
+          <small class="text-muted">{{ captain.kyc_docs?.driving_license?.doc_number || 'DL Verified' }}</small>
+        </div>
+        <span class="badge bg-success-subtle text-success rounded-pill px-2 py-1">Verified ✅</span>
+      </div>
+
+      <div class="d-flex justify-content-between align-items-center py-2 border-bottom">
+        <div>
+          <span class="fw-semibold text-dark d-block">Vehicle RC Book</span>
+          <small class="text-muted">{{ captain.vehicle_number }}</small>
+        </div>
+        <span class="badge bg-success-subtle text-success rounded-pill px-2 py-1">Verified ✅</span>
+      </div>
+
+      <div class="d-flex justify-content-between align-items-center py-2">
+        <div>
+          <span class="fw-semibold text-dark d-block">Vehicle Insurance</span>
+          <small class="text-muted">Active Protection</small>
+        </div>
+        <span class="badge bg-success-subtle text-success rounded-pill px-2 py-1">Active ✅</span>
+      </div>
+    </div>
+
+    <!-- SHORTCUT MENU LIST -->
+    <div class="bg-white rounded-3 border mb-4 shadow-xs overflow-hidden">
+      <div class="p-3 d-flex align-items-center justify-content-between border-bottom cursor-pointer" (click)="gotoEarnings()">
+        <div class="d-flex align-items-center gap-3">
+          <ion-icon name="wallet-outline" color="primary" class="fs-4"></ion-icon>
+          <span class="fw-semibold text-dark">Earnings & Target Incentives</span>
+        </div>
+        <ion-icon name="chevron-forward-outline" color="medium"></ion-icon>
+      </div>
+
+      <div class="p-3 d-flex align-items-center justify-content-between border-bottom cursor-pointer" (click)="gotoWallet()">
+        <div class="d-flex align-items-center gap-3">
+          <ion-icon name="wallet-outline" color="success" class="fs-4"></ion-icon>
+          <span class="fw-semibold text-dark">Wallet & Instant Cashout</span>
+        </div>
+        <ion-icon name="chevron-forward-outline" color="medium"></ion-icon>
+      </div>
+
+      <div class="p-3 d-flex align-items-center justify-content-between border-bottom cursor-pointer" (click)="gotoReferrals()">
+        <div class="d-flex align-items-center gap-3">
+          <ion-icon name="gift-outline" color="warning" class="fs-4"></ion-icon>
+          <span class="fw-semibold text-dark">Refer Captain Friends (Earn ₹500)</span>
+        </div>
+        <ion-icon name="chevron-forward-outline" color="medium"></ion-icon>
+      </div>
+
+      <div class="p-3 d-flex align-items-center justify-content-between border-bottom cursor-pointer" (click)="gotoRideHistory()">
+        <div class="d-flex align-items-center gap-3">
+          <ion-icon name="bicycle-outline" color="dark" class="fs-4"></ion-icon>
+          <span class="fw-semibold text-dark">Ride & Order History</span>
+        </div>
+        <ion-icon name="chevron-forward-outline" color="medium"></ion-icon>
+      </div>
+
+      <div class="p-3 d-flex align-items-center justify-content-between border-bottom cursor-pointer" (click)="gotoNeedHelp()">
+        <div class="d-flex align-items-center gap-3">
+          <ion-icon name="help-circle-outline" color="secondary" class="fs-4"></ion-icon>
+          <span class="fw-semibold text-dark">Emergency SOS & Captain Support</span>
+        </div>
+        <ion-icon name="chevron-forward-outline" color="medium"></ion-icon>
+      </div>
+
+      <div class="p-3 d-flex align-items-center justify-content-between text-danger cursor-pointer" (click)="logout()">
+        <div class="d-flex align-items-center gap-3">
+          <ion-icon name="log-out-outline" color="danger" class="fs-4"></ion-icon>
+          <span class="fw-bold">Log Out</span>
+        </div>
+        <ion-icon name="chevron-forward-outline" color="danger"></ion-icon>
+      </div>
+    </div>
   </div>
-
+  }
 </ion-content>
+

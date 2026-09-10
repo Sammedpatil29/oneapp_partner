@@ -1,165 +1,644 @@
-<ion-header class="bg-white pt-4">
+﻿<ion-header class="ion-no-border onboarding-header">
   <ion-toolbar>
-
-    <ion-title>Onboarding</ion-title>
-
-    <ion-buttons slot="end">
-      <ion-button (click)="sendWhatsApp()">
-        <svg xmlns="http://www.w3.org/2000/svg" x="0px" y="0px" width="30" height="30" viewBox="0 0 48 48">
-<path fill="#fff" d="M4.9,43.3l2.7-9.8C5.9,30.6,5,27.3,5,24C5,13.5,13.5,5,24,5c5.1,0,9.8,2,13.4,5.6	C41,14.2,43,18.9,43,24c0,10.5-8.5,19-19,19c0,0,0,0,0,0h0c-3.2,0-6.3-0.8-9.1-2.3L4.9,43.3z"></path><path fill="#fff" d="M4.9,43.8c-0.1,0-0.3-0.1-0.4-0.1c-0.1-0.1-0.2-0.3-0.1-0.5L7,33.5c-1.6-2.9-2.5-6.2-2.5-9.6	C4.5,13.2,13.3,4.5,24,4.5c5.2,0,10.1,2,13.8,5.7c3.7,3.7,5.7,8.6,5.7,13.8c0,10.7-8.7,19.5-19.5,19.5c-3.2,0-6.3-0.8-9.1-2.3	L5,43.8C5,43.8,4.9,43.8,4.9,43.8z"></path><path fill="#cfd8dc" d="M24,5c5.1,0,9.8,2,13.4,5.6C41,14.2,43,18.9,43,24c0,10.5-8.5,19-19,19h0c-3.2,0-6.3-0.8-9.1-2.3	L4.9,43.3l2.7-9.8C5.9,30.6,5,27.3,5,24C5,13.5,13.5,5,24,5 M24,43L24,43L24,43 M24,43L24,43L24,43 M24,4L24,4C13,4,4,13,4,24	c0,3.4,0.8,6.7,2.5,9.6L3.9,43c-0.1,0.3,0,0.7,0.3,1c0.2,0.2,0.4,0.3,0.7,0.3c0.1,0,0.2,0,0.3,0l9.7-2.5c2.8,1.5,6,2.2,9.2,2.2	c11,0,20-9,20-20c0-5.3-2.1-10.4-5.8-14.1C34.4,6.1,29.4,4,24,4L24,4z"></path><path fill="#40c351" d="M35.2,12.8c-3-3-6.9-4.6-11.2-4.6C15.3,8.2,8.2,15.3,8.2,24c0,3,0.8,5.9,2.4,8.4L11,33l-1.6,5.8	l6-1.6l0.6,0.3c2.4,1.4,5.2,2.2,8,2.2h0c8.7,0,15.8-7.1,15.8-15.8C39.8,19.8,38.2,15.8,35.2,12.8z"></path><path fill="#fff" fill-rule="evenodd" d="M19.3,16c-0.4-0.8-0.7-0.8-1.1-0.8c-0.3,0-0.6,0-0.9,0	s-0.8,0.1-1.3,0.6c-0.4,0.5-1.7,1.6-1.7,4s1.7,4.6,1.9,4.9s3.3,5.3,8.1,7.2c4,1.6,4.8,1.3,5.7,1.2c0.9-0.1,2.8-1.1,3.2-2.3	c0.4-1.1,0.4-2.1,0.3-2.3c-0.1-0.2-0.4-0.3-0.9-0.6s-2.8-1.4-3.2-1.5c-0.4-0.2-0.8-0.2-1.1,0.2c-0.3,0.5-1.2,1.5-1.5,1.9	c-0.3,0.3-0.6,0.4-1,0.1c-0.5-0.2-2-0.7-3.8-2.4c-1.4-1.3-2.4-2.8-2.6-3.3c-0.3-0.5,0-0.7,0.2-1c0.2-0.2,0.5-0.6,0.7-0.8	c0.2-0.3,0.3-0.5,0.5-0.8c0.2-0.3,0.1-0.6,0-0.8C20.6,19.3,19.7,17,19.3,16z" clip-rule="evenodd"></path>
-</svg>
-      </ion-button>
-
-      <ion-button color="danger" (click)="logout()" class="title-case-btn">
-        Logout
+    <ion-buttons slot="start">
+      <ion-button (click)="prevStep()" class="back-btn">
+        <ion-icon name="arrow-back-outline"></ion-icon>
       </ion-button>
     </ion-buttons>
 
+    <ion-title class="fw-bold text-center">
+      @if (currentStep === 4) {
+        Application Status
+      } @else {
+        Partner Onboarding
+      }
+    </ion-title>
+
+    <ion-buttons slot="end">
+      <ion-button (click)="openWhatsAppSupport()" class="support-header-btn">
+        <ion-icon name="logo-whatsapp" color="success" class="fs-5"></ion-icon>
+      </ion-button>
+      @if (currentStep === 4) {
+        <ion-button (click)="logout()" color="danger" class="small-btn">
+          <ion-icon name="log-out-outline"></ion-icon>
+        </ion-button>
+      }
+    </ion-buttons>
   </ion-toolbar>
+
+  <!-- MULTI-STEP PROGRESS STEPPER -->
+  @if (currentStep < 4) {
+    <div class="stepper-progress-bar px-3 pb-3">
+      <div class="stepper-track">
+        <div class="step-item" [class.active]="currentStep >= 1" [class.completed]="currentStep > 1">
+          <div class="step-circle">
+            @if (currentStep > 1) {
+              <ion-icon name="checkmark-circle"></ion-icon>
+            } @else {
+              1
+            }
+          </div>
+          <span class="step-label">Profile</span>
+        </div>
+
+        <div class="step-line" [class.filled]="currentStep >= 2"></div>
+
+        <div class="step-item" [class.active]="currentStep >= 2" [class.completed]="currentStep > 2">
+          <div class="step-circle">
+            @if (currentStep > 2) {
+              <ion-icon name="checkmark-circle"></ion-icon>
+            } @else {
+              2
+            }
+          </div>
+          <span class="step-label">Vehicle</span>
+        </div>
+
+        <div class="step-line" [class.filled]="currentStep >= 3"></div>
+
+        <div class="step-item" [class.active]="currentStep >= 3" [class.completed]="currentStep > 3">
+          <div class="step-circle">
+            @if (currentStep > 3) {
+              <ion-icon name="checkmark-circle"></ion-icon>
+            } @else {
+              3
+            }
+          </div>
+          <span class="step-label">Documents</span>
+        </div>
+      </div>
+    </div>
+  }
 </ion-header>
 
+<ion-content class="onboarding-content-v5" [fullscreen]="true">
+  <div class="container-fluid px-3 py-3 max-width-container">
 
+    <!-- ==================== STEP 1: PERSONAL DETAILS ==================== -->
+    @if (currentStep === 1) {
+      <div class="step-card shadow-sm mb-4">
+        <div class="step-card-header mb-3">
+          <div class="d-flex align-items-center gap-2">
+            <div class="icon-avatar-badge bg-primary text-white">
+              <ion-icon name="person-outline"></ion-icon>
+            </div>
+            <div>
+              <h5 class="fw-bold mb-0 text-dark">Personal Information</h5>
+              <p class="small text-muted mb-0">Provide basic contact and city details</p>
+            </div>
+          </div>
+        </div>
 
-<ion-content [fullscreen]="true">
+        <!-- PROFILE PHOTO PICKER WITH REAL FILE INPUT -->
+        <div class="profile-photo-picker text-center my-3">
+          <input
+            type="file"
+            #profilePhotoInput
+            accept="image/*"
+            class="d-none"
+            (change)="onProfilePhotoSelected($event)" />
 
-  @if (userStatus == 'verification_pending') {
-    <div class="h-100 d-flex align-items-center justify-content-center">
+          <div
+            class="photo-placeholder position-relative mx-auto cursor-pointer"
+            (click)="profilePhotoInput.click()">
+            @if (personal.profilePhotoUrl) {
+              <img [src]="personal.profilePhotoUrl" alt="Profile" class="profile-img-preview" />
+            } @else {
+              <span class="avatar-initials">{{ personal.fullName.charAt(0).toUpperCase() }}</span>
+            }
+            <button type="button" class="photo-camera-btn">
+              <ion-icon name="camera-outline"></ion-icon>
+            </button>
+          </div>
+          <p class="small text-muted mt-2 mb-0">Tap to upload passport style photo</p>
+        </div>
 
-  <ion-card class="ion-text-center w-90 verification-card">
+        <!-- FULL NAME -->
+        <div class="field-item mb-3">
+          <label class="field-label">Full Legal Name (as on Driving License)</label>
+          <input
+            type="text"
+            class="form-control-custom"
+            placeholder="e.g. Sammed Patil"
+            [(ngModel)]="personal.fullName" />
+        </div>
 
-    <ion-card-content>
+        <!-- PHONE -->
+        <div class="field-item mb-3">
+          <label class="field-label">Registered Mobile Number</label>
+          <div class="input-with-prefix">
+            <span class="prefix-tag">+91</span>
+            <input
+              type="tel"
+              maxlength="10"
+              class="form-control-custom-clean flex-grow-1"
+              placeholder="98765 43210"
+              [(ngModel)]="personal.phone" />
+          </div>
+        </div>
 
-      <!-- ANIMATION / ICON -->
-      <div class="verification-icon">
-        <img
-          src="assets/icon/wired-flat-500-fingerprint-security-hover-pinch.gif"
-          alt="Verification"
-        />
+        <!-- EMAIL -->
+        <div class="field-item mb-3">
+          <label class="field-label">Email Address (Optional)</label>
+          <input
+            type="email"
+            class="form-control-custom"
+            placeholder="captain@example.com"
+            [(ngModel)]="personal.email" />
+        </div>
+
+        <!-- OPERATING CITY -->
+        <div class="field-item mb-3">
+          <label class="field-label">Primary Operating City</label>
+          <select class="form-control-custom" [(ngModel)]="personal.city">
+            <option value="Bangalore">Bangalore (Bengaluru)</option>
+            <option value="Mumbai">Mumbai</option>
+            <option value="Pune">Pune</option>
+            <option value="Delhi NCR">Delhi NCR</option>
+            <option value="Hyderabad">Hyderabad</option>
+            <option value="Chennai">Chennai</option>
+          </select>
+        </div>
+
+        <!-- EMERGENCY CONTACT -->
+        <div class="field-item mb-4">
+          <label class="field-label">Emergency Family Contact</label>
+          <input
+            type="tel"
+            maxlength="10"
+            class="form-control-custom"
+            placeholder="Emergency contact number"
+            [(ngModel)]="personal.emergencyContact" />
+        </div>
+
+        <!-- NEXT STEP BUTTON -->
+        <button type="button" class="btn-step-action w-100" (click)="nextStep()">
+          <span>Next: Vehicle Information</span>
+          <ion-icon name="arrow-forward-outline" class="ms-2"></ion-icon>
+        </button>
       </div>
+    }
 
-      <!-- TITLE -->
-      <h2 class="verification-title">
-        Verification in Progress
-      </h2>
+    <!-- ==================== STEP 2: VEHICLE DETAILS ==================== -->
+    @if (currentStep === 2) {
+      <div class="step-card shadow-sm mb-4">
+        <div class="step-card-header mb-3">
+          <div class="d-flex align-items-center gap-2">
+            <div class="icon-avatar-badge bg-success text-white">
+              <ion-icon name="bicycle-outline"></ion-icon>
+            </div>
+            <div>
+              <h5 class="fw-bold mb-0 text-dark">Vehicle Information</h5>
+              <p class="small text-muted mb-0">Select your ride category and registration</p>
+            </div>
+          </div>
+        </div>
 
-      <!-- DESCRIPTION -->
-      <p class="verification-text">
-        We are verifying your documents.
-      </p>
+        <!-- VEHICLE TYPE SELECTOR GRID -->
+        <label class="field-label mb-2">Select Vehicle Category</label>
+        <div class="row g-2 mb-3">
+          @for (vt of vehicleTypes; track vt.id) {
+            <div class="col-6">
+              <div
+                class="vehicle-select-card"
+                [class.selected]="vehicle.type === vt.id"
+                (click)="selectVehicleType(vt.id)">
+                <div class="d-flex justify-content-between align-items-center mb-1">
+                  <ion-icon [name]="vt.icon" class="fs-4"></ion-icon>
+                  <span class="badge-tag">{{ vt.tag }}</span>
+                </div>
+                <h6 class="vehicle-title mb-0">{{ vt.name }}</h6>
+                <p class="vehicle-sub mb-0">{{ vt.subtitle }}</p>
+              </div>
+            </div>
+          }
+        </div>
 
-      <p class="verification-subtext">
-        This usually takes <b>15 – 30 minutes</b>.
-      </p>
+        <!-- VEHICLE MODEL -->
+        <div class="field-item mb-3">
+          <label class="field-label">Vehicle Make &amp; Model</label>
+          <input
+            type="text"
+            class="form-control-custom"
+            placeholder="e.g. Hero Splendor Plus / Honda Activa"
+            [(ngModel)]="vehicle.model" />
+        </div>
 
-      <!-- INFO STRIP -->
-      <div class="verification-info">
-        You’ll be notified once verification is complete.
+        <!-- VEHICLE REGISTRATION NUMBER -->
+        <div class="field-item mb-3">
+          <label class="field-label">Vehicle Registration Number (RC)</label>
+          <div class="license-plate-box">
+            <span class="ind-pill">IND</span>
+            <input
+              type="text"
+              class="plate-input flex-grow-1"
+              placeholder="KA 01 AB 1234"
+              [(ngModel)]="vehicle.number" />
+          </div>
+        </div>
+
+        <!-- FUEL TYPE -->
+        <div class="field-item mb-3">
+          <label class="field-label">Fuel Type</label>
+          <div class="fuel-chips-row">
+            <button
+              type="button"
+              class="fuel-chip"
+              [class.active]="vehicle.fuelType === 'petrol'"
+              (click)="vehicle.fuelType = 'petrol'">
+              ⛽ Petrol
+            </button>
+            <button
+              type="button"
+              class="fuel-chip"
+              [class.active]="vehicle.fuelType === 'electric'"
+              (click)="vehicle.fuelType = 'electric'">
+              ⚡ Electric
+            </button>
+            <button
+              type="button"
+              class="fuel-chip"
+              [class.active]="vehicle.fuelType === 'cng'"
+              (click)="vehicle.fuelType = 'cng'">
+              💨 CNG
+            </button>
+            <button
+              type="button"
+              class="fuel-chip"
+              [class.active]="vehicle.fuelType === 'diesel'"
+              (click)="vehicle.fuelType = 'diesel'">
+              🛢️ Diesel
+            </button>
+          </div>
+        </div>
+
+        <!-- YEAR -->
+        <div class="field-item mb-4">
+          <label class="field-label">Manufacturing Year</label>
+          <select class="form-control-custom" [(ngModel)]="vehicle.year">
+            <option value="2025">2025</option>
+            <option value="2024">2024</option>
+            <option value="2023">2023</option>
+            <option value="2022">2022</option>
+            <option value="2021">2021</option>
+            <option value="2020">2020</option>
+            <option value="2019">2019</option>
+          </select>
+        </div>
+
+        <!-- NEXT STEP BUTTON -->
+        <div class="d-flex gap-2">
+          <button type="button" class="btn-step-back flex-grow-1" (click)="prevStep()">
+            Back
+          </button>
+          <button type="button" class="btn-step-action flex-grow-2" (click)="nextStep()">
+            <span>Next: Upload Documents</span>
+            <ion-icon name="arrow-forward-outline" class="ms-2"></ion-icon>
+          </button>
+        </div>
       </div>
+    }
 
-    </ion-card-content>
+    <!-- ==================== STEP 3: KYC DOCUMENTS ==================== -->
+    @if (currentStep === 3) {
+      <div class="step-card shadow-sm mb-4">
+        <div class="step-card-header mb-3">
+          <div class="d-flex align-items-center gap-2">
+            <div class="icon-avatar-badge bg-warning text-dark">
+              <ion-icon name="document-text-outline"></ion-icon>
+            </div>
+            <div>
+              <h5 class="fw-bold mb-0 text-dark">KYC &amp; Document Verification</h5>
+              <p class="small text-muted mb-0">Upload clear photos or PDFs from your device</p>
+            </div>
+          </div>
+        </div>
 
-  </ion-card>
+        <!-- DOC 1: DRIVING LICENSE -->
+        <div class="doc-upload-card mb-3">
+          <input
+            type="file"
+            #dlInput
+            accept="image/*,.pdf"
+            class="d-none"
+            (change)="onFileSelected($event, 'drivingLicense')" />
+          <div class="d-flex justify-content-between align-items-start mb-2">
+            <div>
+              <h6 class="doc-name mb-0">1. Driving License (DL)</h6>
+              <small class="text-muted">Front &amp; Back photo required</small>
+            </div>
+            @if (documents['drivingLicense'].uploaded) {
+              <span class="badge bg-success-subtle text-success rounded-pill px-2 py-1 small">
+                ✅ {{ documents['drivingLicense'].fileName || 'Uploaded' }}
+              </span>
+            }
+          </div>
+          <div class="d-flex gap-2 align-items-center">
+            <input
+              type="text"
+              class="form-control-custom-sm flex-grow-1"
+              placeholder="DL Number: DL-142018..."
+              [(ngModel)]="documents['drivingLicense'].number" />
+            <button
+              type="button"
+              class="btn-upload-pill"
+              (click)="dlInput.click()">
+              <ion-icon name="cloud-upload-outline" class="me-1"></ion-icon>
+              {{ documents['drivingLicense'].uploaded ? 'Replace' : 'Upload' }}
+            </button>
+          </div>
+        </div>
 
-</div>
+        <!-- DOC 2: VEHICLE RC -->
+        <div class="doc-upload-card mb-3">
+          <input
+            type="file"
+            #rcInput
+            accept="image/*,.pdf"
+            class="d-none"
+            (change)="onFileSelected($event, 'vehicleRc')" />
+          <div class="d-flex justify-content-between align-items-start mb-2">
+            <div>
+              <h6 class="doc-name mb-0">2. Vehicle RC Book</h6>
+              <small class="text-muted">Registration certificate of vehicle</small>
+            </div>
+            @if (documents['vehicleRc'].uploaded) {
+              <span class="badge bg-success-subtle text-success rounded-pill px-2 py-1 small">
+                ✅ {{ documents['vehicleRc'].fileName || 'Uploaded' }}
+              </span>
+            }
+          </div>
+          <div class="d-flex gap-2 align-items-center">
+            <input
+              type="text"
+              class="form-control-custom-sm flex-grow-1"
+              placeholder="RC Number: KA-01..."
+              [(ngModel)]="documents['vehicleRc'].number" />
+            <button
+              type="button"
+              class="btn-upload-pill"
+              (click)="rcInput.click()">
+              <ion-icon name="cloud-upload-outline" class="me-1"></ion-icon>
+              {{ documents['vehicleRc'].uploaded ? 'Replace' : 'Upload' }}
+            </button>
+          </div>
+        </div>
 
-  } @else {
-    <div class="p-3">
+        <!-- DOC 3: VEHICLE INSURANCE -->
+        <div class="doc-upload-card mb-3">
+          <input
+            type="file"
+            #insuranceInput
+            accept="image/*,.pdf"
+            class="d-none"
+            (change)="onFileSelected($event, 'insurance')" />
+          <div class="d-flex justify-content-between align-items-start mb-2">
+            <div>
+              <h6 class="doc-name mb-0">3. Active Vehicle Insurance</h6>
+              <small class="text-muted">Must be currently valid</small>
+            </div>
+            @if (documents['insurance'].uploaded) {
+              <span class="badge bg-success-subtle text-success rounded-pill px-2 py-1 small">
+                ✅ {{ documents['insurance'].fileName || 'Uploaded' }}
+              </span>
+            }
+          </div>
+          <div class="d-flex gap-2 align-items-center">
+            <input
+              type="text"
+              class="form-control-custom-sm flex-grow-1"
+              placeholder="Valid Until: 2027-12-31"
+              [(ngModel)]="documents['insurance'].validUntil" />
+            <button
+              type="button"
+              class="btn-upload-pill"
+              (click)="insuranceInput.click()">
+              <ion-icon name="cloud-upload-outline" class="me-1"></ion-icon>
+              {{ documents['insurance'].uploaded ? 'Replace' : 'Upload' }}
+            </button>
+          </div>
+        </div>
 
-    <!-- PERSONAL DETAILS -->
-    <h5 class="section-title">Personal Details</h5>
+        <!-- DOC 4: AADHAAR / PAN -->
+        <div class="doc-upload-card mb-3">
+          <input
+            type="file"
+            #aadhaarInput
+            accept="image/*,.pdf"
+            class="d-none"
+            (change)="onFileSelected($event, 'aadhaarPan')" />
+          <div class="d-flex justify-content-between align-items-start mb-2">
+            <div>
+              <h6 class="doc-name mb-0">4. Aadhaar / PAN Card</h6>
+              <small class="text-muted">Government Identity proof</small>
+            </div>
+            @if (documents['aadhaarPan'].uploaded) {
+              <span class="badge bg-success-subtle text-success rounded-pill px-2 py-1 small">
+                ✅ {{ documents['aadhaarPan'].fileName || 'Uploaded' }}
+              </span>
+            }
+          </div>
+          <div class="d-flex gap-2 align-items-center">
+            <input
+              type="text"
+              class="form-control-custom-sm flex-grow-1"
+              placeholder="Card Number"
+              [(ngModel)]="documents['aadhaarPan'].number" />
+            <button
+              type="button"
+              class="btn-upload-pill"
+              (click)="aadhaarInput.click()">
+              <ion-icon name="cloud-upload-outline" class="me-1"></ion-icon>
+              {{ documents['aadhaarPan'].uploaded ? 'Replace' : 'Upload' }}
+            </button>
+          </div>
+        </div>
 
-    <div class="input-box">
-      <label>Full Name</label>
-      <input
-        type="text"
-        class="form-input"
-        placeholder="Enter full name">
-    </div>
+        <!-- DOC 5: DRIVER LIVE SELFIE -->
+        <div class="doc-upload-card mb-4">
+          <input
+            type="file"
+            #selfieInput
+            accept="image/*"
+            capture="user"
+            class="d-none"
+            (change)="onFileSelected($event, 'selfie')" />
+          <div class="d-flex justify-content-between align-items-center">
+            <div>
+              <h6 class="doc-name mb-0">5. Captain Live Selfie</h6>
+              <small class="text-muted">Take a clear face photo</small>
+            </div>
+            <button
+              type="button"
+              class="btn-upload-pill"
+              (click)="selfieInput.click()">
+              <ion-icon name="camera-outline" class="me-1"></ion-icon>
+              {{ documents['selfie'].uploaded ? 'Retake Photo' : 'Capture' }}
+            </button>
+          </div>
+        </div>
 
-    <div class="input-box mt-2">
-      <label>Phone Number</label>
-      <input
-        type="tel"
-        class="form-input"
-        placeholder="Enter phone number">
-    </div>
+        <!-- SUBMIT / VERIFY BUTTON -->
+        <div class="d-flex gap-2">
+          <button type="button" class="btn-step-back flex-grow-1" (click)="prevStep()">
+            Back
+          </button>
+          <button
+            type="button"
+            class="btn-step-action flex-grow-2"
+            [disabled]="isSubmitting"
+            (click)="nextStep()">
+            @if (isSubmitting) {
+              <ion-spinner name="crescent" class="spinner-small me-2"></ion-spinner>
+              <span>Submitting KYC...</span>
+            } @else {
+              <ion-icon name="shield-checkmark-outline" class="me-2"></ion-icon>
+              <span>Submit &amp; Fast-Track Verify</span>
+            }
+          </button>
+        </div>
+      </div>
+    }
 
-    <div class="input-box mt-2">
-      <label>Email (optional)</label>
-      <input
-        type="email"
-        class="form-input"
-        placeholder="Enter email">
-    </div>
+    <!-- ==================== STEP 4: VERIFICATION & APPROVAL DASHBOARD ==================== -->
+    @if (currentStep === 4) {
+      <div class="verification-status-dashboard text-center">
 
-    <!-- VEHICLE DETAILS -->
-    <h5 class="section-title mt-4">Vehicle Details</h5>
+        <!-- ANIMATION BADGE CARD -->
+        <div class="status-hero-card shadow-sm p-4 mb-3">
+          <div class="status-badge-icon mb-3">
+            @if (verificationStatus === 'verified') {
+              <div class="icon-circle success-glow">
+                <ion-icon name="checkmark-circle" color="success" class="display-3"></ion-icon>
+              </div>
+            } @else {
+              <div class="icon-circle pending-glow">
+                <img
+                  src="assets/icon/wired-flat-500-fingerprint-security-hover-pinch.gif"
+                  alt="Security Verification"
+                  class="gif-icon" />
+              </div>
+            }
+          </div>
 
-    <div class="input-box">
-      <label>Vehicle Type</label>
-      <select class="form-input">
-        <option>Bike</option>
-        <option>Auto</option>
-        <option>Car</option>
-      </select>
-    </div>
+          @if (verificationStatus === 'verified') {
+            <h4 class="fw-bold text-success mb-1">Account Verified &amp; Active! 🚀</h4>
+            <p class="text-muted small mb-3">{{ verificationMessage }}</p>
+            <span class="badge bg-success text-white rounded-pill px-3 py-2 fw-semibold">
+              Ready to Accept Rides &amp; Deliveries
+            </span>
+          } @else {
+            <h4 class="fw-bold text-dark mb-1">Verification in Progress</h4>
+            <p class="text-muted small mb-2">{{ verificationMessage }}</p>
+            <div class="badge bg-warning-subtle text-dark border border-warning rounded-pill px-3 py-2 small fw-semibold">
+              ⏱️ Estimated Review Time: 15 – 30 Minutes
+            </div>
+          }
+        </div>
 
-    <div class="input-box mt-2">
-      <label>Vehicle Model</label>
-      <input
-        type="text"
-        class="form-input"
-        placeholder="e.g. Splendor Plus">
-    </div>
+        <!-- VERIFICATION STEPS CHECKLIST -->
+        <div class="verification-checklist bg-white p-3 rounded-4 border shadow-xs text-start mb-3">
+          <h6 class="fw-bold text-dark mb-3 d-flex align-items-center gap-2">
+            <ion-icon name="shield-checkmark-outline" color="primary"></ion-icon>
+            Verification Checklist
+          </h6>
 
-    <div class="input-box mt-2">
-      <label>Vehicle Number</label>
-      <input
-        type="text"
-        class="form-input"
-        placeholder="KA 01 AB 1234">
-    </div>
+          <div class="check-item d-flex justify-content-between align-items-center py-2 border-bottom">
+            <div class="d-flex align-items-center gap-2">
+              <ion-icon name="checkmark-circle" color="success" class="fs-5"></ion-icon>
+              <span class="small fw-semibold text-dark">Driving License &amp; ID Proof</span>
+            </div>
+            <span class="badge bg-success-subtle text-success rounded-pill px-2 py-1 small">Verified ✅</span>
+          </div>
 
-    <div class="input-box mt-2">
-      <label>Model Year</label>
-      <input
-        type="text"
-        class="form-input"
-        placeholder="2016">
-    </div>
+          <div class="check-item d-flex justify-content-between align-items-center py-2 border-bottom">
+            <div class="d-flex align-items-center gap-2">
+              <ion-icon name="checkmark-circle" color="success" class="fs-5"></ion-icon>
+              <span class="small fw-semibold text-dark">Vehicle RC &amp; Insurance</span>
+            </div>
+            <span class="badge bg-success-subtle text-success rounded-pill px-2 py-1 small">Verified ✅</span>
+          </div>
 
-    <!-- DOCUMENTS -->
-    <h5 class="section-title mt-4">Documents</h5>
+          <div class="check-item d-flex justify-content-between align-items-center py-2 border-bottom">
+            <div class="d-flex align-items-center gap-2">
+              @if (verificationStatus === 'verified') {
+                <ion-icon name="checkmark-circle" color="success" class="fs-5"></ion-icon>
+              } @else {
+                <ion-icon name="time-outline" color="warning" class="fs-5"></ion-icon>
+              }
+              <span class="small fw-semibold text-dark">Background Verification</span>
+            </div>
+            @if (verificationStatus === 'verified') {
+              <span class="badge bg-success-subtle text-success rounded-pill px-2 py-1 small">Passed ✅</span>
+            } @else {
+              <span class="badge bg-warning-subtle text-warning rounded-pill px-2 py-1 small">In Review ⏳</span>
+            }
+          </div>
 
-    <div class="doc-box mt-2">
-      <span>Driving License</span>
-      <ion-button size="small" fill="outline">Upload</ion-button>
-    </div>
+          <div class="check-item d-flex justify-content-between align-items-center py-2">
+            <div class="d-flex align-items-center gap-2">
+              @if (verificationStatus === 'verified') {
+                <ion-icon name="checkmark-circle" color="success" class="fs-5"></ion-icon>
+              } @else {
+                <ion-icon name="time-outline" color="warning" class="fs-5"></ion-icon>
+              }
+              <span class="small fw-semibold text-dark">Captain Onboarding &amp; Safety Activation</span>
+            </div>
+            @if (verificationStatus === 'verified') {
+              <span class="badge bg-success-subtle text-success rounded-pill px-2 py-1 small">Active 🟢</span>
+            } @else {
+              <span class="badge bg-light text-muted rounded-pill px-2 py-1 small">Pending</span>
+            }
+          </div>
+        </div>
 
-    <div class="doc-box mt-2">
-      <span>RC Book</span>
-      <ion-button size="small" fill="outline">Upload</ion-button>
-    </div>
+        <!-- ACTIONS -->
+        @if (verificationStatus === 'verified') {
+          <button type="button" class="btn-console-action w-100 mb-3" (click)="enterDriverConsole()">
+            <ion-icon name="flash-outline" class="me-2"></ion-icon>
+            <span>Enter Driver Console (Go Online)</span>
+            <ion-icon name="arrow-forward-outline" class="ms-2"></ion-icon>
+          </button>
+        } @else {
+          <div class="d-flex gap-2 mb-3">
+            <button
+              type="button"
+              class="btn-refresh-status flex-grow-1"
+              [disabled]="isCheckingStatus"
+              (click)="checkLiveStatus()">
+              @if (isCheckingStatus) {
+                <ion-spinner name="crescent" class="spinner-small me-1"></ion-spinner>
+                <span>Checking...</span>
+              } @else {
+                <ion-icon name="refresh-outline" class="me-1"></ion-icon>
+                <span>Check Live Status</span>
+              }
+            </button>
+            <button type="button" class="btn-whatsapp-priority" (click)="openWhatsAppSupport()">
+              <ion-icon name="logo-whatsapp" class="fs-5 text-success me-1"></ion-icon>
+              <span>Priority Help</span>
+            </button>
+          </div>
 
-    <div class="doc-box mt-2">
-      <span>Aadhaar / PAN</span>
-      <ion-button size="small" fill="outline">Upload</ion-button>
-    </div>
+          <!-- Instant Fast-Track testing shortcut (DEVELOPMENT ONLY) -->
+          @if (!isProduction) {
+            <button
+              type="button"
+              class="btn-instant-approve-shortcut"
+              [disabled]="isApproving"
+              (click)="fastTrackApproveDemo()">
+              @if (isApproving) {
+                <ion-spinner name="crescent" class="spinner-small me-1"></ion-spinner>
+                <span>Approving...</span>
+              } @else {
+                <span>⚡ Fast-Track Instant Approve (Dev/Demo)</span>
+              }
+            </button>
+          }
+        }
 
-    <div class="doc-box mt-2">
-      <span>Take Selfie</span>
-      <ion-button size="small" fill="outline">Upload</ion-button>
-    </div>
-
-    <!-- SUBMIT -->
-    <div class="mt-4">
-      <ion-button expand="block" color="dark" class="login-btn">
-        Submit & Continue
-      </ion-button>
-    </div>
+      </div>
+    }
 
   </div>
-  }
-
 </ion-content>
-

@@ -1,54 +1,199 @@
-<ion-content fullscreen class="partner-v4">
+﻿<ion-content class="login-screen-v5" [fullscreen]="true">
+  <!-- AMBIENT BACKGROUND GLOW LIGHTS -->
+  <div class="ambient-glow glow-emerald"></div>
+  <div class="ambient-glow glow-blue"></div>
+  <div class="ambient-glow glow-amber"></div>
+  <div class="ambient-grid-pattern"></div>
 
-  <!-- HEADER -->
-  <div class="header-area">
-    <div class="">
-      <img class="logo-wrap" src="assets/ChatGPT Image Jan 22, 2026, 05_10_29 PM.png">
-    </div>
-    <h1>Welcome Partner</h1>
-    <p>Login to start your journey</p>
-  </div>
+  <div class="login-wrapper position-relative">
 
-  <!-- FORM -->
-  <div class="form-wrapper">
+    <!-- HERO BRANDING SECTION -->
+    <div class="hero-brand-section text-center">
+      <div class="brand-badge-top">
+        <span class="pulse-dot"></span>
+        <span class="badge-text">Pintu Captain • Partner Portal</span>
+      </div>
 
-    <div class="field-box">
-      <label>Phone Number</label>
-      <input
-        type="tel"
-        maxlength="10"
-        placeholder="Enter phone number"
-        [(ngModel)]="phoneNumber" />
-    </div>
+      <div class="brand-logo-container mt-3">
+        <div class="logo-glow-ring">
+          <img src="assets/ChatGPT Image Jan 22, 2026, 05_10_29 PM.png" alt="Pintu Partner Logo" class="brand-logo-img">
+        </div>
+      </div>
 
-    <div class="field-box">
-      <label>Password</label>
-      <input
-        type="password"
-        placeholder="Enter password"
-        [(ngModel)]="password" />
+      <h2 class="hero-title mt-3">Drive, Deliver &amp; Earn</h2>
+      <p class="hero-subtitle">Fast payouts, zero commission incentives &amp; 24/7 safety support</p>
     </div>
 
-    <!-- same button class -->
-    <ion-button expand="block" class="login-btn"
-      (click)="login()"
-      [disabled]="isLoading || phoneNumber.length !== 10 || password.length === 0">
+    <!-- MAIN FROSTED GLASS LOGIN CARD -->
+    <div class="login-card-box shadow-lg">
 
-      @if (!isLoading) {
-        LOGIN
-      } @else {
-        <ion-spinner name="crescent"></ion-spinner>
+      <!-- MODE TOGGLE TABS -->
+      <div class="auth-tabs-pill mb-4">
+        <button
+          type="button"
+          class="tab-pill-btn"
+          [class.active]="loginMode === 'password'"
+          (click)="setLoginMode('password')">
+          <ion-icon name="lock-closed-outline" class="me-1"></ion-icon>
+          Password
+        </button>
+        <button
+          type="button"
+          class="tab-pill-btn"
+          [class.active]="loginMode === 'otp'"
+          (click)="setLoginMode('otp')">
+          <ion-icon name="keypad-outline" class="me-1"></ion-icon>
+          Fast OTP
+        </button>
+      </div>
+
+      <!-- PHONE INPUT FIELD -->
+      <div class="input-group-modern mb-3">
+        <label class="input-label">Registered Mobile Number</label>
+        <div class="input-container">
+          <div class="country-prefix">
+            <span class="flag">🇮🇳</span>
+            <span class="code">+91</span>
+          </div>
+          <input
+            type="tel"
+            maxlength="10"
+            class="custom-input flex-grow-1"
+            placeholder="98765 43210"
+            [(ngModel)]="phoneNumber" />
+          @if (phoneNumber.length === 10) {
+            <ion-icon name="shield-checkmark-outline" color="success" class="verified-icon me-2"></ion-icon>
+          }
+        </div>
+      </div>
+
+      <!-- PASSWORD MODE -->
+      @if (loginMode === 'password') {
+        <div class="input-group-modern mb-4">
+          <div class="d-flex justify-content-between align-items-center mb-1">
+            <label class="input-label mb-0">Account Password</label>
+            <a class="forgot-link" (click)="setLoginMode('otp')">Forgot Password?</a>
+          </div>
+          <div class="input-container">
+            <ion-icon name="lock-closed-outline" class="input-icon-left"></ion-icon>
+            <input
+              [type]="showPassword ? 'text' : 'password'"
+              class="custom-input flex-grow-1"
+              placeholder="Enter your password"
+              [(ngModel)]="password" />
+            <button type="button" class="eye-toggle-btn" (click)="togglePasswordVisibility()">
+              <ion-icon [name]="showPassword ? 'eye-off-outline' : 'eye-outline'"></ion-icon>
+            </button>
+          </div>
+        </div>
       }
-    </ion-button>
 
-    <p class="alt">ALTERNATIVE LOGIN</p>
+      <!-- OTP MODE -->
+      @if (loginMode === 'otp') {
+        @if (!otpSent) {
+          <div class="mb-4 text-center">
+            <p class="small text-muted mb-3">
+              We will send a 4-digit verification code to your registered mobile number via SMS / WhatsApp.
+            </p>
+            <button
+              type="button"
+              class="btn-send-otp w-100"
+              [disabled]="phoneNumber.length !== 10 || isLoading"
+              (click)="sendOtp()">
+              @if (isLoading) {
+                <ion-spinner name="crescent" class="spinner-small"></ion-spinner>
+              } @else {
+                Send Verification OTP
+              }
+            </button>
+          </div>
+        } @else {
+          <div class="input-group-modern mb-3">
+            <div class="d-flex justify-content-between align-items-center mb-1">
+              <label class="input-label mb-0">Enter 4-Digit Code</label>
+              @if (otpTimer > 0) {
+                <span class="resend-timer text-muted small">Resend in {{ otpTimer }}s</span>
+              } @else {
+                <a class="resend-link small" (click)="sendOtp()">Resend OTP</a>
+              }
+            </div>
+            <div class="input-container">
+              <ion-icon name="keypad-outline" class="input-icon-left"></ion-icon>
+              <input
+                type="number"
+                maxlength="4"
+                class="custom-input flex-grow-1 otp-input text-center fw-bold fs-5 letter-spaced"
+                placeholder="• • • •"
+                [(ngModel)]="otpCode" />
+              @if (!isProduction) {
+                <button type="button" class="btn-demo-pill" (click)="fillDemoOtp()">
+                  Use 1234
+                </button>
+              }
+            </div>
+          </div>
+        }
+      }
+
+      <!-- SUBMIT / LOGIN BUTTON -->
+      @if (loginMode === 'password' || (loginMode === 'otp' && otpSent)) {
+        <button
+          type="button"
+          class="btn-primary-action w-100"
+          [disabled]="isLoading || phoneNumber.length !== 10 || (loginMode === 'password' && !password) || (loginMode === 'otp' && otpCode.length < 4)"
+          (click)="login()">
+          @if (isLoading) {
+            <ion-spinner name="crescent" class="spinner-small me-2"></ion-spinner>
+            <span>Verifying Captain...</span>
+          } @else {
+            <ion-icon name="log-in-outline" class="me-2 fs-5"></ion-icon>
+            <span>Sign In to Driver Console</span>
+            <ion-icon name="arrow-forward-outline" class="ms-2 fs-6"></ion-icon>
+          }
+        </button>
+      }
+
+      <!-- QUICK DEMO LOGIN CHIP (DEVELOPMENT ONLY) -->
+      @if (!isProduction) {
+        <div class="demo-chip-box mt-3 text-center">
+          <button type="button" class="demo-autofill-btn" (click)="fillDemoCredentials()">
+            <ion-icon name="sparkles-outline" class="me-1 text-warning"></ion-icon>
+            Auto-fill Demo Captain (9876543210)
+          </button>
+        </div>
+      }
+
+      <div class="divider-modern my-4">
+        <span>OR</span>
+      </div>
+
+      <!-- REGISTER / ONBOARDING BUTTON -->
+      <button type="button" class="btn-register-outline w-100" (click)="goToOnboarding()">
+        <ion-icon name="person-add-outline" class="me-2 text-primary"></ion-icon>
+        <span>Register as New Partner / Captain</span>
+      </button>
+
+    </div>
+
+    <!-- FOOTER / SUPPORT / TERMS -->
+    <div class="login-footer text-center mt-4 mb-2">
+      <div class="d-flex align-items-center justify-content-center gap-2 mb-2">
+        <button type="button" class="support-link-btn" (click)="openWhatsAppSupport()">
+          <ion-icon name="logo-whatsapp" class="text-success fs-5"></ion-icon>
+          <span>Need Help? Chat on WhatsApp</span>
+        </button>
+      </div>
+
+      <p class="terms-text text-light-dim small">
+        By continuing, you agree to Pintu Partner's<br>
+        <span class="text-white fw-semibold">Terms of Service</span> &amp; <span class="text-white fw-semibold">Privacy Policy</span>.
+      </p>
+
+      <div class="secure-badge d-flex align-items-center justify-content-center gap-1 mt-2">
+        <ion-icon name="shield-checkmark-outline" color="success"></ion-icon>
+        <span class="small text-muted-bright">256-bit Encrypted Partner Authentication</span>
+      </div>
+    </div>
 
   </div>
-
-  <!-- FOOTER -->
-  <div class="footer">
-    By logging in, you agree to our<br>
-    <span>Terms & Privacy Policy</span>
-  </div>
-
 </ion-content>

@@ -1,7 +1,11 @@
-
-<div>
-<div class="spinner-border" role="status">
-  <span class="visually-hidden">Loading...</span>
+<div class="loader-container" [class.fullscreen]="isFullscreen">
+  <div class="loader-box">
+    <div class="spinner-ring" [ngClass]="size">
+      <div class="ring-pulse"></div>
+      <div class="ring-core"></div>
+    </div>
+    @if (message) {
+      <p class="loader-message">{{ message }}</p>
+    }
+  </div>
 </div>
-</div>
-<!-- <div class="loader"></div> -->

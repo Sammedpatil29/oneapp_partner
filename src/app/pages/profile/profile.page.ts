@@ -1,108 +1,204 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { IonContent, IonHeader, IonTitle, IonToolbar, IonItem, IonIcon, IonLabel, IonButton, IonBadge, IonList, IonButtons, IonBackButton } from '@ionic/angular/standalone';
+import {
+  IonContent,
+  IonHeader,
+  IonTitle,
+  IonToolbar,
+  IonButtons,
+  IonButton,
+  IonIcon,
+  IonBadge,
+  AlertController
+} from '@ionic/angular/standalone';
 import { Router } from '@angular/router';
 import { NavController } from '@ionic/angular';
 import { addIcons } from 'ionicons';
 import {
   personOutline,
-  cashOutline,
   walletOutline,
   notificationsOutline,
+  giftOutline,
   shieldCheckmarkOutline,
   helpCircleOutline,
   settingsOutline,
   logOutOutline,
-  moonOutline,
-  sunnyOutline,
-  arrowBackOutline 
+  arrowBackOutline,
+  star,
+  bicycleOutline,
+  documentTextOutline,
+  chevronForwardOutline,
+  callOutline,
+  logoWhatsapp
 } from 'ionicons/icons';
-
-addIcons({
-  'person-outline': personOutline,
-  'cash-outline': cashOutline,
-  'wallet-outline': walletOutline,
-  'notifications-outline': notificationsOutline,
-  'shield-checkmark-outline': shieldCheckmarkOutline,
-  'help-circle-outline': helpCircleOutline,
-  'settings-outline': settingsOutline,
-  'log-out-outline': logOutOutline,
-  'moon-outline': moonOutline,
-  'sunny-outline': sunnyOutline,
-  'arrow-back-outline': arrowBackOutline
-});
+import { CaptainService, CaptainProfile } from 'src/app/services/captain.service';
+import { LoaderComponent } from 'src/app/components/loader/loader.component';
+import { NoNetworkComponent } from 'src/app/components/no-network/no-network.component';
+import { NoDataComponent } from 'src/app/components/no-data/no-data.component';
+import { ApiErrorComponent } from 'src/app/components/api-error/api-error.component';
+import { NetworkService } from 'src/app/services/network.service';
 
 @Component({
   selector: 'app-profile',
   templateUrl: './profile.page.html',
   styleUrls: ['./profile.page.scss'],
   standalone: true,
-  imports: [IonBackButton, IonButtons, IonList, IonBadge, IonButton, IonLabel, IonIcon, IonItem, IonContent, IonHeader, IonTitle, IonToolbar, CommonModule, FormsModule]
+  imports: [
+    IonContent,
+    IonHeader,
+    IonTitle,
+    IonToolbar,
+    IonButtons,
+    IonButton,
+    IonIcon,
+    IonBadge,
+    CommonModule,
+    FormsModule,
+    LoaderComponent,
+    NoNetworkComponent,
+    NoDataComponent,
+    ApiErrorComponent
+  ]
 })
 export class ProfilePage implements OnInit {
-
   riderId = '';
-  profile = {
-  "status": true,
-  "data": {
-    "rider": {
-      "id": "RIDER1023",
-      "name": "Sammed Patil",
-      "joinedOn": "2024-04-10",
-      "status": "ACTIVE",
-      "rating": 4.8,
-      "profileImage": null
+  isLoading: boolean = false;
+  isOffline: boolean = false;
+  hasApiError: boolean = false;
+
+  captain: CaptainProfile = {
+    id: 'CAPTAIN1023',
+    name: 'Sammed Patil',
+    contact: '9876543210',
+    role: 'Bike Captain',
+    image_url: '',
+    vehicle_number: 'MH-12-AB-1234',
+    vehicle_model: 'Hero Splendor Plus',
+    vehicle_type: 'bike',
+    fuel_type: 'petrol',
+    join_date: '2024-04-10',
+    status: 'online',
+    earnings: 1420,
+    is_verified: true,
+    rating: { average: 4.88, total_reviews: 142, five_star: 128 },
+    performance: {
+      acceptance_rate: '96%',
+      cancellation_rate: '2.1%',
+      completion_rate: '98%',
+      lifetime_rides: 384,
+      total_distance_km: 1842
     },
-    "wallet": {
-      "balance": 125,
-      "currency": "INR"
-    },
-    "earnings": {
-      "today": 45
-    },
-    "stats": {
-      "totalRides": 128
+    captain_level: 'Gold Captain',
+    kyc_docs: {
+      driving_license: { status: 'verified', doc_number: 'DL-1420180092144' },
+      vehicle_rc: { status: 'verified', doc_number: 'MH-12-AB-1234' },
+      vehicle_insurance: { status: 'verified', valid_until: '2027-12-31' }
     }
+  };
+
+  private router = inject(Router);
+  private navCtrl = inject(NavController);
+  private captainService = inject(CaptainService);
+  private alertCtrl = inject(AlertController);
+  public networkService = inject(NetworkService);
+
+  constructor() {
+    addIcons({
+      personOutline,
+      walletOutline,
+      notificationsOutline,
+      giftOutline,
+      shieldCheckmarkOutline,
+      helpCircleOutline,
+      settingsOutline,
+      logOutOutline,
+      arrowBackOutline,
+      star,
+      bicycleOutline,
+      documentTextOutline,
+      chevronForwardOutline,
+      callOutline,
+      logoWhatsapp
+    });
+
+    this.networkService.isOnline$.subscribe(online => {
+      this.isOffline = !online;
+      if (online && this.hasApiError) {
+        this.fetchProfile();
+      }
+    });
   }
-}
-;
-  constructor(private router: Router, private navCtrl: NavController) {
-      addIcons({arrowBackOutline,personOutline,notificationsOutline,walletOutline,helpCircleOutline}); }
 
   ngOnInit() {
     this.riderId = localStorage.getItem('riderId') || '';
+    this.fetchProfile();
   }
 
-  logout(){
-    localStorage.removeItem('riderJwt')
-    localStorage.removeItem('riderId')
-    this.navCtrl.navigateRoot(['/login'])
+  fetchProfile() {
+    this.isLoading = true;
+    this.hasApiError = false;
+    this.captainService.getProfile().subscribe({
+      next: (res) => {
+        if (res?.data) {
+          this.captain = res.data;
+        }
+        this.isLoading = false;
+        this.hasApiError = false;
+      },
+      error: () => {
+        this.isLoading = false;
+        this.hasApiError = false;
+      }
+    });
   }
 
-  goBack(){
+  gotoWallet() {
+    this.router.navigate(['/layout/wallet']);
+  }
+
+  gotoEarnings() {
+    this.router.navigate(['/layout/earnings']);
+  }
+
+  gotoRideHistory() {
+    this.router.navigate(['/layout/ride-history']);
+  }
+
+  gotoReferrals() {
+    this.router.navigate(['/layout/referrals']);
+  }
+
+  gotoNotifications() {
+    this.router.navigate(['/layout/notifications']);
+  }
+
+  gotoNeedHelp() {
+    this.router.navigate(['/layout/need-help']);
+  }
+
+  async logout() {
+    const alert = await this.alertCtrl.create({
+      header: 'Log Out',
+      message: 'Are you sure you want to log out of Pintu Captain?',
+      buttons: [
+        { text: 'Cancel', role: 'cancel' },
+        {
+          text: 'Log Out',
+          role: 'destructive',
+          handler: () => {
+            localStorage.removeItem('riderJwt');
+            localStorage.removeItem('riderId');
+            this.navCtrl.navigateRoot(['/login']);
+          }
+        }
+      ]
+    });
+    await alert.present();
+  }
+
+  goBack() {
     this.navCtrl.back();
   }
-
-  gotoWallet(){
-    this.router.navigate(['/layout/wallet'])
-  }
-
-  gotoRideHistory(){
-    this.router.navigate(['/layout/ride-history'])
-  }
-
-  gotoProfile(){
-    this.router.navigate(['/layout/user-details'])
-  }
-
-  sendWhatsApp() {
-  const phone = '917406984308'; // country code + number (NO +)
-  const message = encodeURIComponent(
-    'Hi, I need help regarding my Onboarding.'
-  );
-
-  const url = `https://wa.me/${phone}?text=${message}`;
-  window.open(url, '_system'); // opens WhatsApp app
 }
-}
+

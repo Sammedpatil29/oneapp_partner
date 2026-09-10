@@ -1,9 +1,40 @@
 <ion-app>
-  <ion-router-outlet></ion-router-outlet>
-</ion-app>
+  <div class="captain-app-wrapper">
+    <div class="main-content-outlet">
+      <ion-router-outlet></ion-router-outlet>
+    </div>
 
- <div *ngIf="rideRequests?.length > 0" class="ride-requests-overlay">
-  @for(item of rideRequests; track item.rideId) {
+    <!-- Rapido Captain Style Bottom Navigation Bar -->
+    <nav class="captain-bottom-bar">
+      <button class="nav-tab" [class.active]="isTabActive('/layout/home')" (click)="navigateTab('/layout/home')">
+        <ion-icon [name]="isTabActive('/layout/home') ? 'home' : 'home-outline'"></ion-icon>
+        <span>Cockpit</span>
+      </button>
+
+      <button class="nav-tab" [class.active]="isTabActive('/layout/ride-history')" (click)="navigateTab('/layout/ride-history')">
+        <ion-icon [name]="isTabActive('/layout/ride-history') ? 'bicycle' : 'bicycle-outline'"></ion-icon>
+        <span>Rides</span>
+      </button>
+
+      <button class="nav-tab" [class.active]="isTabActive('/layout/earnings')" (click)="navigateTab('/layout/earnings')">
+        <ion-icon [name]="isTabActive('/layout/earnings') ? 'trending-up' : 'trending-up-outline'"></ion-icon>
+        <span>Earnings</span>
+      </button>
+
+      <button class="nav-tab" [class.active]="isTabActive('/layout/wallet')" (click)="navigateTab('/layout/wallet')">
+        <ion-icon [name]="isTabActive('/layout/wallet') ? 'wallet' : 'wallet-outline'"></ion-icon>
+        <span>Wallet</span>
+      </button>
+
+      <button class="nav-tab" [class.active]="isTabActive('/layout/profile')" (click)="navigateTab('/layout/profile')">
+        <ion-icon [name]="isTabActive('/layout/profile') ? 'person' : 'person-outline'"></ion-icon>
+        <span>Captain</span>
+      </button>
+    </nav>
+  </div>
+  @if ((rideRequests?.length || 0) > 0) {
+    <div class="ride-requests-overlay">
+      @for(item of rideRequests; track item.rideId || item.id) {
     <div class="modern-ride-card">
       <div class="countdown-timer">
         <div class="timer-fill"></div>
@@ -11,20 +42,20 @@
 
       <div class="p-3">
         <div class="d-flex justify-content-between align-items-center mb-3">
-          <span class="incoming-label">NEW REQUEST</span>
+          <span class="incoming-label">⚡ NEW RIDE REQUEST</span>
           <div>
             <div class="d-flex align-items-center">
-            @if (item?.service_details.type === 'bike') {
-              <span class="incoming-label">Bike</span>
-            } @else if (item?.service_details.type === 'car') {
-              <img src="assets/icon/car.png" class="me-2" style="width: 50px; height: 50px; object-fit: contain;">
-            } @else if (item?.service_details.type === 'van') {
-              <img src="assets/icon/van.png" class="me-2" style="width: 50px; height: 50px; object-fit: contain;">
-            } @else if (item?.service_details.type === 'parcel') {
-              <img src="assets/icon/parcel.png" class="me-2" style="width: 50px; height: 50px; object-fit: contain;">
-            }
-          </div>
-          <h2 class="fare-amount">₹{{ item?.fare }}</h2>
+              @if (item?.service_details?.type === 'bike' || item?.vehicleType === 'bike') {
+                <span class="service-badge bike">Bike Taxi</span>
+              } @else if (item?.service_details?.type === 'car' || item?.vehicleType === 'car') {
+                <span class="service-badge car">Auto/Cab</span>
+              } @else if (item?.service_details?.type === 'parcel' || item?.vehicleType === 'parcel') {
+                <span class="service-badge parcel">Express Parcel</span>
+              } @else {
+                <span class="service-badge standard">Standard</span>
+              }
+            </div>
+            <h2 class="fare-amount">₹{{ item?.fare || item?.amount || '85' }}</h2>
           </div>
         </div>
 
@@ -38,11 +69,11 @@
           <div class="route-details">
             <div class="location-box mb-3">
               <p class="loc-label">PICKUP</p>
-              <h3 class="loc-name text-truncate">{{ item?.trip_details.origin.name }}</h3>
+              <h3 class="loc-name text-truncate">{{ item?.trip_details?.origin?.name || item?.origin?.name || 'Customer Pickup Point' }}</h3>
             </div>
             <div class="location-box">
               <p class="loc-label">DROP</p>
-              <h3 class="loc-name text-truncate">{{ item?.trip_details.drop.name }}</h3>
+              <h3 class="loc-name text-truncate">{{ item?.trip_details?.drop?.name || item?.destination?.name || 'Customer Drop Point' }}</h3>
             </div>
           </div>
         </div>
@@ -50,7 +81,7 @@
         <div class="info-strip mt-3">
           <div class="info-item">
             <ion-icon name="navigate-outline"></ion-icon>
-            <span>{{ item?.distance }} km</span>
+            <span>{{ item?.distance || '3.5' }} km</span>
           </div>
           <div class="info-item">
             <ion-icon name="time-outline"></ion-icon>
@@ -59,16 +90,17 @@
         </div>
 
         <div class="action-grid mt-4">
-          <button class="btn-reject-modern" (click)="onReject(item.rideId)">
-            REJECT
+          <button class="btn-reject-modern" (click)="onReject(item.rideId || item.id)">
+            PASS
           </button>
-          <button class="btn-accept-modern" (click)="onAccept(item.rideId)">
+          <button class="btn-accept-modern" (click)="onAccept(item.rideId || item.id)">
             ACCEPT RIDE
           </button>
         </div>
       </div>
     </div>
   }
-</div>
+  </div>
+}
+</ion-app>
 
-    

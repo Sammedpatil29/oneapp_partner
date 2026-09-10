@@ -1,0 +1,17 @@
+.notif-content {
+  --background: #f8f9fa;
+}
+
+.notif-card {
+  transition: all 0.2s ease;
+  &.unread {
+    border-left: 4px solid var(--ion-color-primary, #3880ff) !important;
+  }
+}
+
+.notif-icon-box {
+  width: 44px;
+  height: 44px;
+  min-width: 44px;
+}
+

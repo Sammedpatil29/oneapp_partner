@@ -1,112 +1,140 @@
-<ion-header [translucent]="true" class="bg-white pt-4">
+<ion-header class="ion-no-border bg-white pt-2">
   <ion-toolbar>
-     <ion-buttons slot="start">
+    <ion-buttons slot="start">
       <ion-button (click)="goBack()">
-        <ion-icon name="arrow-back-outline"></ion-icon>
+        <ion-icon name="arrow-back-outline" color="dark"></ion-icon>
       </ion-button>
     </ion-buttons>
-    <ion-title>Earning Summary</ion-title>
+    <ion-title class="fw-bold text-dark">Captain Wallet</ion-title>
   </ion-toolbar>
 </ion-header>
 
-<ion-content [fullscreen]="true">
+<ion-content class="wallet-content" [fullscreen]="true">
+  @if (isLoading) {
+    <app-loader message="Loading Wallet Balance..."></app-loader>
+  } @else if (isOffline) {
+    <app-no-network (retry)="fetchWallet()"></app-no-network>
+  } @else if (hasApiError) {
+    <app-api-error (retry)="fetchWallet()"></app-api-error>
+  } @else {
+    <div class="container px-3 py-2">
+      <!-- WALLET BALANCE HERO CARD -->
+      <div class="wallet-hero-card p-4 rounded-4 shadow-sm mb-3">
+        <div class="d-flex justify-content-between align-items-start">
+          <div>
+            <small class="text-white-50 text-uppercase fw-semibold">Available for Payout</small>
+            <h1 class="balance-display text-white my-1 display-5 fw-bolder">₹{{ wallet?.balance?.available || 0 }}</h1>
+          </div>
+          <div class="wallet-icon-box bg-white-10 rounded-circle p-2">
+            <ion-icon name="wallet-outline" class="text-white fs-3"></ion-icon>
+          </div>
+        </div>
 
-  <!-- WALLET BALANCE CARD -->
-<div class="wallet-card">
+        <div class="d-flex gap-2 mt-4">
+          <button class="btn btn-warning flex-grow-1 fw-bold py-2 rounded-pill shadow-sm d-flex align-items-center justify-content-center gap-1" (click)="openWithdraw()">
+            <ion-icon name="arrow-down-circle-outline" class="fs-5"></ion-icon>
+            Instant Cashout
+          </button>
+        </div>
+      </div>
 
-  <small class="label">Available Earnings</small>
-  <h1 class="balance">
-    ₹{{ wallet?.balance?.available }}
-  </h1>
+      <!-- BALANCE DETAILS & SETTLEMENT STATS -->
+      <div class="row g-2 mb-3">
+        <div class="col-6">
+          <div class="bg-white p-3 rounded-3 border text-center shadow-xs">
+            <small class="text-muted d-block mb-1">Today's Earnings</small>
+            <h4 class="fw-bold text-success mb-0">₹{{ wallet?.stats?.today || 0 }}</h4>
+          </div>
+        </div>
+        <div class="col-6">
+          <div class="bg-white p-3 rounded-3 border text-center shadow-xs">
+            <small class="text-muted d-block mb-1">Cash in Hand</small>
+            <h4 class="fw-bold text-secondary mb-0">₹{{ wallet?.balance?.cash_collected_in_hand || 0 }}</h4>
+          </div>
+        </div>
+      </div>
 
-  <div class="wallet-actions">
-    @if (wallet.balance.available > 0) {
-      <ion-button size="small" color="success">
-      Take Out
-    </ion-button>
-    } @else if (wallet.balance.available == 0) {
-      <ion-button size="small" color="success" (click)="gotoHome()">
-      Start Earning
-    </ion-button>
-    } @else {
-      <ion-button size="small" color="success">
-      Pay Dues
-    </ion-button>
-    }
-    
+      <!-- LINKED PAYOUT ACCOUNT -->
+      <div class="bg-white p-3 rounded-3 border mb-3 shadow-xs">
+        <div class="d-flex justify-content-between align-items-center mb-2">
+          <h6 class="fw-bold text-dark mb-0 d-flex align-items-center gap-1">
+            <ion-icon name="card-outline" color="primary"></ion-icon>
+            Linked Payout Account
+          </h6>
+          <span class="badge bg-success-subtle text-success rounded-pill px-2 py-1">Verified</span>
+        </div>
+        <div class="d-flex justify-content-between align-items-center pt-2 border-top">
+          <div>
+            <span class="fw-bold text-dark d-block">{{ wallet?.payout_account?.upi_id || 'captain@okhdfcbank' }}</span>
+            <small class="text-muted">{{ wallet?.payout_account?.bank_name || 'HDFC Bank' }} ({{ wallet?.payout_account?.account_number || '•••• •••• 4912' }})</small>
+          </div>
+        </div>
+      </div>
 
-    
-  </div>
+      <!-- TRANSACTION LEDGER -->
+      <div class="mb-4">
+        <h5 class="fw-bold text-dark mb-2">Recent Transactions</h5>
+        
+        @if ((wallet?.transactions?.length || 0) === 0) {
+          <app-no-data
+            icon="wallet-outline"
+            title="No Transactions Yet"
+            description="Your ride earnings and payouts will appear here.">
+          </app-no-data>
+        } @else {
+          <ion-list class="transaction-list bg-transparent ion-no-padding">
+            @for (txn of wallet.transactions; track (txn.id || txn.txnId)) {
+              <div class="bg-white p-3 rounded-3 border mb-2 shadow-xs d-flex align-items-center justify-content-between">
+                <div class="d-flex align-items-center gap-3">
+                  <ion-icon
+                    [name]="txn.type === 'CREDIT' ? 'add-circle-outline' : 'remove-circle-outline'"
+                    [color]="txn.type === 'CREDIT' ? 'success' : 'danger'"
+                    class="fs-2">
+                  </ion-icon>
+                  <div>
+                    <h6 class="fw-bold text-dark mb-0">{{ txn.title }}</h6>
+                    <small class="text-muted">{{ txn.dateLabel }} • {{ txn.time }}</small>
+                  </div>
+                </div>
 
-</div>
+                <span class="fw-bold fs-5" [class.text-success]="txn.type === 'CREDIT'" [class.text-danger]="txn.type === 'DEBIT'">
+                  {{ txn.type === 'CREDIT' ? '+' : '-' }}₹{{ txn.amount }}
+                </span>
+              </div>
+            }
+          </ion-list>
+        }
+      </div>
+    </div>
 
+    <!-- WITHDRAWAL POPUP MODAL -->
+    <ion-modal [isOpen]="showWithdrawModal" (didDismiss)="closeWithdraw()" [initialBreakpoint]="0.6" [breakpoints]="[0, 0.6, 0.9]">
+      <ng-template>
+        <div class="p-4 bg-white h-100">
+          <h4 class="fw-bolder text-dark mb-1">Instant Payout</h4>
+          <p class="text-muted small mb-3">Transfer your earnings directly to your bank / UPI.</p>
 
-  <!-- QUICK STATS -->
-<div class="wallet-stats mt-1">
+          <div class="mb-3">
+            <label class="form-label small fw-bold text-secondary">Withdrawal Amount (₹)</label>
+            <div class="input-group">
+              <span class="input-group-text fw-bold fs-5">₹</span>
+              <input type="number" class="form-control form-control-lg fw-bold" [(ngModel)]="withdrawAmount" [max]="wallet?.balance?.available">
+            </div>
+            <small class="text-muted">Available: ₹{{ wallet?.balance?.available }}</small>
+          </div>
 
-  <div class="stat-box" (click)="gotoRides()">
-    <small>Today</small>
-    <p class="value text-success">
-      ₹{{ wallet?.stats?.today }}
-    </p>
-  </div>
+          <div class="mb-4">
+            <label class="form-label small fw-bold text-secondary">Transfer to UPI ID</label>
+            <input type="text" class="form-control fw-semibold" [(ngModel)]="withdrawUpiId">
+          </div>
 
-  <div class="stat-box">
-    <small>This Week</small>
-    <p class="value">
-      ₹{{ wallet?.stats?.thisWeek }}
-    </p>
-  </div>
-
-  <div class="stat-box">
-    <small>This Month</small>
-    <p class="value">
-      ₹{{ wallet?.stats?.thisMonth }}
-    </p>
-  </div>
-
-</div>
-
-
-  <!-- TRANSACTION LIST -->
-<ion-list class="transaction-list mt-2">
-
-  <ion-list-header>
-    <ion-label>Recent Transactions</ion-label>
-  </ion-list-header>
-
-  <ion-item *ngFor="let txn of wallet?.transactions">
-
-    <ion-icon
-      slot="start"
-      [name]="txn.type === 'CREDIT'
-        ? 'add-circle-outline'
-        : 'remove-circle-outline'"
-      [color]="txn.type === 'CREDIT'
-        ? 'success'
-        : 'danger'">
-    </ion-icon>
-
-    <ion-label>
-      <h3>{{ txn.title }}</h3>
-      <p>{{ txn.dateLabel }} • {{ txn.time }}</p>
-    </ion-label>
-
-    <ion-note
-      slot="end"
-      [color]="txn.type === 'CREDIT'
-        ? 'success'
-        : 'danger'"
-      class="fs-5">
-
-      {{ txn.type === 'CREDIT' ? '+' : '-' }}₹{{ txn.amount }}
-
-    </ion-note>
-
-  </ion-item>
-
-</ion-list>
-
-
+          <button class="btn btn-success w-100 py-3 rounded-pill fw-bold fs-6 shadow-sm" (click)="processWithdrawal()" [disabled]="isProcessingPayout">
+            {{ isProcessingPayout ? 'Processing Payout...' : 'Confirm & Withdraw ₹' + withdrawAmount }}
+          </button>
+        </div>
+      </ng-template>
+    </ion-modal>
+  }
 </ion-content>
+
 

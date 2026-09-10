@@ -1,0 +1,33 @@
+.referrals-content {
+  --background: #f8f9fa;
+}
+
+.gift-icon-bubble {
+  width: 64px;
+  height: 64px;
+  background: #fff3cd;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 32px;
+}
+
+.code-card {
+  background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+  color: white;
+
+  .code-text {
+    font-size: 1.5rem;
+    letter-spacing: 2px;
+  }
+}
+
+.stat-card {
+  transition: transform 0.2s ease;
+}
+
+.friend-card {
+  background: #ffffff;
+}
+

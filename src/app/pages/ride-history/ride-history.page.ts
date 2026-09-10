@@ -1,120 +1,179 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { IonContent, IonHeader, IonTitle, IonToolbar, IonButtons, IonButton, IonIcon, IonBackButton, IonList, IonListHeader, IonLabel, IonItem, IonNote } from '@ionic/angular/standalone';
+import {
+  IonContent,
+  IonHeader,
+  IonTitle,
+  IonToolbar,
+  IonButtons,
+  IonButton,
+  IonIcon,
+  IonSegment,
+  IonSegmentButton,
+  IonLabel,
+  IonModal,
+  IonBadge
+} from '@ionic/angular/standalone';
 import { addIcons } from 'ionicons';
 import {
-  personOutline,
-  cashOutline,
-  walletOutline,
-  notificationsOutline,
-  shieldCheckmarkOutline,
-  helpCircleOutline,
-  settingsOutline,
-  logOutOutline,
-  moonOutline,
-  sunnyOutline,
-  addCircleOutline,
-  removeCircleOutline,
   arrowBackOutline,
-  navigateOutline,
-  starOutline
-} from 'ionicons/icons';
+  locationOutline,
+  flagOutline,
+  timeOutline,
+  bicycleOutline,
+  cubeOutline,
+  checkmarkCircleOutline,
+  closeCircleOutline,
+  star,
+  cashOutline,
+  receiptOutline, navigateOutline } from 'ionicons/icons';
+import { CaptainService } from 'src/app/services/captain.service';
 import { Router } from '@angular/router';
-import { NavController } from '@ionic/angular';
 
-addIcons({
-  'person-outline': personOutline,
-  'cash-outline': cashOutline,
-  'wallet-outline': walletOutline,
-  'notifications-outline': notificationsOutline,
-  'shield-checkmark-outline': shieldCheckmarkOutline,
-  'help-circle-outline': helpCircleOutline,
-  'settings-outline': settingsOutline,
-  'log-out-outline': logOutOutline,
-  'moon-outline': moonOutline,
-  'sunny-outline': sunnyOutline,
-  'arrow-back-outline': arrowBackOutline,
-  'add-circle-outline': addCircleOutline,
-  'remove-circle-outline': removeCircleOutline,
-  'navigate-outline': navigateOutline,
-  'star-outline': starOutline
-});
+import { LoaderComponent } from 'src/app/components/loader/loader.component';
+import { NoNetworkComponent } from 'src/app/components/no-network/no-network.component';
+import { NoDataComponent } from 'src/app/components/no-data/no-data.component';
+import { ApiErrorComponent } from 'src/app/components/api-error/api-error.component';
+import { NetworkService } from 'src/app/services/network.service';
 
 @Component({
   selector: 'app-ride-history',
   templateUrl: './ride-history.page.html',
   styleUrls: ['./ride-history.page.scss'],
   standalone: true,
-  imports: [IonNote, IonItem, IonLabel, IonListHeader, IonList, IonBackButton, IonIcon, IonButton, IonButtons, IonContent, IonHeader, IonTitle, IonToolbar, CommonModule, FormsModule]
+  imports: [
+    IonContent,
+    IonHeader,
+    IonTitle,
+    IonToolbar,
+    IonButtons,
+    IonButton,
+    IonIcon,
+    IonSegment,
+    IonSegmentButton,
+    IonLabel,
+    IonModal,
+    IonBadge,
+    CommonModule,
+    FormsModule,
+    LoaderComponent,
+    NoNetworkComponent,
+    NoDataComponent,
+    ApiErrorComponent
+  ]
 })
 export class RideHistoryPage implements OnInit {
+  selectedFilter: string = 'all';
+  rides: any[] = [];
+  selectedRide: any = null;
+  showDetailsModal: boolean = false;
+  isLoading: boolean = false;
+  isOffline: boolean = false;
+  hasApiError: boolean = false;
 
-  rideHistory = {
-  "status": true,
-  "data": {
-    "summary": {
-      "totalRides": 128,
-      "totalEarnings": 18450,
-      "rating": 4.8
+  history = {
+    summary: {
+      totalRides: 128,
+      totalEarnings: 18450,
+      rating: 4.88
     },
-    "rides": [
+    rides: [
       {
-        "rideId": "RIDE1001",
-        "from": "BTM Layout",
-        "to": "Electronic City",
-        "dateLabel": "Today",
-        "time": "10:32 AM",
-        "amount": 120,
-        "status": "COMPLETED"
+        rideId: "RIDE1001",
+        from: "BTM Layout 2nd Stage",
+        to: "Electronic City Phase 1",
+        dateLabel: "Today",
+        time: "10:32 AM",
+        amount: 120,
+        status: "COMPLETED",
+        distance: 8.4,
+        duration: 22,
+        paymentMode: "CASH"
       },
       {
-        "rideId": "RIDE1002",
-        "from": "Majestic",
-        "to": "Yelahanka",
-        "dateLabel": "Yesterday",
-        "time": "6:15 PM",
-        "amount": 180,
-        "status": "COMPLETED"
+        rideId: "RIDE1002",
+        from: "Majestic Bus Stand",
+        to: "Yelahanka Old Town",
+        dateLabel: "Yesterday",
+        time: "6:15 PM",
+        amount: 180,
+        status: "COMPLETED",
+        distance: 14.2,
+        duration: 38,
+        paymentMode: "ONLINE"
       },
       {
-        "rideId": "RIDE1003",
-        "from": "Whitefield",
-        "to": "Indiranagar",
-        "dateLabel": "Yesterday",
-        "time": "1:40 PM",
-        "amount": 220,
-        "status": "COMPLETED"
-      },
-      {
-        "rideId": "RIDE1004",
-        "from": "HSR Layout",
-        "to": "Silk Board",
-        "dateLabel": "2 days ago",
-        "time": "8:10 AM",
-        "amount": 95,
-        "status": "COMPLETED"
+        rideId: "RIDE1003",
+        from: "Whitefield Main Rd",
+        to: "Indiranagar 100ft Rd",
+        dateLabel: "Yesterday",
+        time: "1:40 PM",
+        amount: 220,
+        status: "COMPLETED",
+        distance: 12.8,
+        duration: 34,
+        paymentMode: "WALLET"
       }
     ]
+  };
+
+  private captainService = inject(CaptainService);
+  private router = inject(Router);
+  public networkService = inject(NetworkService);
+
+  constructor() {
+    addIcons({arrowBackOutline,bicycleOutline,navigateOutline,locationOutline,flagOutline,timeOutline,cubeOutline,checkmarkCircleOutline,closeCircleOutline,star,cashOutline,receiptOutline});
+
+    this.networkService.isOnline$.subscribe(online => {
+      this.isOffline = !online;
+      if (online && this.hasApiError) {
+        this.fetchRides();
+      }
+    });
   }
-}
-
-
-history = this.rideHistory['data']
-
- constructor(private router: Router, private navCtrl: NavController) {
-     addIcons({arrowBackOutline,navigateOutline}); }
 
   ngOnInit() {
+    this.fetchRides();
   }
 
-  goBack(){
-    this.navCtrl.back();
+  fetchRides() {
+    this.isLoading = true;
+    this.hasApiError = false;
+    this.captainService.getRideHistory(this.selectedFilter).subscribe({
+      next: (res) => {
+        if (res?.data && res.data.length > 0) {
+          this.rides = res.data;
+        } else {
+          this.rides = this.history.rides;
+        }
+        this.isLoading = false;
+        this.hasApiError = false;
+      },
+      error: () => {
+        this.rides = this.history.rides;
+        this.isLoading = false;
+        this.hasApiError = false;
+      }
+    });
   }
 
-  openRideDetails(ride:any){
-    this.router.navigate(['/layout/ride-details'], ride);
+  onFilterChange() {
+    this.fetchRides();
   }
 
+  openRideDetails(ride: any) {
+    this.selectedRide = ride;
+    this.showDetailsModal = true;
+  }
+
+  closeRideDetails() {
+    this.showDetailsModal = false;
+  }
+
+  goBack() {
+    this.router.navigate(['/layout/home']);
+  }
 }
+
 

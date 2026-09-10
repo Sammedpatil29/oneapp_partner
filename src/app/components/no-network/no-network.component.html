@@ -1,0 +1,19 @@
+<div class="no-network-container" [class.fullscreen]="isFullscreen">
+  <div class="no-network-card">
+    <div class="icon-pulse-wrapper">
+      <div class="pulse-ring"></div>
+      <div class="icon-circle">
+        <ion-icon name="cloud-offline-outline"></ion-icon>
+      </div>
+    </div>
+
+    <h3 class="title">{{ title }}</h3>
+    <p class="desc">{{ description }}</p>
+
+    <button class="btn-retry" (click)="onRetry()" [disabled]="isRetrying">
+      <ion-icon name="refresh-outline" [class.spinning]="isRetrying"></ion-icon>
+      <span>{{ isRetrying ? 'Reconnecting...' : retryText }}</span>
+    </button>
+  </div>
+</div>
+

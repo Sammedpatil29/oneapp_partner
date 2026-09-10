@@ -1,6 +1,13 @@
 <ion-header [translucent]="true">
+<ion-header class="ion-no-border bg-white pt-2">
   <ion-toolbar>
     <ion-title>needHelp</ion-title>
+    <ion-buttons slot="start">
+      <ion-button (click)="goBack()">
+        <ion-icon name="arrow-back-outline" color="dark"></ion-icon>
+      </ion-button>
+    </ion-buttons>
+    <ion-title class="fw-bold text-dark">Safety & Captain Support</ion-title>
   </ion-toolbar>
 </ion-header>
 
@@ -10,4 +17,77 @@
       <ion-title size="large">needHelp</ion-title>
     </ion-toolbar>
   </ion-header>
+<ion-content class="help-content" [fullscreen]="true">
+  <div class="container px-3 py-2">
+    <!-- EMERGENCY SOS HERO CARD -->
+    <div class="sos-card p-4 rounded-4 shadow-sm mb-4 text-center">
+      <div class="sos-icon-bubble mx-auto mb-3 shadow">
+        <ion-icon name="warning-outline" color="danger"></ion-icon>
+      </div>
+      <h3 class="fw-bolder text-white mb-1">Emergency SOS</h3>
+      <p class="text-white-50 small mb-3">Tap below if you are in danger. Your live location will be shared immediately.</p>
+
+      <button class="btn btn-danger btn-lg w-100 py-3 rounded-pill fw-bolder shadow-sm d-flex align-items-center justify-content-center gap-2" (click)="triggerEmergencySos()">
+        <ion-icon name="warning-outline"></ion-icon>
+        TRIGGER EMERGENCY SOS
+      </button>
+
+      @if (isSosTriggered) {
+        <div class="alert alert-warning mt-3 mb-0 py-2 small fw-bold text-dark">
+          🚨 Active SOS broadcast running. Safety desk is notified.
+        </div>
+      }
+    </div>
+
+    <!-- QUICK EMERGENCY CONTACTS -->
+    <h5 class="fw-bold text-dark mb-2">Emergency Quick Dial</h5>
+    <div class="row g-2 mb-4">
+      <div class="col-6">
+        <button class="btn btn-outline-danger w-100 py-3 rounded-3 fw-bold d-flex align-items-center justify-content-center gap-2 shadow-xs" (click)="callPolice()">
+          <ion-icon name="call-outline"></ion-icon>
+          Police (112)
+        </button>
+      </div>
+      <div class="col-6">
+        <button class="btn btn-outline-primary w-100 py-3 rounded-3 fw-bold d-flex align-items-center justify-content-center gap-2 shadow-xs" (click)="callSafetyDesk()">
+          <ion-icon name="shield-checkmark-outline"></ion-icon>
+          Safety Desk
+        </button>
+      </div>
+    </div>
+
+    <!-- 24x7 HELPLINE -->
+    <div class="bg-white p-3 rounded-3 border mb-4 shadow-xs d-flex align-items-center justify-content-between">
+      <div class="d-flex align-items-center gap-3">
+        <div class="p-2 bg-success-subtle rounded-circle">
+          <ion-icon name="logo-whatsapp" color="success" class="fs-3"></ion-icon>
+        </div>
+        <div>
+          <h6 class="fw-bold text-dark mb-0">WhatsApp Captain Support</h6>
+          <small class="text-muted">Chat with an agent 24x7</small>
+        </div>
+      </div>
+      <button class="btn btn-success btn-sm rounded-pill px-3 fw-bold" (click)="openWhatsAppSupport()">
+        Chat
+      </button>
+    </div>
+
+    <!-- FREQUENTLY ASKED QUESTIONS -->
+    <h5 class="fw-bold text-dark mb-2">Captain FAQs</h5>
+    <div class="mb-4">
+      @for (faq of faqs; track $index) {
+        <div class="bg-white rounded-3 border mb-2 shadow-xs overflow-hidden">
+          <div class="p-3 d-flex align-items-center justify-content-between cursor-pointer" (click)="toggleFaq($index)">
+            <span class="fw-semibold text-dark">{{ faq.q }}</span>
+            <ion-icon [name]="openFaqIndex === $index ? 'chevron-up-outline' : 'chevron-down-outline'" color="medium"></ion-icon>
+          </div>
+          @if (openFaqIndex === $index) {
+            <div class="px-3 pb-3 text-secondary small border-top pt-2">
+              {{ faq.a }}
+            </div>
+          }
+        </div>
+      }
+    </div>
+  </div>
 </ion-content>

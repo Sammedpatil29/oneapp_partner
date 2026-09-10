@@ -1,6 +1,117 @@
+.captain-app-wrapper {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  width: 100%;
+  overflow: hidden;
+  background: #f8fafc;
+}
+
+.main-content-outlet {
+  flex: 1;
+  overflow: hidden;
+  position: relative;
+}
+
+// Rapido Captain Bottom Navigation Bar
+.captain-bottom-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+  background: #ffffff;
+  height: 64px;
+  border-top: 1px solid #e2e8f0;
+  box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.04);
+  z-index: 100;
+  padding: 0 4px env(safe-area-inset-bottom, 0px);
+
+  .nav-tab {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 3px;
+    background: transparent;
+    border: none;
+    outline: none;
+    padding: 6px 0;
+    cursor: pointer;
+    color: #64748b;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+
+    ion-icon {
+      font-size: 22px;
+      transition: transform 0.2s ease, color 0.2s ease;
+    }
+
+    span {
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: -0.1px;
+    }
+
+    &.active {
+      color: #02298a;
+
+      ion-icon {
+        transform: translateY(-2px);
+        color: #02298a;
+      }
+
+      span {
+        font-weight: 700;
+        color: #02298a;
+      }
+
+      &::after {
+        content: '';
+        position: absolute;
+        bottom: 2px;
+        width: 16px;
+        height: 3px;
+        background: #02298a;
+        border-radius: 99px;
+      }
+    }
+
+    &:active {
+      transform: scale(0.92);
+    }
+  }
+}
+
+.service-badge {
+  font-size: 10px;
+  font-weight: 800;
+  padding: 3px 8px;
+  border-radius: 6px;
+  text-transform: uppercase;
+  margin-right: 6px;
+
+  &.bike {
+    background: #e0f2fe;
+    color: #0369a1;
+  }
+  &.car {
+    background: #fef3c7;
+    color: #92400e;
+  }
+  &.parcel {
+    background: #f3e8ff;
+    color: #6b21a8;
+  }
+  &.standard {
+    background: #f1f5f9;
+    color: #475569;
+  }
+}
+
 .ride-requests-overlay {
   position: fixed;
   bottom: 20px;
+  bottom: 74px;
   left: 0;
   right: 0;
   z-index: 1000;
@@ -17,22 +128,34 @@
   box-shadow: 0 10px 30px rgba(0,0,0,0.2);
   border: 1px solid rgba(0,0,0,0.05);
   animation: slideUp 0.3s ease-out;
+  box-shadow: 0 16px 36px rgba(0,0,0,0.22);
+  border: 1px solid rgba(0,0,0,0.08);
+  animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
 
   .incoming-label {
     font-size: 10px;
+    font-size: 11px;
     font-weight: 800;
     color: #666;
     letter-spacing: 1px;
     background: #f0f0f0;
     padding: 4px 8px;
     border-radius: 4px;
+    color: #02298a;
+    letter-spacing: 0.5px;
+    background: #eef2ff;
+    padding: 4px 10px;
+    border-radius: 6px;
   }
 
   .fare-amount {
     font-size: 28px;
+    font-size: 26px;
     font-weight: 900;
     color: #1a1a1a;
+    color: #0f172a;
     margin: 0;
+    text-align: right;
   }
 }
 
@@ -50,26 +173,35 @@
     .pickup-dot { width: 10px; height: 10px; background: #01257D; border-radius: 50%; }
     .drop-dot { width: 10px; height: 10px; background: #2ecc71; transform: rotate(45deg); }
     .line { width: 2px; flex-grow: 1; background: #eee; margin: 4px 0; }
+    .pickup-dot { width: 10px; height: 10px; background: #02298a; border-radius: 50%; }
+    .drop-dot { width: 10px; height: 10px; background: #10b981; transform: rotate(45deg); }
+    .line { width: 2px; flex-grow: 1; background: #e2e8f0; margin: 4px 0; }
   }
 
   .loc-label { font-size: 9px; color: #999; margin: 0; font-weight: 700; }
   .loc-name { font-size: 15px; font-weight: 600; color: #333; margin: 0; }
+  .loc-label { font-size: 9px; color: #94a3b8; margin: 0; font-weight: 700; letter-spacing: 0.5px; }
+  .loc-name { font-size: 14px; font-weight: 600; color: #1e293b; margin: 0; }
 }
 
 .info-strip {
   display: flex;
   gap: 20px;
   border-top: 1px solid #f5f5f5;
+  border-top: 1px solid #f1f5f9;
   padding-top: 12px;
   
   .info-item {
     display: flex;
     align-items: center;
     gap: 5px;
+    gap: 6px;
     font-size: 13px;
     font-weight: 600;
     color: #555;
     ion-icon { color: #01257D; }
+    color: #475569;
+    ion-icon { color: #02298a; font-size: 16px; }
   }
 }
 
@@ -77,11 +209,14 @@
 .countdown-timer {
   height: 6px;
   background: #eee;
+  background: #f1f5f9;
   .timer-fill {
     height: 100%;
     background: #01257D;
+    background: linear-gradient(90deg, #ffc727, #02298a);
     width: 100%;
     animation: shrink 10s linear forwards;
+    animation: shrink 15s linear forwards;
   }
 }
 
@@ -93,13 +228,26 @@
   button {
     padding: 16px;
     border-radius: 16px;
+    padding: 15px;
+    border-radius: 14px;
     font-weight: 800;
     font-size: 14px;
     border: none;
+    cursor: pointer;
   }
   
   .btn-reject-modern { background: #fdeaea; color: #e74c3c; }
   .btn-accept-modern { background: #01257D; color: white; box-shadow: 0 4px 15px rgba(1, 37, 125, 0.3); }
+  .btn-reject-modern { 
+    background: #fef2f2; 
+    color: #ef4444; 
+    border: 1px solid #fee2e2;
+  }
+  .btn-accept-modern { 
+    background: #02298a; 
+    color: white; 
+    box-shadow: 0 4px 15px rgba(2, 41, 138, 0.35); 
+  }
 }
 
 @keyframes shrink { from { width: 100%; } to { width: 0%; } }

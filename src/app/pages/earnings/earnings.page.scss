@@ -1,0 +1,46 @@
+.earnings-content {
+  --background: #f8f9fa;
+}
+
+.hero-earnings-card {
+  background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+  color: #ffffff;
+}
+
+.chart-container {
+  height: 160px;
+}
+
+.chart-col {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  height: 100%;
+  justify-content: flex-end;
+
+  .bar-val {
+    font-size: 10px;
+    margin-bottom: 4px;
+  }
+
+  .bar-wrapper {
+    width: 20px;
+    height: 100px;
+    background: #e2e8f0;
+    border-radius: 6px 6px 0 0;
+    display: flex;
+    align-items: flex-end;
+
+    .bar-fill {
+      width: 100%;
+      min-height: 4px;
+      transition: height 0.3s ease;
+    }
+  }
+
+  .day-label {
+    font-size: 11px;
+  }
+}
+

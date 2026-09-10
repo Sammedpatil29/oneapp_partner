@@ -1,3 +1,7 @@
+.history-content {
+  --background: #f8fafc;
+}
+
 .history-summary {
   display: flex;
   justify-content: space-between;
@@ -13,18 +17,19 @@
   text-align: center;
 }
 
-.summary-item small {
-  font-size: 12px;
-  color: #6c757d;
+.pickup-dot {
+  width: 10px;
+  height: 10px;
+  min-width: 10px;
+  background-color: #22c55e;
+  border-radius: 50%;
 }
 
-.summary-item h3 {
-  margin-top: 4px;
+.drop-dot {
+  width: 10px;
+  height: 10px;
+  min-width: 10px;
+  background-color: #ef4444;
+  border-radius: 50%;
 }
 
-.ride-list ion-item {
-  margin: 6px 12px;
-  border-radius: 12px;
-  --background: #ffffff;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
-}

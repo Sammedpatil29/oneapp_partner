@@ -1,193 +1,306 @@
 @if (isLoading) {
-  <div class="position-fixed w-100 h-100 d-flex align-items-center justify-content-center" style="z-index: 1000; background-color: rgba(255, 255, 255, 0.7);">
-  <app-loader></app-loader>
-</div>
+  <app-loader [isFullscreen]="true" message="Updating Captain data..."></app-loader>
 }
-<ion-header class="bg-white pt-2" [translucent]="true">
+
+@if (isOffline) {
+  <app-no-network [isFullscreen]="true" (retry)="retryLoading()"></app-no-network>
+}
+
+<app-alert-modal
+  [isOpen]="alertModal.isOpen"
+  [type]="alertModal.type"
+  [title]="alertModal.title"
+  [message]="alertModal.message"
+  [confirmText]="alertModal.confirmText"
+  [cancelText]="alertModal.cancelText"
+  [showCancel]="alertModal.showCancel"
+  (confirm)="handleAlertConfirm()"
+  (cancel)="closeAlertModal()">
+</app-alert-modal>
+
+<ion-header class="captain-header" [translucent]="false">
   <ion-toolbar>
-  <ion-title class="ion-text-center">
-    <div class="d-flex align-items-center justify-content-between">
-      
-      <div class="toggle-wrap" [class.online]="status" id="present-alert">
-        @if (status == false) {
-          <svg xmlns="http://www.w3.org/2000/svg" height="20px" viewBox="0 -960 960 960" width="20px" fill="#6c757d"><path d="M160-200q-66 0-113-47T0-360q0-57 36.5-101t93.5-55l-28-24H0v-60h180l100 60 160-60h126l-62-80H400v-80h142l84 108 134-68v120h-92l70 92q15-6 30.5-9t31.5-3q66 0 113 47t47 113q0 66-47 113t-113 47q-66 0-113-47t-47-113q0-27 9.5-52.5T676-460l-20-24-136 204H400l-80-70q-5 63-51 106.5T160-200Zm0-80q33 0 56.5-23.5T240-360q0-33-23.5-56.5T160-440q-33 0-56.5 23.5T80-360q0 33 23.5 56.5T160-280Zm294-240-144 54 144-54h130-130Zm346 240q33 0 56.5-23.5T880-360q0-33-23.5-56.5T800-440q-33 0-56.5 23.5T720-360q0 33 23.5 56.5T800-280Zm-322-80 106-160H454l-144 54 120 106h48Z"/></svg>
-        } @else {
-          <svg xmlns="http://www.w3.org/2000/svg" height="20px" viewBox="0 -960 960 960" width="20px" fill="#2dd55b"><path d="M160-200q-66 0-113-47T0-360q0-57 36.5-101t93.5-55l-28-24H0v-60h180l100 60 160-60h126l-62-80H400v-80h142l84 108 134-68v120h-92l70 92q15-6 30.5-9t31.5-3q66 0 113 47t47 113q0 66-47 113t-113 47q-66 0-113-47t-47-113q0-27 9.5-52.5T676-460l-20-24-136 204H400l-80-70q-5 63-51 106.5T160-200Zm0-80q33 0 56.5-23.5T240-360q0-33-23.5-56.5T160-440q-33 0-56.5 23.5T80-360q0 33 23.5 56.5T160-280Zm294-240-144 54 144-54h130-130Zm346 240q33 0 56.5-23.5T880-360q0-33-23.5-56.5T800-440q-33 0-56.5 23.5T720-360q0 33 23.5 56.5T800-280Zm-322-80 106-160H454l-144 54 120 106h48Z"/></svg>
-        }
-</div>
-     <div class="d-flex gap-1">
-       <div class="toggle-wrap" [class.online]="status">
+    <div class="header-inner">
+      <!-- Left: Online/Offline Duty Switch -->
+      <div class="duty-pill" [class.online]="status">
+        <span class="duty-indicator"></span>
+        <span class="duty-text">{{ status ? 'ONLINE' : 'OFFLINE' }}</span>
+        <ion-toggle color="success" [(ngModel)]="status" (ionChange)="changeStatus()"></ion-toggle>
+      </div>
 
-  <span class="status-text">
-    {{ status ? 'ONLINE' : 'OFFLINE' }}
-  </span>
+      <!-- Right: SOS, Notifications, Profile Shortcuts -->
+      <div class="header-actions">
+        <button class="icon-btn sos-btn" (click)="triggerEmergencySos()" title="Emergency SOS">
+          <ion-icon name="shield-outline"></ion-icon>
+        </button>
 
-  <ion-toggle
-    color="success"
-    [(ngModel)]="status"
-    (ionChange)="changeStatus()">
-  </ion-toggle>
+        <button class="icon-btn notif-btn" (click)="gotoNotifications()" title="Notifications">
+          <ion-icon name="flash-outline"></ion-icon>
+        </button>
 
-</div>
-      
-     </div>
-    <div (click)="openProfile()">
-      <svg xmlns="http://www.w3.org/2000/svg" height="30px" viewBox="0 -960 960 960" width="30px" fill="#1f1f1f"><path d="M234-276q51-39 114-61.5T480-360q69 0 132 22.5T726-276q35-41 54.5-93T800-480q0-133-93.5-226.5T480-800q-133 0-226.5 93.5T160-480q0 59 19.5 111t54.5 93Zm246-164q-59 0-99.5-40.5T340-580q0-59 40.5-99.5T480-720q59 0 99.5 40.5T620-580q0 59-40.5 99.5T480-440Zm0 360q-83 0-156-31.5T197-197q-54-54-85.5-127T80-480q0-83 31.5-156T197-763q54-54 127-85.5T480-880q83 0 156 31.5T763-763q54 54 85.5 127T880-480q0 83-31.5 156T763-197q-54 54-127 85.5T480-80Zm0-80q53 0 100-15.5t86-44.5q-39-29-86-44.5T480-280q-53 0-100 15.5T294-220q39 29 86 44.5T480-160Zm0-360q26 0 43-17t17-43q0-26-17-43t-43-17q-26 0-43 17t-17 43q0 26 17 43t43 17Zm0-60Zm0 360Z"/></svg>
+        <div class="captain-avatar-btn" (click)="openProfile()">
+          <img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80" alt="Profile" />
+          <span class="captain-badge-dot"></span>
+        </div>
+      </div>
     </div>
-    </div>
-  </ion-title>
-</ion-toolbar>
+  </ion-toolbar>
 </ion-header>
 
-<ion-content [fullscreen]="true">
-
-  <div class="floating-strip border mx-2">
-
-  <div class="floating-row">
-
-    <!-- LEFT: Today's Earnings -->
-    <div class="floating-item">
-      <small class="label">Today</small>
-      <div class="value text-success">₹450</div>
+<ion-content class="cockpit-content">
+  <!-- Top Floating Performance Bar -->
+  <div class="floating-metrics-card">
+    <div class="metric-col" (click)="gotoEarnings()">
+      <span class="metric-label">TODAY</span>
+      <span class="metric-val text-success">₹{{ todayStats.earnings }}</span>
     </div>
-
-    <!-- MIDDLE: Wallet Balance -->
-    <div class="floating-item middle" (click)="gotoWallet()">
-      <small class="label">Earnings</small>
-      <div class="value text-primary">₹1,250</div>
+    <div class="metric-divider"></div>
+    <div class="metric-col" (click)="gotoEarnings()">
+      <span class="metric-label">TRIPS</span>
+      <span class="metric-val">{{ todayStats.rides }}</span>
     </div>
-
-    <!-- RIGHT: Last Order -->
-    <div class="floating-item">
-      <small class="label">Last Ride</small>
-      <div class="value text-dark">₹120</div>
+    <div class="metric-divider"></div>
+    <div class="metric-col" (click)="gotoWallet()">
+      <span class="metric-label">RATING</span>
+      <span class="metric-val text-warning">⭐ 4.88</span>
     </div>
-
   </div>
 
-</div>
+  <!-- ================= OFFLINE STATE ================= -->
+  @if (!status) {
+    <div class="offline-hero-container">
+      <div class="offline-card">
+        <div class="offline-icon-pulse">
+          <ion-icon name="power-outline"></ion-icon>
+        </div>
+        <h2>You are currently Offline</h2>
+        <p>Switch to Online duty to start receiving high-paying bike taxi & delivery orders in your area.</p>
 
+        <button class="btn-go-online" (click)="status = true; changeStatus()">
+          <ion-icon name="flash-outline"></ion-icon>
+          GO ONLINE NOW
+        </button>
+      </div>
 
+      <!-- Daily Milestone Incentive Banner -->
+      <div class="incentive-banner" (click)="gotoEarnings()">
+        <div class="incentive-left">
+          <div class="incentive-icon">
+            <ion-icon name="gift-outline"></ion-icon>
+          </div>
+          <div>
+            <h4>Daily Milestone Bonus</h4>
+            <p>Complete 8 more rides to unlock ₹350 bonus!</p>
+          </div>
+        </div>
+        <ion-icon name="chevron-forward-outline" class="arrow-right"></ion-icon>
+      </div>
 
+      <!-- Refer & Earn Teaser -->
+      <div class="referral-teaser" (click)="gotoReferrals()">
+        <div class="teaser-content">
+          <h4>Refer Captain & Earn ₹500</h4>
+          <p>Invite friends to join the driver fleet.</p>
+        </div>
+        <button class="btn-teaser">SHARE</button>
+      </div>
+    </div>
+  }
 
-    <!-- OFFLINE -->
-    @if (status == false) {
-      <div class="h-100 d-flex align-items-center justify-content-center">
-        <ion-card class="ion-text-center w-90">
-          <ion-card-content>
-            <ion-icon name="power-outline" color="danger" style="font-size: 40px"></ion-icon>
-            <h2 class="mt-2 text-danger">You are Offline</h2>
-            <p class="text-muted">Go online to start receiving rides</p>
-          </ion-card-content>
-        </ion-card>
+  <!-- ================= ONLINE STATE ================= -->
+  @else {
+    <!-- Map Background -->
+    <div class="map-container">
+      <div id="map"></div>
+    </div>
+
+    <!-- 1. IDLE / SEARCHING RADAR (When no active ride) -->
+    @if (!activeRide) {
+      <div class="radar-searching-panel">
+        <div class="radar-scan-wrapper">
+          <div class="radar-circle circle-1"></div>
+          <div class="radar-circle circle-2"></div>
+          <div class="radar-circle circle-3"></div>
+          <div class="radar-center-icon">
+            <ion-icon name="location-outline"></ion-icon>
+          </div>
+        </div>
+        <div class="radar-text-wrapper">
+          <h3>Searching for High-Demand Orders...</h3>
+          <p>Stay near active tech parks and metro stations for instant requests.</p>
+        </div>
+
+        <button class="btn-simulate-test" (click)="simulateRide()">
+          ⚡ Demo: Simulate Incoming Trip
+        </button>
       </div>
     }
 
-    <!-- ONLINE -->
-    @else {
-      <div class="map-wrapper">
-    <div id="map"></div>
-    
-  </div>
-  @if (rideRequests.length == 0) {
-     <div class="position-fixed bottom-0 d-flex" style="height: 25vh; width: 100%; z-index: 999; background-color: white; border-radius: 20px 20px 0 0; box-shadow: 0px 0px 5px rgba(0, 0, 0, 0.507)">
-    <!-- From Uiverse.io by Erasmus001 --> 
-    <div class="d-flex justify-content-center align-items-center w-100">
-      <div id="wifi-loader">
-  <svg viewBox="0 0 86 86" class="circle-outer">
-    <circle r="40" cy="43" cx="43" class="back"></circle>
-    <circle r="40" cy="43" cx="43" class="front"></circle>
-    <circle r="40" cy="43" cx="43" class="new"></circle>
-  </svg>
-  <svg viewBox="0 0 60 60" class="circle-middle">
-    <circle r="27" cy="30" cx="30" class="back"></circle>
-    <circle r="27" cy="30" cx="30" class="front"></circle>
-  </svg>
-  <svg viewBox="0 0 34 34" class="circle-inner">
-    <circle r="14" cy="17" cx="17" class="back"></circle>
-    <circle r="14" cy="17" cx="17" class="front"></circle>
-  </svg>
-  <div data-text="Looking for orders" class="text"></div>
-</div>
+    <!-- 2. ACTIVE TRIP COCKPIT BOTTOM SHEET -->
+    @if (activeRide) {
+      <div class="active-trip-sheet">
+        <!-- Status Indicator Bar -->
+        <div class="trip-status-header">
+          <div class="status-pill" [ngClass]="activeRide.status">
+            @if (activeRide.status === 'accepted') {
+              <span class="status-dot"></span> HEADING TO PICKUP
+            } @else if (activeRide.status === 'arrived') {
+              <span class="status-dot"></span> ARRIVED AT PICKUP (WAITING)
+            } @else if (activeRide.status === 'in_progress') {
+              <span class="status-dot live"></span> IN TRIP TO DESTINATION
+            } @else if (activeRide.status === 'completed') {
+              <span class="status-dot done"></span> TRIP COMPLETED
+            }
+          </div>
+          <div class="fare-badge">₹{{ activeRide.fare }}</div>
+        </div>
 
-    </div>
-    </div>
-  } @else {
-    <!-- NEW RIDE REQUEST -->
-     <div class="position-fixed bottom-0 d-flex flex-column pb-5 overflow-auto" style="height: 85vh; width: 100%; z-index: 999; background-color: white; border-radius: 20px 20px 0 0; box-shadow: 0px 0px 5px rgba(0, 0, 0, 0.507)">
-   @for (item of rideRequests; track $index) {
-     <div class="px-2 pt-1 w-100">
-    <ion-card class="ride-card shadow-card p-3 rounded-3">
+        <!-- Customer Profile Strip -->
+        <div class="customer-strip">
+          <div class="customer-info">
+            <div class="cust-avatar">
+              {{ activeRide.customerName.charAt(0) }}
+            </div>
+            <div>
+              <h4 class="cust-name">{{ activeRide.customerName }}</h4>
+              <div class="cust-rating">
+                <ion-icon name="star"></ion-icon>
+                <span>{{ activeRide.customerRating }}</span>
+                <span class="service-pill">{{ activeRide.serviceType }}</span>
+              </div>
+            </div>
+          </div>
 
-    <!-- Header with Ride Request -->
-    <ion-card-header class="ion-no-padding mb-2 d-flex justify-content-between align-items-center">
-      <h2 class="card-title text-primary mb-0">🚕 New Ride Request</h2>
-      <span class="badge bg-success">₹{{ item?.fare }}</span>
-    </ion-card-header>
+          <div class="customer-actions">
+            <button class="action-circle-btn call" (click)="callCustomer(activeRide.customerPhone)" title="Call">
+              <ion-icon name="call-outline"></ion-icon>
+            </button>
+            <button class="action-circle-btn chat" (click)="callCustomer(activeRide.customerPhone)" title="Message">
+              <ion-icon name="chatbubble-ellipses-outline"></ion-icon>
+            </button>
+          </div>
+        </div>
 
-    <!-- Pickup -->
-    <div class="d-flex align-items-center mt-2">
-      <div class="icon-circle pickup-bg me-3">
-        <ion-icon name="location-outline" color="light"></ion-icon>
+        <!-- Trip Details & Location Timeline -->
+        <div class="trip-timeline">
+          <!-- Pickup -->
+          <div class="timeline-row pickup" [class.highlight]="activeRide.status === 'accepted'">
+            <div class="timeline-pin start"></div>
+            <div class="timeline-details">
+              <span class="pin-type">PICKUP LOCATION</span>
+              <p class="pin-address">{{ activeRide.origin.name }}</p>
+            </div>
+            @if (activeRide.status === 'accepted') {
+              <button class="btn-navigate" (click)="openNavigation(activeRide.origin.lat, activeRide.origin.lng, activeRide.origin.name)">
+                <ion-icon name="navigate-circle-outline"></ion-icon>
+                MAPS
+              </button>
+            }
+          </div>
+
+          <!-- Destination -->
+          <div class="timeline-row drop" [class.highlight]="activeRide.status === 'in_progress'">
+            <div class="timeline-pin end"></div>
+            <div class="timeline-details">
+              <span class="pin-type">DROP LOCATION</span>
+              <p class="pin-address">{{ activeRide.destination.name }}</p>
+            </div>
+            @if (activeRide.status === 'in_progress') {
+              <button class="btn-navigate" (click)="openNavigation(activeRide.destination.lat, activeRide.destination.lng, activeRide.destination.name)">
+                <ion-icon name="navigate-circle-outline"></ion-icon>
+                MAPS
+              </button>
+            }
+          </div>
+        </div>
+
+        <!-- Key Metrics Strip -->
+        <div class="trip-quick-stats">
+          <div class="q-stat">
+            <span class="q-label">Distance</span>
+            <span class="q-val">{{ activeRide.distance }} km</span>
+          </div>
+          <div class="q-stat">
+            <span class="q-label">Est. Time</span>
+            <span class="q-val">{{ activeRide.duration }} mins</span>
+          </div>
+          <div class="q-stat">
+            <span class="q-label">Payment Mode</span>
+            <span class="q-val payment">{{ activeRide.paymentMode || 'CASH' }}</span>
+          </div>
+        </div>
+
+        <!-- STEP 1: ACCEPTED -> MARK ARRIVED -->
+        @if (activeRide.status === 'accepted') {
+          <div class="trip-cta-area">
+            <button class="btn-primary-slide arrived" (click)="markArrived()">
+              <ion-icon name="checkmark-circle-outline"></ion-icon>
+              I HAVE ARRIVED AT PICKUP
+            </button>
+          </div>
+        }
+
+        <!-- STEP 2: ARRIVED -> 4-DIGIT OTP VERIFICATION -->
+        @if (activeRide.status === 'arrived') {
+          <div class="otp-verification-box">
+            <div class="otp-instruction">
+              <h4>Enter 4-Digit Ride Start OTP</h4>
+              <p>Ask the customer for their secret ride start PIN</p>
+            </div>
+
+            <div class="otp-input-wrap">
+              <input 
+                type="tel" 
+                maxlength="4" 
+                placeholder="4-digit OTP" 
+                [(ngModel)]="enteredOtp"
+                class="otp-field"
+                [class.error]="otpError"
+              />
+            </div>
+
+            @if (otpError) {
+              <p class="otp-error-msg">⚠️ Incorrect OTP. Please ask customer or try ({{ activeRide.otp }})</p>
+            }
+
+            <button class="btn-primary-slide start" (click)="verifyOtp()">
+              <ion-icon name="checkmark-done-circle-outline"></ion-icon>
+              VERIFY & START TRIP
+            </button>
+          </div>
+        }
+
+        <!-- STEP 3: IN PROGRESS -> END TRIP -->
+        @if (activeRide.status === 'in_progress') {
+          <div class="trip-cta-area">
+            <button class="btn-primary-slide complete" (click)="completeTrip()">
+              <ion-icon name="flag-outline"></ion-icon>
+              END TRIP & COLLECT FARE
+            </button>
+          </div>
+        }
+
+        <!-- STEP 4: COMPLETED -> FARE COLLECTION MODAL -->
+        @if (activeRide.status === 'completed') {
+          <div class="fare-collection-sheet">
+            <div class="success-icon-wrap">
+              <ion-icon name="checkmark-circle-outline"></ion-icon>
+            </div>
+            <h3>Collect Fare from Customer</h3>
+            <div class="fare-display-big">
+              ₹{{ activeRide.fare }}
+            </div>
+            <p class="fare-note">Mode: <strong>CASH PAYMENT</strong></p>
+
+            <div class="collection-actions">
+              <button class="btn-primary-slide done" (click)="finishTripAndReset()">
+                <ion-icon name="cash-outline"></ion-icon>
+                CASH COLLECTED (₹{{ activeRide.fare }})
+              </button>
+            </div>
+          </div>
+        }
       </div>
-      <div class="route-text">
-        <p class="label mb-0">Pickup</p>
-        <h3 class="value mb-0">{{ item?.origin.name }}</h3>
-      </div>
-    </div>
-
-    <!-- Drop -->
-    <div class="d-flex align-items-center mt-3">
-      <div class="icon-circle drop-bg me-3">
-        <ion-icon name="flag-outline" color="light"></ion-icon>
-      </div>
-      <div class="route-text">
-        <p class="label mb-0">Drop</p>
-        <h3 class="value mb-0">{{ item?.destination.name }}</h3>
-      </div>
-    </div>
-
-    <!-- Distance and Fare Details -->
-    <div class="d-flex justify-content-between mt-3 px-1">
-      <div class="badge badge-distance">Distance: {{ item?.distance }} km</div>
-      <div class="badge badge-fare">Fare: ₹{{ item?.fare }}</div>
-    </div>
-
-    <!-- Buttons -->
-    <div class="d-flex mt-4 gap-2 justify-content-center">
-      <ion-button
-        expand="block"
-        color="success"
-        class="btn-accept rounded-pill"
-        (click)="onAccept(item.id)">
-        Accept
-      </ion-button>
-
-      <ion-button
-        expand="block"
-        color="danger"
-        fill="outline"
-        class="btn-reject rounded-pill"
-        (click)="onReject(item.id)">
-        Reject
-      </ion-button>
-    </div>
-
-  </ion-card>
-</div>
-   }
-
-    </div>
+    }
   }
-  }
-
- 
-
-  
-
 </ion-content>
- <ion-alert
-  trigger="present-alert"
-  header="You are a Bike Rider"
-  [buttons]="alertButtons"
-></ion-alert>

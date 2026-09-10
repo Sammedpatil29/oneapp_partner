@@ -1,0 +1,48 @@
+<ion-header class="ion-no-border bg-white pt-2">
+  <ion-toolbar>
+    <ion-buttons slot="start">
+      <ion-button (click)="goBack()">
+        <ion-icon name="arrow-back-outline" color="dark"></ion-icon>
+      </ion-button>
+    </ion-buttons>
+    <ion-title class="fw-bold text-dark">Notifications</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content class="notif-content" [fullscreen]="true">
+  @if (isLoading) {
+    <app-loader message="Loading Notifications..."></app-loader>
+  } @else if (isOffline) {
+    <app-no-network (retry)="fetchNotifications()"></app-no-network>
+  } @else if (hasApiError) {
+    <app-api-error (retry)="fetchNotifications()"></app-api-error>
+  } @else {
+    <div class="container px-3 py-2">
+      @if (notifications.length === 0) {
+        <app-no-data
+          icon="notifications-outline"
+          title="No Notifications"
+          description="You're all caught up! Important alerts and incentive updates will appear here.">
+        </app-no-data>
+      } @else {
+        @for (item of notifications; track item.id) {
+          <div class="notif-card bg-white p-3 rounded-3 border mb-2 shadow-xs" [class.unread]="!item.is_read">
+            <div class="d-flex gap-3">
+              <div class="notif-icon-box bg-light rounded-circle p-2 d-flex align-items-center justify-content-center">
+                <ion-icon [name]="getIcon(item.type)" [color]="getIconColor(item.type)" style="font-size: 22px;"></ion-icon>
+              </div>
+              <div class="flex-grow-1">
+                <div class="d-flex justify-content-between align-items-center">
+                  <h6 class="fw-bold text-dark mb-1">{{ item.title }}</h6>
+                  <small class="text-muted">{{ item.created_at }}</small>
+                </div>
+                <p class="text-secondary small mb-0">{{ item.message }}</p>
+              </div>
+            </div>
+          </div>
+        }
+      }
+    </div>
+  }
+</ion-content>
+

@@ -1,0 +1,47 @@
+@if (isOpen) {
+  <div class="alert-modal-backdrop" (click)="onCancel()">
+    <div class="alert-modal-card" (click)="$event.stopPropagation()" [ngClass]="type">
+      <button class="btn-close-modal" (click)="onCancel()">
+        <ion-icon name="close-outline"></ion-icon>
+      </button>
+
+      <!-- ICON BADGE -->
+      <div class="alert-icon-wrap" [ngClass]="type">
+        @switch (type) {
+          @case ('success') {
+            <ion-icon name="checkmark-circle-outline"></ion-icon>
+          }
+          @case ('error') {
+            <ion-icon name="alert-circle-outline"></ion-icon>
+          }
+          @case ('warning') {
+            <ion-icon name="warning-outline"></ion-icon>
+          }
+          @case ('confirm') {
+            <ion-icon name="help-circle-outline"></ion-icon>
+          }
+          @default {
+            <ion-icon name="information-circle-outline"></ion-icon>
+          }
+        }
+      </div>
+
+      <!-- TEXT CONTENT -->
+      <h3 class="alert-title">{{ title }}</h3>
+      <p class="alert-msg">{{ message }}</p>
+
+      <!-- BUTTON ACTIONS -->
+      <div class="alert-actions">
+        @if (showCancel) {
+          <button class="btn-cancel" (click)="onCancel()">
+            {{ cancelText }}
+          </button>
+        }
+        <button class="btn-confirm" [ngClass]="type" (click)="onConfirm()">
+          {{ confirmText }}
+        </button>
+      </div>
+    </div>
+  </div>
+}
+
