@@ -25,8 +25,7 @@ import {
   chatbubbleEllipsesOutline, navigateCircleOutline, shieldOutline,
   checkmarkCircleOutline, flashOutline, star, alertCircleOutline,
   qrCodeOutline, checkmarkDoneCircleOutline, refreshOutline,
-  chevronForwardOutline, giftOutline, cashOutline
-} from 'ionicons/icons';
+  chevronForwardOutline, giftOutline, cashOutline, shieldCheckmarkOutline } from 'ionicons/icons';
 
 declare var google: any;
 
@@ -119,25 +118,7 @@ export class HomePage implements OnInit, OnDestroy {
   public captainNative = inject(CaptainNativeService);
 
   constructor() {
-    addIcons({
-      shieldOutline,
-      flashOutline,
-      powerOutline,
-      giftOutline,
-      chevronForwardOutline,
-      locationOutline,
-      star,
-      callOutline,
-      chatbubbleEllipsesOutline,
-      navigateCircleOutline,
-      checkmarkCircleOutline,
-      flagOutline,
-      checkmarkDoneCircleOutline,
-      cashOutline,
-      alertCircleOutline,
-      qrCodeOutline,
-      refreshOutline
-    });
+    addIcons({shieldCheckmarkOutline,shieldOutline,flashOutline,powerOutline,alertCircleOutline,checkmarkCircleOutline,chevronForwardOutline,giftOutline,locationOutline,star,callOutline,chatbubbleEllipsesOutline,navigateCircleOutline,checkmarkDoneCircleOutline,flagOutline,cashOutline,qrCodeOutline,refreshOutline});
 
     this.networkService.isOnline$.subscribe(online => {
       this.isOffline = !online;
