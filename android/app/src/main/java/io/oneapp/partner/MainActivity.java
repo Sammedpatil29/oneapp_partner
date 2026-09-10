@@ -42,15 +42,20 @@ public class MainActivity extends BridgeActivity {
                 SharedPreferences capgoPrefs = getSharedPreferences("CapacitorUpdater", Context.MODE_PRIVATE);
                 capgoPrefs.edit().clear().apply();
 
-                // 3. Delete disk bundle directories
+                // 3. Delete disk bundle directories and webview cache
                 deleteDir(new File(getFilesDir(), "otakit_bundles"));
                 deleteDir(new File(getFilesDir(), "otakit_files"));
                 deleteDir(new File(getFilesDir(), "bundles"));
                 deleteDir(new File(getFilesDir(), "ota"));
+                deleteDir(getCacheDir());
+                deleteDir(getCodeCacheDir());
+                deleteDir(new File(getApplicationInfo().dataDir, "app_webview/Cache"));
+                deleteDir(new File(getApplicationInfo().dataDir, "app_webview/Default/Cache"));
+                deleteDir(new File(getApplicationInfo().dataDir, "app_webview/Default/Code Cache"));
 
                 // 4. Save new version code
                 prefs.edit().putLong(KEY_LAST_VERSION_CODE, currentVersionCode).apply();
-                Log.i(TAG, "✅ Cache purged successfully. Loading fresh APK assets.");
+                Log.i(TAG, "✅ Stale bundle & WebView cache purged successfully. Loading fresh APK assets.");
             }
         } catch (Exception e) {
             Log.w(TAG, "Error checking version update:", e);

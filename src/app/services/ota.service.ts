@@ -6,6 +6,20 @@ import { OtaKit } from '@otakit/capacitor-updater';
 const OTA_UPDATE_FLAG = 'pintu_partner_ota_just_updated';
 const OTA_UPDATE_VERSION_KEY = 'pintu_partner_ota_new_version';
 
+export const CURRENT_APP_VERSION = '0.0.9';
+
+function isNewerVersion(remote: string, current: string): boolean {
+  if (!remote || !current) return false;
+  const parse = (v: string) => v.replace(/^v/i, '').split('.').map(x => parseInt(x, 10) || 0);
+  const [rMaj = 0, rMin = 0, rPatch = 0] = parse(remote);
+  const [cMaj = 0, cMin = 0, cPatch = 0] = parse(current);
+  if (rMaj > cMaj) return true;
+  if (rMaj < cMaj) return false;
+  if (rMin > cMin) return true;
+  if (rMin < cMin) return false;
+  return rPatch > cPatch;
+}
+
 @Injectable({
   providedIn: 'root'
 })
@@ -81,31 +95,46 @@ export class OtaService {
       await OtaKit.addListener('updateStaged', (event) => {
         this.ngZone.run(() => {
           const version = event.bundle?.version || '';
-          console.log('📦 [Partner OtaKit] Bundle download completed & staged:', version);
-          this.relaunchAndApplyUpdate(version);
+          if (isNewerVersion(version, CURRENT_APP_VERSION)) {
+            console.log('📦 [Partner OtaKit] Bundle download completed & staged:', version);
+            this.relaunchAndApplyUpdate(version);
+          } else {
+            console.log(`ℹ️ [Partner OtaKit] Staged bundle version (${version}) is <= current APK version (${CURRENT_APP_VERSION}). Ignoring.`);
+          }
         });
       });
 
       // 2. Check if an update was already staged previously
       const state = await OtaKit.getState();
-      if (state.staged) {
+      const stagedVersion = state.staged?.version || '';
+      if (stagedVersion && isNewerVersion(stagedVersion, CURRENT_APP_VERSION)) {
         this.ngZone.run(() => {
-          console.log('📦 [Partner OtaKit] Found previously staged bundle. Relaunching now.');
-          this.relaunchAndApplyUpdate(state.staged?.version || '');
+          console.log('📦 [Partner OtaKit] Found previously staged newer bundle. Relaunching now.');
+          this.relaunchAndApplyUpdate(stagedVersion);
         });
         return;
       }
 
-      // 3. Perform background check & download
+      // 3. Perform background check & download only if remote is newer
       const check = await OtaKit.check();
+
       if (check.kind === 'update_available') {
-        console.log('🚀 [Partner OtaKit] New update available:', check.latest?.version);
-        // Automatically download bundle in background
-        await OtaKit.download();
+        const remoteVersion = check.latest?.version || '';
+        if (isNewerVersion(remoteVersion, CURRENT_APP_VERSION)) {
+          console.log('🚀 [Partner OtaKit] Newer update available:', remoteVersion, '(Current:', CURRENT_APP_VERSION, ')');
+          await OtaKit.download();
+        } else {
+          console.log(`ℹ️ [Partner OtaKit] Remote manifest version (${remoteVersion}) is <= current APK version (${CURRENT_APP_VERSION}). Skipping download.`);
+        }
       } else if (check.kind === 'already_staged') {
-        this.ngZone.run(() => {
-          this.relaunchAndApplyUpdate(check.latest?.version || '');
-        });
+        const remoteVersion = check.latest?.version || '';
+        if (isNewerVersion(remoteVersion, CURRENT_APP_VERSION)) {
+          this.ngZone.run(() => {
+            this.relaunchAndApplyUpdate(remoteVersion);
+          });
+        }
+      } else {
+        console.log(`ℹ️ [Partner OtaKit] App is on latest APK version (${CURRENT_APP_VERSION}). No newer OTA bundle.`);
       }
     } catch (err) {
       console.warn('[Partner OtaKit] Silent update setup error:', err);
@@ -128,7 +157,6 @@ export class OtaService {
 
       console.log('🔄 [Partner OtaKit] Relaunching app with new bundle...');
 
-      // Optional short toast before reload
       try {
         const toast = await this.toastCtrl.create({
           message: 'Update downloaded! Restarting Pintu Partner...',
@@ -141,7 +169,6 @@ export class OtaService {
         // continue
       }
 
-      // Small delay to let toast show then apply & relaunch
       setTimeout(async () => {
         try {
           await OtaKit.apply();
