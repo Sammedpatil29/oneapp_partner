@@ -22,10 +22,10 @@
   <ion-toolbar>
     <div class="header-inner">
       <!-- Left: Online/Offline Duty Switch -->
-      <div class="duty-pill" [class.online]="status">
+      <div class="duty-pill" [class.online]="status && !activeRide" [class.onride]="activeRide">
         <span class="duty-indicator"></span>
-        <span class="duty-text">{{ status ? 'ONLINE' : 'OFFLINE' }}</span>
-        <ion-toggle color="success" [(ngModel)]="status" (ionChange)="changeStatus()"></ion-toggle>
+        <span class="duty-text">{{ activeRide ? 'ON RIDE' : (status ? 'ONLINE' : 'OFFLINE') }}</span>
+        <ion-toggle color="success" [(ngModel)]="status" (ionChange)="changeStatus()" [disabled]="!!activeRide"></ion-toggle>
       </div>
 
       <!-- Right: Permissions, SOS, Notifications, Profile Shortcuts -->
@@ -162,8 +162,83 @@
       <div id="map"></div>
     </div>
 
-    <!-- 1. IDLE / SEARCHING RADAR (When no active ride) -->
-    @if (!activeRide) {
+    <!-- ================= 1. INCOMING RIDE REQUEST BOTTOM SHEET ================= -->
+    @if (incomingRide) {
+      <div class="incoming-ride-sheet">
+        <!-- Countdown Progress Bar -->
+        <div class="incoming-timer-bar">
+          <div class="timer-progress" [style.width.%]="incomingProgress"></div>
+        </div>
+
+        <div class="incoming-header">
+          <div class="d-flex align-items-center gap-2">
+            <span class="pulse-beacon"></span>
+            <span class="incoming-badge">NEW RIDE OFFER</span>
+            <span class="service-tag">{{ incomingRide.serviceType }}</span>
+          </div>
+          <div class="timer-pill">
+            <ion-icon name="time-outline"></ion-icon>
+            <span>{{ incomingCountdown }}s</span>
+          </div>
+        </div>
+
+        <!-- Big Fare & Distance Highlights -->
+        <div class="incoming-fare-row">
+          <div class="fare-large">
+            <span class="currency">₹</span>{{ incomingRide.fare }}
+          </div>
+          <div class="trip-metrics-chips">
+            <span class="metric-chip">📍 {{ incomingRide.distance }} km</span>
+            <span class="metric-chip">⏱️ {{ incomingRide.duration }} mins</span>
+          </div>
+        </div>
+
+        <!-- Route Timeline (Pickup -> Drop) -->
+        <div class="incoming-route-timeline">
+          <div class="route-point pickup">
+            <div class="point-dot green"></div>
+            <div class="point-text">
+              <span class="point-label">PICKUP</span>
+              <p class="point-address">{{ incomingRide.origin }}</p>
+            </div>
+          </div>
+          <div class="route-connector"></div>
+          <div class="route-point drop">
+            <div class="point-dot red"></div>
+            <div class="point-text">
+              <span class="point-label">DROP OFF</span>
+              <p class="point-address">{{ incomingRide.destination }}</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Customer Summary -->
+        <div class="incoming-customer-bar">
+          <div class="cust-initial">
+            {{ incomingRide.customerName?.charAt(0) || 'C' }}
+          </div>
+          <div class="cust-meta">
+            <span class="cust-title">{{ incomingRide.customerName }}</span>
+            <span class="cust-sub">Cash on Drop &bull; Standard Fare</span>
+          </div>
+        </div>
+
+        <!-- Accept & Decline Action Buttons -->
+        <div class="incoming-actions">
+          <button class="btn-decline" (click)="declineIncomingRide(true)">
+            <ion-icon name="close-outline"></ion-icon>
+            DECLINE
+          </button>
+          <button class="btn-accept" (click)="acceptIncomingRide()">
+            <ion-icon name="checkmark-circle-outline"></ion-icon>
+            ACCEPT RIDE
+          </button>
+        </div>
+      </div>
+    }
+
+    <!-- ================= IDLE / SEARCHING RADAR (No active trip & No offer) ================= -->
+    @else if (!activeRide) {
       <div class="radar-searching-panel">
         <div class="radar-scan-wrapper">
           <div class="radar-circle circle-1"></div>
@@ -177,6 +252,21 @@
           <h3>Searching for High-Demand Orders...</h3>
           <p>Stay near active tech parks and metro stations for instant requests.</p>
         </div>
+      </div>
+    }
+
+    <!-- FLOATING ON-SCREEN LIVE TRIP WIDGET (Always visible on screen) -->
+    @if (activeRide) {
+      <div class="floating-screen-assist" (click)="openNavigation()">
+        <div class="assist-badge" [ngClass]="activeRide.status">
+          <span class="assist-dot"></span>
+          <span>{{ activeRide.status === 'accepted' ? 'TO PICKUP' : (activeRide.status === 'arrived' ? 'AT PICKUP' : 'IN TRIP') }}</span>
+        </div>
+        <div class="assist-body">
+          <span class="assist-dest text-truncate">{{ activeRide.status === 'accepted' ? activeRide.origin.name : activeRide.destination.name }}</span>
+          <span class="assist-fare">₹{{ activeRide.fare }}</span>
+        </div>
+        <ion-icon name="navigate-circle-outline" class="assist-icon"></ion-icon>
       </div>
     }
 
