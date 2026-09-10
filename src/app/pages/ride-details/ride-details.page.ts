@@ -36,6 +36,9 @@ addIcons({
   'add-circle-outline': addCircleOutline,
   'remove-circle-outline': removeCircleOutline
 });
+
+import { CaptainService } from 'src/app/services/captain.service';
+
 @Component({
   selector: 'app-ride-details',
   templateUrl: './ride-details.page.html',
@@ -44,52 +47,48 @@ addIcons({
   imports: [IonIcon, IonButton, IonButtons, IonBackButton, IonContent, IonHeader, IonTitle, IonToolbar, CommonModule, FormsModule]
 })
 export class RideDetailsPage implements OnInit {
+  rideDetails: any = null;
+  isLoading: boolean = false;
 
-  rideData = {
-  "status": true,
-  "data": {
-    "ride": {
-      "rideId": "RIDE10234",
-      "status": "COMPLETED",
-      "pickup": {
-        "address": "BTM Layout, Bangalore"
-      },
-      "drop": {
-        "address": "Electronic City Phase 1"
-      },
-      "date": "2025-02-14",
-      "time": "10:32 AM",
-      "distance": "8.4 km",
-      "duration": "22 mins",
-      "fare": {
-        "rideFare": 150,
-        "incentive": 20,
-        "total": 170
-      },
-      "customer": {
-        "name": "Rahul"
-      },
-      "payment": {
-        "mode": "Cash"
-      }
-    }
+  constructor(
+    private router: Router,
+    private navCtrl: NavController,
+    private captainService: CaptainService
+  ) {
+    addIcons({ arrowBackOutline });
   }
-}
-
-rideDetails = this.rideData.data.ride;
-
-
-  constructor(private router: Router, private navCtrl: NavController) {
-      addIcons({arrowBackOutline}); }
 
   ngOnInit() {
+    // 1. Check router state (if navigated from another page with state)
+    const stateRide = history.state?.ride;
+    if (stateRide) {
+      this.rideDetails = stateRide;
+      return;
+    }
+
+    // 2. Check query params or route state for rideId
+    const urlTree = this.router.parseUrl(this.router.url);
+    const rideId = urlTree.queryParams['rideId'] || urlTree.queryParams['id'];
+
+    if (rideId) {
+      this.isLoading = true;
+      this.captainService.getRideDetail(rideId).subscribe({
+        next: (res: any) => {
+          this.rideDetails = res?.data?.ride || res?.data;
+          this.isLoading = false;
+        },
+        error: () => {
+          this.isLoading = false;
+        }
+      });
+    }
   }
 
-  gotoHelp(){
+  gotoHelp() {
     this.router.navigate(['/layout/need-help']);
   }
 
-  goback(){
+  goback() {
     this.navCtrl.back();
   }
 

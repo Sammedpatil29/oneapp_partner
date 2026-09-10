@@ -69,33 +69,29 @@ export class ProfilePage implements OnInit {
   hasApiError: boolean = false;
 
   captain: CaptainProfile = {
-    id: 'CAPTAIN1023',
-    name: 'Sammed Patil',
-    contact: '9876543210',
-    role: 'Bike Captain',
+    id: '',
+    name: 'Captain',
+    contact: '',
+    role: 'Captain',
     image_url: '',
-    vehicle_number: 'MH-12-AB-1234',
-    vehicle_model: 'Hero Splendor Plus',
+    vehicle_number: '',
+    vehicle_model: '',
     vehicle_type: 'bike',
     fuel_type: 'petrol',
-    join_date: '2024-04-10',
-    status: 'online',
-    earnings: 1420,
-    is_verified: true,
-    rating: { average: 4.88, total_reviews: 142, five_star: 128 },
+    join_date: '',
+    status: 'offline',
+    earnings: 0,
+    is_verified: false,
+    rating: { average: 0, total_reviews: 0, five_star: 0 },
     performance: {
-      acceptance_rate: '96%',
-      cancellation_rate: '2.1%',
-      completion_rate: '98%',
-      lifetime_rides: 384,
-      total_distance_km: 1842
+      acceptance_rate: '100%',
+      cancellation_rate: '0%',
+      completion_rate: '100%',
+      lifetime_rides: 0,
+      total_distance_km: 0
     },
-    captain_level: 'Gold Captain',
-    kyc_docs: {
-      driving_license: { status: 'verified', doc_number: 'DL-1420180092144' },
-      vehicle_rc: { status: 'verified', doc_number: 'MH-12-AB-1234' },
-      vehicle_insurance: { status: 'verified', valid_until: '2027-12-31' }
-    }
+    captain_level: 'Captain',
+    kyc_docs: {}
   };
 
   private router = inject(Router);

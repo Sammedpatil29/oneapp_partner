@@ -72,50 +72,10 @@ export class RideHistoryPage implements OnInit {
   isOffline: boolean = false;
   hasApiError: boolean = false;
 
-  history = {
-    summary: {
-      totalRides: 128,
-      totalEarnings: 18450,
-      rating: 4.88
-    },
-    rides: [
-      {
-        rideId: "RIDE1001",
-        from: "BTM Layout 2nd Stage",
-        to: "Electronic City Phase 1",
-        dateLabel: "Today",
-        time: "10:32 AM",
-        amount: 120,
-        status: "COMPLETED",
-        distance: 8.4,
-        duration: 22,
-        paymentMode: "CASH"
-      },
-      {
-        rideId: "RIDE1002",
-        from: "Majestic Bus Stand",
-        to: "Yelahanka Old Town",
-        dateLabel: "Yesterday",
-        time: "6:15 PM",
-        amount: 180,
-        status: "COMPLETED",
-        distance: 14.2,
-        duration: 38,
-        paymentMode: "ONLINE"
-      },
-      {
-        rideId: "RIDE1003",
-        from: "Whitefield Main Rd",
-        to: "Indiranagar 100ft Rd",
-        dateLabel: "Yesterday",
-        time: "1:40 PM",
-        amount: 220,
-        status: "COMPLETED",
-        distance: 12.8,
-        duration: 34,
-        paymentMode: "WALLET"
-      }
-    ]
+  summary = {
+    totalRides: 0,
+    totalEarnings: 0,
+    rating: 0
   };
 
   private captainService = inject(CaptainService);
@@ -142,16 +102,18 @@ export class RideHistoryPage implements OnInit {
     this.hasApiError = false;
     this.captainService.getRideHistory(this.selectedFilter).subscribe({
       next: (res) => {
-        if (res?.data && res.data.length > 0) {
-          this.rides = res.data;
+        this.rides = res?.data || [];
+        if (res?.summary) {
+          this.summary = res.summary;
         } else {
-          this.rides = this.history.rides;
+          this.summary.totalRides = this.rides.length;
+          this.summary.totalEarnings = this.rides.reduce((acc: number, r: any) => acc + (r.amount || r.fare || 0), 0);
         }
         this.isLoading = false;
         this.hasApiError = false;
       },
       error: () => {
-        this.rides = this.history.rides;
+        this.rides = [];
         this.isLoading = false;
         this.hasApiError = false;
       }

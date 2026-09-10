@@ -26,7 +26,8 @@ import {
   chatbubbleEllipsesOutline, navigateCircleOutline, shieldOutline,
   checkmarkCircleOutline, flashOutline, star, alertCircleOutline,
   qrCodeOutline, checkmarkDoneCircleOutline, refreshOutline,
-  chevronForwardOutline, giftOutline, cashOutline, shieldCheckmarkOutline } from 'ionicons/icons';
+  chevronForwardOutline, giftOutline, cashOutline, shieldCheckmarkOutline,
+  closeOutline, timeOutline, carOutline, arrowForwardOutline } from 'ionicons/icons';
 
 declare var google: any;
 
@@ -66,7 +67,7 @@ export class HomePage implements OnInit, OnDestroy {
   riderId: any;
   riderData: any;
   riderProfile: any = null;
-  riderRating: number = 4.9;
+  riderRating: number = 0;
   activeIncentive: any = null;
   lat: number = 12.9716;
   lng: number = 77.5946;
@@ -90,6 +91,13 @@ export class HomePage implements OnInit, OnDestroy {
   enteredOtp: string = '';
   otpError: boolean = false;
   paymentSuccess: boolean = false;
+
+  // Incoming Ride Offer State
+  incomingRide: any = null;
+  incomingTimer: any = null;
+  incomingCountdown: number = 15;
+  incomingProgress: number = 100;
+  audioInterval: any = null;
 
   // Today's Live Performance
   todayStats = {
@@ -123,7 +131,13 @@ export class HomePage implements OnInit, OnDestroy {
   public captainNative = inject(CaptainNativeService);
 
   constructor() {
-    addIcons({shieldCheckmarkOutline,shieldOutline,flashOutline,powerOutline,alertCircleOutline,checkmarkCircleOutline,chevronForwardOutline,giftOutline,locationOutline,star,callOutline,chatbubbleEllipsesOutline,navigateCircleOutline,checkmarkDoneCircleOutline,flagOutline,cashOutline,qrCodeOutline,refreshOutline});
+    addIcons({
+      shieldCheckmarkOutline, shieldOutline, flashOutline, powerOutline, 
+      alertCircleOutline, checkmarkCircleOutline, chevronForwardOutline, 
+      giftOutline, locationOutline, star, callOutline, chatbubbleEllipsesOutline, 
+      navigateCircleOutline, checkmarkDoneCircleOutline, flagOutline, cashOutline, 
+      qrCodeOutline, refreshOutline, closeOutline, timeOutline, carOutline, arrowForwardOutline
+    });
 
     this.networkService.isOnline$.subscribe(online => {
       this.isOffline = !online;
@@ -135,10 +149,28 @@ export class HomePage implements OnInit, OnDestroy {
 
   async ngOnInit() {
     this.riderId = this.authService.getRiderId() || localStorage.getItem('riderId');
+
+    // 0. Immediate local restoration for instant screen rendering
+    const cachedRide = localStorage.getItem('pintu_active_ride');
+    if (cachedRide) {
+      try {
+        const parsed = JSON.parse(cachedRide);
+        if (parsed && parsed.id && parsed.status !== 'completed') {
+          this.activeRide = parsed;
+          this.status = true;
+          this.captainNative.setActiveRide(this.activeRide);
+          this.captainNative.updateNativeSystemOverlay();
+        }
+      } catch (e) {
+        localStorage.removeItem('pintu_active_ride');
+      }
+    }
+
     await this.refreshPermissions();
     await this.initLocation();
     this.loadProfile();
     this.loadTodayEarnings();
+    this.checkOngoingActiveRide();
 
     if (this.riderId) {
       this.socketService.syncRider({ riderId: this.riderId });
@@ -146,14 +178,52 @@ export class HomePage implements OnInit, OnDestroy {
 
     this.socketService.riderUpdate((msg: any) => {
       this.riderData = msg;
-      if (msg.status) {
+      if (msg.status && !this.activeRide) {
         this.status = msg.status === 'online';
       }
     });
 
+    // 1. Listen for new incoming ride offers
     this.socketService.rideRequest((msg: any) => {
-      if (msg.status === 'accepted' && !this.activeRide) {
-        this.startTripFlow(msg);
+      console.log('🚖 [Partner] Incoming ride offer received:', msg);
+      if (this.status && !this.activeRide) {
+        this.handleIncomingRideOffer(msg);
+      }
+    });
+
+    // 2. Listen for ride confirmation after accept
+    this.socketService.onRideConfirmed((msg: any) => {
+      console.log('✅ [Partner] Ride confirmed by server:', msg);
+      if (msg?.ride && !this.activeRide) {
+        this.startTripFlow(msg.ride);
+      }
+    });
+
+    // 3. Listen for socket active ride resume (sent automatically by syncRider if ride is ON)
+    this.socketService.onRideActiveResume((ride: any) => {
+      console.log('🔄 [Partner] Active ride resume event from socket:', ride);
+      if (ride) {
+        this.resumeActiveTrip(ride);
+      }
+    });
+
+    // 4. Listen for customer cancellation
+    this.socketService.onRideUpdate((msg: any) => {
+      if (msg && this.activeRide && msg.id == this.activeRide.id) {
+        if (msg.status === 'cancelled') {
+          this.dialogService.showAlert(
+            'Ride Cancelled',
+            'The customer has cancelled this ride request.',
+            'info'
+          );
+          localStorage.removeItem('pintu_active_ride');
+          this.activeRide = null;
+          this.status = true;
+          this.captainNative.setActiveRide(null);
+          this.captainNative.updateNativeSystemOverlay();
+          this.captainService.updateStatus('online', this.lat, this.lng).subscribe({ error: () => {} });
+          this.socketService.changeRiderStatus({ status: 'online', riderId: this.riderId, lat: this.lat, lng: this.lng });
+        }
       }
     });
   }
@@ -172,6 +242,7 @@ export class HomePage implements OnInit, OnDestroy {
   }
 
   ngOnDestroy() {
+    this.stopIncomingChime();
     if (this.locationWatchInterval) {
       clearInterval(this.locationWatchInterval);
     }
@@ -203,17 +274,42 @@ export class HomePage implements OnInit, OnDestroy {
       next: (res: any) => {
         if (res?.data) {
           this.riderProfile = res.data;
-          this.riderRating = res.data.rating?.average || (typeof res.data.rating === 'number' ? res.data.rating : 4.9);
-          if (res.data.status) {
+          const hasReviews = (res.data.rating?.total_reviews || 0) > 0;
+          this.riderRating = hasReviews ? (res.data.rating.average || 0) : (typeof res.data.rating === 'number' && res.data.rating > 0 ? res.data.rating : 0);
+          if (this.activeRide) {
+            this.status = true;
+          } else if (res.data.status) {
             this.status = res.data.status === 'online';
-            if (this.status) {
-              setTimeout(() => this.loadMap(), 300);
-            }
+          }
+          if (this.status) {
+            setTimeout(() => this.loadMap(), 300);
           }
         }
       },
       error: (err: any) => {
         console.warn('Could not load rider profile:', err?.message);
+      }
+    });
+  }
+
+  checkOngoingActiveRide() {
+    this.captainService.getActiveRide().subscribe({
+      next: (res: any) => {
+        console.log('🔍 [Partner] Checked ongoing active ride:', res);
+        if (res?.hasActiveRide && res?.ride) {
+          this.resumeActiveTrip(res.ride);
+        } else {
+          // If server reports no active ride, clear any stale cached ride
+          if (this.activeRide && this.activeRide.status !== 'completed') {
+            this.activeRide = null;
+            localStorage.removeItem('pintu_active_ride');
+            this.captainNative.setActiveRide(null);
+            this.captainNative.updateNativeSystemOverlay();
+          }
+        }
+      },
+      error: (err: any) => {
+        console.warn('Could not verify active ride via REST:', err?.message);
       }
     });
   }
@@ -444,36 +540,190 @@ export class HomePage implements OnInit, OnDestroy {
     }
   }
 
+  handleIncomingRideOffer(data: any) {
+    if (this.activeRide) return; // already on a trip
+
+    const originName = data.trip_details?.origin?.name || data.trip_details?.pickup?.address || data.origin?.name || 'Pickup Location';
+    const dropName = data.trip_details?.drop?.name || data.trip_details?.drop?.address || data.destination?.name || 'Drop Destination';
+    const fare = Number(data.fare || data.service_details?.price || data.trip_details?.fare || 0);
+
+    this.incomingRide = {
+      rideId: data.rideId || data.id,
+      customerName: data.customerName || data.user_details?.name || 'Customer',
+      customerPhone: data.customerPhone || data.user_details?.phone || '',
+      serviceType: (data.service_details?.type || data.vehicleType || 'Bike Taxi').toUpperCase(),
+      origin: originName,
+      destination: dropName,
+      fare: fare,
+      distance: data.trip_details?.distance || data.distance || '3.2',
+      duration: data.trip_details?.duration || data.duration || '12',
+      raw: data
+    };
+
+    // Bring app to foreground if minimized + launch system floating bubble
+    this.captainNative.setIncomingRequest(this.incomingRide);
+    this.captainNative.showNativeSystemOverlay();
+
+    // Start attention audio chime
+    this.startIncomingChime();
+
+    // Start 15s countdown
+    this.incomingCountdown = 15;
+    this.incomingProgress = 100;
+    if (this.incomingTimer) clearInterval(this.incomingTimer);
+
+    this.incomingTimer = setInterval(() => {
+      this.incomingCountdown--;
+      this.incomingProgress = Math.max(0, (this.incomingCountdown / 15) * 100);
+
+      if (this.incomingCountdown <= 0) {
+        this.declineIncomingRide(false); // auto-timeout advances to next driver
+      }
+    }, 1000);
+  }
+
+  startIncomingChime() {
+    this.captainNative.playIncomingRideTone();
+    if (this.audioInterval) clearInterval(this.audioInterval);
+    this.audioInterval = setInterval(() => {
+      if (this.incomingRide) {
+        this.captainNative.playIncomingRideTone();
+      } else {
+        clearInterval(this.audioInterval);
+      }
+    }, 3200);
+  }
+
+  stopIncomingChime() {
+    if (this.audioInterval) {
+      clearInterval(this.audioInterval);
+      this.audioInterval = null;
+    }
+    if (this.incomingTimer) {
+      clearInterval(this.incomingTimer);
+      this.incomingTimer = null;
+    }
+  }
+
+  acceptIncomingRide() {
+    if (!this.incomingRide) return;
+    const rideId = this.incomingRide.rideId;
+    const rawData = this.incomingRide.raw;
+    this.stopIncomingChime();
+    this.incomingRide = null;
+    this.captainNative.setIncomingRequest(null);
+
+    // Emit accept to server
+    this.socketService.acceptRide(rideId, this.riderId);
+
+    // Start active trip flow immediately
+    this.startTripFlow(rawData);
+  }
+
+  declineIncomingRide(userExplicit: boolean = true) {
+    if (!this.incomingRide) return;
+    const rideId = this.incomingRide.rideId;
+    this.stopIncomingChime();
+    this.incomingRide = null;
+    this.captainNative.setIncomingRequest(null);
+
+    if (userExplicit) {
+      this.socketService.rejectRide(rideId, this.riderId);
+    }
+  }
+
   startTripFlow(data: any) {
+    this.stopIncomingChime();
+    this.incomingRide = null;
+    this.status = true;
     this.activeRide = {
       id: data.rideId || data.id || 'RD-' + Math.floor(1000 + Math.random() * 9000),
       customerName: data.customerName || data.user_details?.name || 'Customer',
       customerPhone: data.customerPhone || data.user_details?.phone || '',
       customerRating: data.customerRating || 4.9,
-      serviceType: data.service_details?.type || data.vehicleType || 'Bike Taxi',
+      serviceType: (data.service_details?.type || data.vehicleType || 'Bike Taxi').toUpperCase(),
       origin: {
-        name: data.trip_details?.origin?.name || data.origin?.name || 'Pickup Location',
+        name: data.trip_details?.origin?.name || data.trip_details?.pickup?.address || data.origin?.name || 'Pickup Location',
         lat: data.trip_details?.origin?.lat || this.lat,
         lng: data.trip_details?.origin?.lng || this.lng
       },
       destination: {
-        name: data.trip_details?.drop?.name || data.destination?.name || 'Drop Location',
+        name: data.trip_details?.drop?.name || data.trip_details?.drop?.address || data.destination?.name || 'Drop Location',
         lat: data.trip_details?.drop?.lat || this.lat + 0.02,
         lng: data.trip_details?.drop?.lng || this.lng + 0.02
       },
-      fare: data.fare || 0,
-      distance: data.distance || 0,
-      duration: data.duration || 0,
+      fare: Number(data.fare || data.service_details?.price || data.trip_details?.fare || 0),
+      distance: data.distance || data.trip_details?.distance || 3.2,
+      duration: data.duration || data.trip_details?.duration || 12,
       status: 'accepted',
       otp: data.otp || '',
       paymentMode: 'CASH'
     };
+    localStorage.setItem('pintu_active_ride', JSON.stringify(this.activeRide));
     this.captainNative.setActiveRide(this.activeRide);
+    this.captainNative.updateNativeSystemOverlay();
+
+    // Move captain status to 'onride'
+    this.captainService.updateStatus('onride', this.lat, this.lng).subscribe({ error: () => {} });
+    this.socketService.changeRiderStatus({ status: 'onride', riderId: this.riderId, lat: this.lat, lng: this.lng });
+  }
+
+  resumeActiveTrip(data: any) {
+    if (!data) return;
+    this.stopIncomingChime();
+    this.incomingRide = null;
+    this.captainNative.setIncomingRequest(null);
+
+    const originName = (typeof data.origin === 'object' ? (data.origin?.name || data.origin?.address) : data.origin)
+      || data.trip_details?.origin?.name || data.trip_details?.pickup?.address || 'Pickup Location';
+    const destName = (typeof data.destination === 'object' ? (data.destination?.name || data.destination?.address) : data.destination)
+      || data.trip_details?.drop?.name || data.trip_details?.drop?.address || 'Drop Location';
+
+    const custName = data.customerName || (data.User ? (data.User.name || `${data.User.firstName || ''} ${data.User.lastName || ''}`.trim()) : null) || data.user_details?.name || 'Customer';
+    const custPhone = data.customerPhone || data.User?.phoneNumber || data.User?.phone || data.user_details?.phone || '';
+
+    this.activeRide = {
+      id: data.rideId || data.id,
+      customerName: custName || 'Customer',
+      customerPhone: custPhone,
+      customerRating: data.customerRating || 4.9,
+      serviceType: (data.service_details?.type || data.vehicleType || 'Bike Taxi').toUpperCase(),
+      origin: {
+        name: originName,
+        lat: (typeof data.origin === 'object' ? data.origin?.lat : null) || data.trip_details?.origin?.lat || this.lat,
+        lng: (typeof data.origin === 'object' ? data.origin?.lng : null) || data.trip_details?.origin?.lng || this.lng
+      },
+      destination: {
+        name: destName,
+        lat: (typeof data.destination === 'object' ? data.destination?.lat : null) || data.trip_details?.drop?.lat || this.lat + 0.02,
+        lng: (typeof data.destination === 'object' ? data.destination?.lng : null) || data.trip_details?.drop?.lng || this.lng + 0.02
+      },
+      fare: Number(data.fare || data.service_details?.price || data.trip_details?.fare || 0),
+      distance: data.distance || data.trip_details?.distance || 3.2,
+      duration: data.duration || data.trip_details?.duration || 12,
+      status: (data.status as any) || 'accepted',
+      otp: data.otp || '',
+      paymentMode: data.paymentMode || 'CASH'
+    };
+
+    this.status = true;
+    localStorage.setItem('pintu_active_ride', JSON.stringify(this.activeRide));
+    this.captainNative.setActiveRide(this.activeRide);
+    this.captainNative.updateNativeSystemOverlay();
+
+    // Ensure status is 'onride'
+    this.captainService.updateStatus('onride', this.lat, this.lng).subscribe({ error: () => {} });
+    this.socketService.changeRiderStatus({ status: 'onride', riderId: this.riderId, lat: this.lat, lng: this.lng });
+
+    setTimeout(() => this.loadMap(), 300);
   }
 
   markArrived() {
     if (!this.activeRide) return;
     this.activeRide.status = 'arrived';
+    localStorage.setItem('pintu_active_ride', JSON.stringify(this.activeRide));
+    this.captainNative.setActiveRide(this.activeRide);
+    this.captainNative.updateNativeSystemOverlay();
     this.socketService.notifyArrived(this.activeRide.id);
   }
 
@@ -482,6 +732,9 @@ export class HomePage implements OnInit, OnDestroy {
     if (this.enteredOtp === this.activeRide.otp || this.enteredOtp === '1234' || this.enteredOtp.length === 4) {
       this.otpError = false;
       this.activeRide.status = 'in_progress';
+      localStorage.setItem('pintu_active_ride', JSON.stringify(this.activeRide));
+      this.captainNative.setActiveRide(this.activeRide);
+      this.captainNative.updateNativeSystemOverlay();
       this.socketService.verifyRideOtp(this.activeRide.id, this.enteredOtp);
       this.enteredOtp = '';
     } else {
@@ -492,6 +745,7 @@ export class HomePage implements OnInit, OnDestroy {
   completeTrip() {
     if (!this.activeRide) return;
     this.activeRide.status = 'completed';
+    localStorage.removeItem('pintu_active_ride');
     this.socketService.completeRide(this.activeRide.id, this.activeRide.fare);
   }
 
@@ -501,9 +755,16 @@ export class HomePage implements OnInit, OnDestroy {
       this.todayStats.rides += 1;
       this.captainNative.updateTodayEarnings(this.todayStats.earnings, this.todayStats.rides);
     }
+    localStorage.removeItem('pintu_active_ride');
     this.activeRide = null;
+    this.status = true;
     this.captainNative.setActiveRide(null);
+    this.captainNative.updateNativeSystemOverlay();
     this.paymentSuccess = false;
+
+    // Move captain status back to 'online'
+    this.captainService.updateStatus('online', this.lat, this.lng).subscribe({ error: () => {} });
+    this.socketService.changeRiderStatus({ status: 'online', riderId: this.riderId, lat: this.lat, lng: this.lng });
   }
 
   openNavigation(lat?: number, lng?: number, address?: string) {

@@ -84,7 +84,7 @@ export class CaptainService {
 
   updateStatus(status: boolean | string, lat?: number, lng?: number): Observable<any> {
     const id = this.getRiderId();
-    const statusStr = status === true || status === 'online' ? 'online' : 'offline';
+    const statusStr = status === 'onride' ? 'onride' : (status === true || status === 'online' ? 'online' : 'offline');
     return this.http.put(`${this.apiUrl}/api/rider/status/${id}`, { status: statusStr, lat, lng });
   }
 
@@ -94,15 +94,20 @@ export class CaptainService {
     return this.http.get<{ success: boolean; data: EarningsData }>(`${this.apiUrl}/api/rider/earnings/${id}`);
   }
 
-  // 3. Wallet
+  // 3. Wallet & Commission Payment
   getWallet(): Observable<any> {
     const id = this.getRiderId();
     return this.http.get(`${this.apiUrl}/api/rider/wallet/${id}`);
   }
 
-  withdrawEarnings(amount: number, upiId: string): Observable<any> {
+  payCommission(amount: number): Observable<any> {
     const id = this.getRiderId();
-    return this.http.post(`${this.apiUrl}/api/rider/wallet/withdraw`, { id, amount, upi_id: upiId });
+    return this.http.post(`${this.apiUrl}/api/rider/wallet/pay-commission`, { id, amount });
+  }
+
+  withdrawEarnings(amount: number, upiId?: string): Observable<any> {
+    const id = this.getRiderId();
+    return this.http.post(`${this.apiUrl}/api/rider/wallet/pay-commission`, { id, amount });
   }
 
   // 4. Referrals
@@ -143,6 +148,23 @@ export class CaptainService {
       { fcm_token, riderId },
       { headers: { Authorization: `Bearer ${token}` } }
     );
+  }
+
+  // 9. Single Ride Detail
+  getRideDetail(rideId: string): Observable<any> {
+    return this.http.get(`${this.apiUrl}/api/rider/rides/detail/${rideId}`);
+  }
+
+  // 10. Update Payout Account (UPI / Bank)
+  updatePayoutAccount(data: { upi_id: string; bank_name?: string; account_number?: string }): Observable<any> {
+    const id = this.getRiderId();
+    return this.http.put(`${this.apiUrl}/api/rider/profile/${id}`, { payout_account: data });
+  }
+
+  // 11. Current Active Ongoing Ride (for restart / refresh recovery)
+  getActiveRide(): Observable<any> {
+    const id = this.getRiderId();
+    return this.http.get(`${this.apiUrl}/api/rider/active-ride/${id}`);
   }
 }
 

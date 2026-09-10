@@ -75,53 +75,21 @@ export class WalletPage implements OnInit {
 
   wallet: any = {
     balance: {
-      available: 1420,
-      pending_settlement: 350,
-      cash_collected_in_hand: 280
+      commission_due: 0,
+      available: 0,
+      cash_collected_in_hand: 0
     },
     stats: {
-      today: 580,
-      thisWeek: 3840,
-      thisMonth: 16450
+      today: 0,
+      thisWeek: 0,
+      thisMonth: 0
     },
-    payout_account: {
-      upi_id: 'captain@okhdfcbank',
-      bank_name: 'HDFC Bank',
-      account_number: '•••• •••• 4912',
-      is_verified: true
-    },
-    transactions: [
-      {
-        txnId: "TXN1001",
-        type: "CREDIT",
-        title: "Ride Earning",
-        amount: 120,
-        dateLabel: "Today",
-        time: "10:32 AM"
-      },
-      {
-        txnId: "TXN1002",
-        type: "DEBIT",
-        title: "Withdrawal",
-        amount: 500,
-        dateLabel: "Yesterday",
-        time: "7:10 PM"
-      },
-      {
-        txnId: "TXN1003",
-        type: "CREDIT",
-        title: "Ride Earning",
-        amount: 200,
-        dateLabel: "Yesterday",
-        time: "4:45 PM"
-      }
-    ]
+    transactions: []
   };
 
-  showWithdrawModal: boolean = false;
-  withdrawAmount: number = 500;
-  withdrawUpiId: string = 'captain@okhdfcbank';
-  isProcessingPayout: boolean = false;
+  showPayModal: boolean = false;
+  payAmount: number = 0;
+  isProcessingPayment: boolean = false;
 
   private captainService = inject(CaptainService);
   private toastCtrl = inject(ToastController);
@@ -160,7 +128,10 @@ export class WalletPage implements OnInit {
       next: (res) => {
         if (res?.data) {
           this.wallet = res.data;
-          this.withdrawUpiId = this.wallet.payout_account?.upi_id || 'captain@okhdfcbank';
+          const due = Number(this.wallet.balance?.commission_due || 0);
+          if (due > 0 && !this.payAmount) {
+            this.payAmount = due;
+          }
         }
         this.isLoading = false;
         this.hasApiError = false;
@@ -172,18 +143,20 @@ export class WalletPage implements OnInit {
     });
   }
 
-  openWithdraw() {
-    this.showWithdrawModal = true;
+  openPayNow() {
+    const due = Number(this.wallet.balance?.commission_due || 0);
+    this.payAmount = due > 0 ? due : 50;
+    this.showPayModal = true;
   }
 
-  closeWithdraw() {
-    this.showWithdrawModal = false;
+  closePayNow() {
+    this.showPayModal = false;
   }
 
-  async processWithdrawal() {
-    if (!this.withdrawAmount || this.withdrawAmount <= 0) {
+  async processPayment() {
+    if (!this.payAmount || this.payAmount <= 0) {
       const toast = await this.toastCtrl.create({
-        message: 'Please enter a valid withdrawal amount',
+        message: 'Please enter a valid payment amount',
         duration: 2000,
         color: 'danger'
       });
@@ -191,46 +164,42 @@ export class WalletPage implements OnInit {
       return;
     }
 
-    if (this.withdrawAmount > this.wallet.balance.available) {
-      const toast = await this.toastCtrl.create({
-        message: 'Withdrawal amount exceeds available balance',
-        duration: 2000,
-        color: 'danger'
-      });
-      await toast.present();
-      return;
-    }
-
-    this.isProcessingPayout = true;
-    this.captainService.withdrawEarnings(this.withdrawAmount, this.withdrawUpiId).subscribe({
+    this.isProcessingPayment = true;
+    this.captainService.payCommission(this.payAmount).subscribe({
       next: async (res) => {
-        this.isProcessingPayout = false;
-        this.showWithdrawModal = false;
-        this.wallet.balance.available -= this.withdrawAmount;
+        this.isProcessingPayment = false;
+        this.showPayModal = false;
+        const paid = this.payAmount;
 
-        // Add to recent transactions
+        if (res?.commission_due !== undefined) {
+          this.wallet.balance.commission_due = res.commission_due;
+        } else {
+          this.wallet.balance.commission_due = Math.max(0, (Number(this.wallet.balance?.commission_due) || 0) - paid);
+        }
+
+        // Add to recent transactions ledger
         this.wallet.transactions.unshift({
           txnId: `TXN${Date.now()}`,
-          title: `Payout to ${this.withdrawUpiId}`,
-          amount: this.withdrawAmount,
-          type: 'DEBIT',
-          category: 'withdrawal',
+          title: `Platform Commission Paid`,
+          amount: paid,
+          type: 'CREDIT',
+          category: 'commission_payment',
           dateLabel: 'Just now',
           time: 'Now',
           status: 'SUCCESS'
         });
 
         const alert = await this.alertCtrl.create({
-          header: 'Withdrawal Initiated! 💸',
-          message: res?.message || `₹${this.withdrawAmount} will be deposited to ${this.withdrawUpiId} in 15 minutes.`,
-          buttons: ['Great']
+          header: 'Payment Successful! ✅',
+          message: res?.message || `₹${paid} has been paid towards your platform commission.`,
+          buttons: ['OK']
         });
         await alert.present();
       },
       error: async (err) => {
-        this.isProcessingPayout = false;
+        this.isProcessingPayment = false;
         const toast = await this.toastCtrl.create({
-          message: err?.error?.message || 'Payout failed. Try again later.',
+          message: err?.error?.message || 'Payment failed. Please try again.',
           duration: 3000,
           color: 'danger'
         });
