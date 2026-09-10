@@ -1,4 +1,4 @@
-﻿import { Component, OnInit, inject } from '@angular/core';
+import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import {
@@ -30,6 +30,7 @@ import {
 import { AuthService } from 'src/app/services/auth.service';
 import { AppDialogService } from 'src/app/services/app-dialog.service';
 import { NetworkService } from 'src/app/services/network.service';
+import { CaptainNativeService } from 'src/app/services/captain-native.service';
 import { environment } from 'src/environments/environment';
 
 @Component({
@@ -55,6 +56,7 @@ export class LoginPage implements OnInit {
   private router = inject(Router);
   private route = inject(ActivatedRoute);
   private dialogService = inject(AppDialogService);
+  private captainNative = inject(CaptainNativeService);
   public networkService = inject(NetworkService);
 
   isProduction: boolean = environment.production;
@@ -88,8 +90,13 @@ export class LoginPage implements OnInit {
     });
   }
 
-  ngOnInit() {
+  async ngOnInit() {
     this.returnUrl = this.route.snapshot.queryParams['returnUrl'] || '/layout/home';
+    try {
+      await this.captainNative.requestEssentialPermissions();
+    } catch (e) {
+      console.warn('Login permissions prompt:', e);
+    }
   }
 
   togglePasswordVisibility() {

@@ -263,6 +263,30 @@ export class CaptainNativeService {
     return { overlay, battery, location, notifications, allGranted };
   }
 
+  public async requestEssentialPermissions(): Promise<PermissionStatusSummary> {
+    try {
+      const locStatus = await Geolocation.checkPermissions();
+      if (locStatus.location !== 'granted') {
+        const res = await Geolocation.requestPermissions();
+        console.log('📍 [CaptainNative] Location permission requested:', res);
+      }
+    } catch (e) {
+      console.warn('Location request error:', e);
+    }
+
+    return await this.checkPermissions();
+  }
+
+  public async requestLocationPermission(): Promise<boolean> {
+    try {
+      const res = await Geolocation.requestPermissions();
+      return res.location === 'granted';
+    } catch (e) {
+      console.warn('Location permission request failed:', e);
+      return false;
+    }
+  }
+
   public async requestOverlayPermission(): Promise<boolean> {
     if (this.isNative) {
       try {

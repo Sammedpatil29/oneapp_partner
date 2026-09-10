@@ -8,7 +8,7 @@ import {
 } from '@ionic/angular/standalone';
 import { SocketService } from 'src/app/services/socket';
 import { CaptainService } from 'src/app/services/captain.service';
-import { CaptainNativeService } from 'src/app/services/captain-native.service';
+import { CaptainNativeService, PermissionStatusSummary } from 'src/app/services/captain-native.service';
 import { Location } from 'src/app/services/location';
 import { Router } from '@angular/router';
 import { LoaderComponent } from 'src/app/components/loader/loader.component';
@@ -16,6 +16,7 @@ import { NoNetworkComponent } from 'src/app/components/no-network/no-network.com
 import { NoDataComponent } from 'src/app/components/no-data/no-data.component';
 import { ApiErrorComponent } from 'src/app/components/api-error/api-error.component';
 import { AlertModalComponent, AlertType } from 'src/app/components/alert-modal/alert-modal.component';
+import { PermissionsHubComponent } from 'src/app/components/permissions-hub/permissions-hub.component';
 import { NetworkService } from 'src/app/services/network.service';
 import { AppDialogService } from 'src/app/services/app-dialog.service';
 import { addIcons } from 'ionicons';
@@ -54,7 +55,8 @@ export interface ActiveRide {
     IonButton, IonCard, IonAlert, IonCardHeader, IonCardTitle, IonCardContent, 
     IonToggle, IonIcon, IonContent, IonHeader, IonTitle, IonToolbar, 
     IonBadge, CommonModule, FormsModule, 
-    LoaderComponent, NoNetworkComponent, NoDataComponent, ApiErrorComponent, AlertModalComponent
+    LoaderComponent, NoNetworkComponent, NoDataComponent, ApiErrorComponent, AlertModalComponent,
+    PermissionsHubComponent
   ]
 })
 export class HomePage implements OnInit, OnDestroy {
@@ -69,6 +71,16 @@ export class HomePage implements OnInit, OnDestroy {
   marker!: any;
   clickSound = new Audio('assets/sounds/notification-ping-372476.mp3');
   private locationWatchInterval: any;
+
+  // Permissions State
+  showPermissionsHub: boolean = false;
+  permissions: PermissionStatusSummary = {
+    overlay: false,
+    battery: false,
+    location: false,
+    notifications: true,
+    allGranted: false
+  };
 
   // Active Trip State Machine
   activeRide: ActiveRide | null = null;
@@ -137,6 +149,7 @@ export class HomePage implements OnInit, OnDestroy {
 
   async ngOnInit() {
     this.riderId = localStorage.getItem('riderId');
+    await this.refreshPermissions();
     await this.initLocation();
     this.loadTodayEarnings();
 
@@ -156,6 +169,19 @@ export class HomePage implements OnInit, OnDestroy {
         this.startTripFlow(msg);
       }
     });
+  }
+
+  async refreshPermissions() {
+    this.permissions = await this.captainNative.checkPermissions();
+  }
+
+  openPermissionsHub() {
+    this.showPermissionsHub = true;
+  }
+
+  closePermissionsHub() {
+    this.showPermissionsHub = false;
+    this.refreshPermissions();
   }
 
   ngOnDestroy() {
@@ -220,21 +246,67 @@ export class HomePage implements OnInit, OnDestroy {
     }
   }
 
-  changeStatus() {
+  async changeStatus() {
+    if (this.status) {
+      // Trying to go ONLINE -> Validate permissions first
+      const perms = await this.captainNative.checkPermissions();
+      this.permissions = perms;
+
+      if (!perms.location) {
+        const granted = await this.captainNative.requestLocationPermission();
+        await this.refreshPermissions();
+        if (!granted && !this.permissions.location) {
+          this.status = false;
+          this.dialogService.showAlert(
+            'GPS Location Required',
+            'Please grant GPS location permission so customers can discover you and request rides.',
+            'warning'
+          );
+          return;
+        }
+      }
+
+      if (!perms.overlay) {
+        this.alertModal = {
+          isOpen: true,
+          type: 'info',
+          title: 'Overlay Permission Recommended',
+          message: 'Enable "Draw Over Other Apps" so the floating ride cockpit and incoming trip alerts appear while using Google Maps.',
+          confirmText: 'Enable Now',
+          cancelText: 'Continue Online',
+          showCancel: true,
+          onConfirm: async () => {
+            await this.captainNative.requestOverlayPermission();
+            this.proceedDutyChange(true);
+          }
+        };
+        // Continue online if they choose cancel/continue
+        this.proceedDutyChange(true);
+        return;
+      }
+
+      this.proceedDutyChange(true);
+    } else {
+      this.proceedDutyChange(false);
+    }
+  }
+
+  private proceedDutyChange(online: boolean) {
+    this.status = online;
     try {
       this.clickSound.currentTime = 0;
       this.clickSound.play().catch(() => {});
     } catch (e) {}
 
-    const statusStr = this.status ? 'online' : 'offline';
+    const statusStr = online ? 'online' : 'offline';
     this.socketService.changeRiderStatus({
       status: statusStr,
       riderId: this.riderId
     });
 
-    this.captainNative.setDutyStatus(this.status);
+    this.captainNative.setDutyStatus(online);
 
-    if (this.status) {
+    if (online) {
       setTimeout(() => {
         this.loadMap();
       }, 300);

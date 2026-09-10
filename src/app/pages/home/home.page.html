@@ -82,6 +82,40 @@
         </button>
       </div>
 
+      <!-- Driver Permissions Health Bar -->
+      @if (!permissions.allGranted) {
+        <div class="permission-health-banner warning" (click)="openPermissionsHub()">
+          <div class="perm-banner-left">
+            <div class="perm-badge-icon warning">
+              <ion-icon name="alert-circle-outline"></ion-icon>
+            </div>
+            <div>
+              <h4>Permissions Required</h4>
+              <p>
+                @if (!permissions.location) { GPS Location }
+                @if (!permissions.location && !permissions.overlay) { &amp; }
+                @if (!permissions.overlay) { Draw Over Apps }
+                needed for ride alerts
+              </p>
+            </div>
+          </div>
+          <button class="btn-perm-grant">SETUP</button>
+        </div>
+      } @else {
+        <div class="permission-health-banner success" (click)="openPermissionsHub()">
+          <div class="perm-banner-left">
+            <div class="perm-badge-icon success">
+              <ion-icon name="checkmark-circle-outline"></ion-icon>
+            </div>
+            <div>
+              <h4>Captain System Ready</h4>
+              <p>GPS &amp; Background Overlay Active</p>
+            </div>
+          </div>
+          <ion-icon name="chevron-forward-outline" class="arrow-right"></ion-icon>
+        </div>
+      }
+
       <!-- Daily Milestone Incentive Banner -->
       <div class="incentive-banner" (click)="gotoEarnings()">
         <div class="incentive-left">
@@ -265,7 +299,7 @@
 
             <button class="btn-primary-slide start" (click)="verifyOtp()">
               <ion-icon name="checkmark-done-circle-outline"></ion-icon>
-              VERIFY & START TRIP
+              VERIFY &amp; START TRIP
             </button>
           </div>
         }
@@ -275,7 +309,7 @@
           <div class="trip-cta-area">
             <button class="btn-primary-slide complete" (click)="completeTrip()">
               <ion-icon name="flag-outline"></ion-icon>
-              END TRIP & COLLECT FARE
+              END TRIP &amp; COLLECT FARE
             </button>
           </div>
         }
@@ -304,3 +338,7 @@
     }
   }
 </ion-content>
+
+@if (showPermissionsHub) {
+  <app-permissions-hub (closed)="closePermissionsHub()"></app-permissions-hub>
+}
