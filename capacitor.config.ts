@@ -21,7 +21,9 @@ const config: CapacitorConfig = {
     OtaKit: {
       appId: 'io.oneapp.partner',
       cdnUrl: 'https://pintu-api.democompany.in.net/ota',
-      allowInsecureUrls: true
+      allowInsecureUrls: true,
+      resetWhenUpdate: true,
+      autoDeleteFailedBundles: true
     },
     Cordova: {}
   },

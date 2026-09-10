@@ -27,7 +27,7 @@ jobs:
           npm install --legacy-peer-deps
 
       - name: Build Web Assets
-        run: ionic build --prod
+        run: npm run build -- --configuration=production
 
       - name: Set up JDK 21
         uses: actions/setup-java@v4
