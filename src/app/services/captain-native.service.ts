@@ -18,6 +18,14 @@ export interface CaptainNativePluginInterface {
   showSystemOverlay(options: { earnings?: string; status?: string }): Promise<{ success: boolean }>;
   hideSystemOverlay(): Promise<{ success: boolean }>;
   updateSystemOverlay(options: { earnings?: string; status?: string }): Promise<{ success: boolean }>;
+  getInstalledUpiApps(): Promise<{ apps: UpiAppInfo[]; total: number }>;
+  launchUpiIntent(options: { url: string; packageName?: string }): Promise<{ success: boolean }>;
+}
+
+export interface UpiAppInfo {
+  packageName: string;
+  name: string;
+  iconKey: 'gpay' | 'phonepe' | 'paytm' | 'bhim' | 'cred' | 'amazonpay' | 'whatsapp' | 'generic';
 }
 
 const CaptainNative = registerPlugin<CaptainNativePluginInterface>('CaptainNative');
@@ -159,7 +167,7 @@ export class CaptainNativeService {
 
       const now = this.audioContext.currentTime;
       
-      // High-energy attention chime (Rapido style beep pattern)
+      // High-energy attention chime
       const playBeep = (freq: number, startTime: number, duration: number) => {
         if (!this.audioContext) return;
         const osc = this.audioContext.createOscillator();
@@ -456,6 +464,45 @@ export class CaptainNativeService {
     const current = this.bubbleStateSubject.value;
     const newState = enabled !== undefined ? enabled : !current.enabled;
     this.bubbleStateSubject.next({ ...current, enabled: newState });
+  }
+
+  /**
+   * Returns list of UPI apps installed on this Android phone (Google Pay, PhonePe, Paytm, BHIM, etc.)
+   */
+  async getInstalledUpiApps(): Promise<UpiAppInfo[]> {
+    if (!this.isNative) {
+      return [
+        { packageName: 'com.google.android.apps.nbu.paisa.user', name: 'Google Pay', iconKey: 'gpay' },
+        { packageName: 'com.phonepe.app', name: 'PhonePe', iconKey: 'phonepe' },
+        { packageName: 'net.one97.paytm', name: 'Paytm', iconKey: 'paytm' },
+        { packageName: 'in.org.npci.upiapp', name: 'BHIM UPI', iconKey: 'bhim' },
+        { packageName: 'com.dreamplug.androidapp', name: 'CRED', iconKey: 'cred' }
+      ];
+    }
+    try {
+      const res = await CaptainNative.getInstalledUpiApps();
+      return (res && res.apps) ? res.apps : [];
+    } catch (e) {
+      console.warn('Could not query native installed UPI apps:', e);
+      return [];
+    }
+  }
+
+  /**
+   * Launch a specific UPI app directly using its package name and a valid UPI deep-link URL
+   */
+  async launchUpiIntent(url: string, packageName?: string): Promise<boolean> {
+    if (!this.isNative) {
+      window.open(url, '_blank');
+      return true;
+    }
+    try {
+      const res = await CaptainNative.launchUpiIntent({ url, packageName });
+      return !!res?.success;
+    } catch (e) {
+      console.error('Error launching UPI intent via CaptainNative:', e);
+      return false;
+    }
   }
 }
 

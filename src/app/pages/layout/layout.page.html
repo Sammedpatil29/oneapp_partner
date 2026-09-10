@@ -4,31 +4,56 @@
       <ion-router-outlet></ion-router-outlet>
     </div>
 
-    <!-- Rapido Captain Style Bottom Navigation Bar -->
+    <!-- Style Rich Bottom Navigation Bar -->
     <nav class="captain-bottom-bar">
       <button class="nav-tab" [class.active]="isTabActive('/layout/home')" (click)="navigateTab('/layout/home')">
-        <ion-icon [name]="isTabActive('/layout/home') ? 'home' : 'home-outline'"></ion-icon>
+        <div class="tab-icon-wrapper">
+          <ion-icon [name]="isTabActive('/layout/home') ? 'compass' : 'compass-outline'"></ion-icon>
+        </div>
         <span>Cockpit</span>
+        @if (isTabActive('/layout/home')) {
+          <span class="active-dot"></span>
+        }
       </button>
 
       <button class="nav-tab" [class.active]="isTabActive('/layout/ride-history')" (click)="navigateTab('/layout/ride-history')">
-        <ion-icon [name]="isTabActive('/layout/ride-history') ? 'bicycle' : 'bicycle-outline'"></ion-icon>
+        <div class="tab-icon-wrapper">
+          <ion-icon [name]="isTabActive('/layout/ride-history') ? 'bicycle' : 'bicycle-outline'"></ion-icon>
+        </div>
         <span>Rides</span>
+        @if (isTabActive('/layout/ride-history')) {
+          <span class="active-dot"></span>
+        }
       </button>
 
       <button class="nav-tab" [class.active]="isTabActive('/layout/earnings')" (click)="navigateTab('/layout/earnings')">
-        <ion-icon [name]="isTabActive('/layout/earnings') ? 'trending-up' : 'trending-up-outline'"></ion-icon>
+        <div class="tab-icon-wrapper">
+          <ion-icon [name]="isTabActive('/layout/earnings') ? 'analytics' : 'analytics-outline'"></ion-icon>
+        </div>
         <span>Earnings</span>
+        @if (isTabActive('/layout/earnings')) {
+          <span class="active-dot"></span>
+        }
       </button>
 
       <button class="nav-tab" [class.active]="isTabActive('/layout/wallet')" (click)="navigateTab('/layout/wallet')">
-        <ion-icon [name]="isTabActive('/layout/wallet') ? 'wallet' : 'wallet-outline'"></ion-icon>
+        <div class="tab-icon-wrapper">
+          <ion-icon [name]="isTabActive('/layout/wallet') ? 'wallet' : 'wallet-outline'"></ion-icon>
+        </div>
         <span>Wallet</span>
+        @if (isTabActive('/layout/wallet')) {
+          <span class="active-dot"></span>
+        }
       </button>
 
       <button class="nav-tab" [class.active]="isTabActive('/layout/profile')" (click)="navigateTab('/layout/profile')">
-        <ion-icon [name]="isTabActive('/layout/profile') ? 'person' : 'person-outline'"></ion-icon>
+        <div class="tab-icon-wrapper">
+          <ion-icon [name]="isTabActive('/layout/profile') ? 'shield-checkmark' : 'shield-checkmark-outline'"></ion-icon>
+        </div>
         <span>Captain</span>
+        @if (isTabActive('/layout/profile')) {
+          <span class="active-dot"></span>
+        }
       </button>
     </nav>
   </div>

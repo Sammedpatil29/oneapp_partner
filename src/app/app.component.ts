@@ -26,6 +26,14 @@ export class AppComponent implements OnInit {
   private fcmService = inject(RegisterFcmService);
 
   constructor() {
+    // Ensure light theme
+    if (typeof document !== 'undefined') {
+      document.documentElement.classList.remove('ion-palette-dark', 'dark-theme');
+      document.body.classList.remove('ion-palette-dark', 'dark-theme');
+      document.documentElement.removeAttribute('data-theme');
+      document.body.removeAttribute('data-theme');
+      try { localStorage.removeItem('app_theme'); } catch (e) {}
+    }
     setTimeout(() => {
       this.showSplash = false;
       this.routeBasedOnAuth();

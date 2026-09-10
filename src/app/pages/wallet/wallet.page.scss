@@ -19,3 +19,90 @@
   box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
 }
 
+.upi-app-card {
+  background: #ffffff;
+  border-color: #e2e8f0;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+
+  &:hover,
+  &:active {
+    border-color: var(--app-theme-color, #a000e2);
+    background: #faf5ff;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(160, 0, 226, 0.12);
+  }
+
+  &.upi-selected {
+    border-color: var(--app-theme-color, #a000e2);
+    background: #f3e8ff;
+  }
+
+  .upi-app-icon {
+    width: 34px;
+    height: 34px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 800;
+    font-size: 14px;
+    color: white;
+    flex-shrink: 0;
+
+    &.gpay {
+      background: #ffffff;
+      color: #4285f4;
+      border: 1px solid #e2e8f0;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.06);
+    }
+
+    &.phonepe {
+      background: #5f259f;
+      color: #ffffff;
+    }
+
+    &.paytm {
+      background: #002970;
+      color: #00b9f5;
+    }
+
+    &.bhim {
+      background: #0088cc;
+      color: #ffffff;
+    }
+
+    &.cred {
+      background: #111111;
+      color: #ffffff;
+    }
+
+    &.generic {
+      background: #64748b;
+      color: #ffffff;
+    }
+  }
+
+  .upi-brand-letter {
+    font-weight: 900;
+    font-size: 15px;
+
+    &.gpay {
+      color: #4285f4;
+    }
+    &.phonepe {
+      color: #ffffff;
+    }
+    &.paytm {
+      color: #00b9f5;
+    }
+    &.bhim {
+      color: #ffffff;
+    }
+    &.cred {
+      color: #ffffff;
+    }
+  }
+}
+
+
+

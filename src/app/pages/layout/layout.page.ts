@@ -6,14 +6,17 @@ import { IonApp, IonRouterOutlet, IonIcon } from '@ionic/angular/standalone';
 import { SocketService } from 'src/app/services/socket';
 import { addIcons } from 'ionicons';
 import { 
+  compassOutline, compass,
   homeOutline, home,
   bicycleOutline, bicycle,
-  trendingUpOutline, trendingUp,
+  analyticsOutline, analytics,
+  cashOutline, cash,
   walletOutline, wallet,
+  cardOutline, card,
+  shieldCheckmarkOutline, shieldCheckmark,
   personOutline, person,
   navigateOutline, timeOutline,
-  giftOutline, notificationsOutline,
-  shieldCheckmarkOutline
+  giftOutline, notificationsOutline
 } from 'ionicons/icons';
 import { filter } from 'rxjs/operators';
 import { PermissionsHubComponent } from 'src/app/components/permissions-hub/permissions-hub.component';
@@ -48,14 +51,17 @@ export class LayoutPage implements OnInit {
     private router: Router
   ) {
     addIcons({
+      compassOutline, compass,
       homeOutline, home,
       bicycleOutline, bicycle,
-      trendingUpOutline, trendingUp,
+      analyticsOutline, analytics,
+      cashOutline, cash,
       walletOutline, wallet,
+      cardOutline, card,
+      shieldCheckmarkOutline, shieldCheckmark,
       personOutline, person,
       navigateOutline, timeOutline,
-      giftOutline, notificationsOutline,
-      shieldCheckmarkOutline
+      giftOutline, notificationsOutline
     });
   }
 

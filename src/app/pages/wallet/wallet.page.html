@@ -123,11 +123,14 @@
       </div>
     </div>
 
-    <!-- PAY COMMISSION POPUP MODAL (NO UPI ID OPTION) -->
-    <ion-modal [isOpen]="showPayModal" (didDismiss)="closePayNow()" [initialBreakpoint]="0.65" [breakpoints]="[0, 0.65, 0.9]">
+    <!-- PAY COMMISSION POPUP MODAL WITH INSTALLED UPI APPS -->
+    <ion-modal [isOpen]="showPayModal" (didDismiss)="closePayNow()" [initialBreakpoint]="0.85" [breakpoints]="[0, 0.85, 1.0]">
       <ng-template>
-        <div class="p-4 bg-white h-100">
-          <h4 class="fw-bolder text-dark mb-1">Pay Platform Commission</h4>
+        <div class="p-4 bg-white h-100 overflow-y-auto">
+          <div class="d-flex justify-content-between align-items-center mb-1">
+            <h4 class="fw-bolder text-dark mb-0">Pay Platform Commission</h4>
+            <button class="btn btn-sm btn-light rounded-circle" (click)="closePayNow()">✕</button>
+          </div>
           <p class="text-muted small mb-3">Settle your platform commission to keep receiving orders.</p>
 
           <div class="mb-3">
@@ -153,7 +156,7 @@
           </div>
 
           <!-- Quick Amount Selection Chips (Capped at wallet balance) -->
-          <div class="d-flex flex-wrap gap-2 mb-4">
+          <div class="d-flex flex-wrap gap-2 mb-3">
             <button class="btn btn-sm btn-outline-primary fw-semibold rounded-pill px-3" (click)="setPayAmount(wallet?.balance?.commission_due || 0)">
               Full Due (₹{{ wallet?.balance?.commission_due || 0 }})
             </button>
@@ -168,12 +171,55 @@
             }
           </div>
 
-          <button class="btn btn-success w-100 py-3 rounded-pill fw-bold fs-6 shadow-sm d-flex align-items-center justify-content-center gap-2" 
+          <!-- DETECTED UPI APPS ON PHONE -->
+          @if (installedUpiApps?.length) {
+            <div class="mb-4">
+              <div class="d-flex justify-content-between align-items-center mb-2">
+                <span class="small fw-bold text-secondary">Pay Directly with UPI Apps</span>
+                <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill" style="font-size: 10px;">Installed on Phone</span>
+              </div>
+
+              <div class="row g-2">
+                @for (app of installedUpiApps; track app.packageName) {
+                  <div class="col-6">
+                    <div class="upi-app-card p-2 rounded-3 border d-flex align-items-center gap-2 cursor-pointer"
+                         [class.upi-selected]="selectedUpiApp === app.packageName"
+                         (click)="payWithApp(app.packageName)">
+                      <div class="upi-app-icon" [ngClass]="app.iconKey">
+                        @if (app.iconKey === 'gpay') {
+                          <span class="upi-brand-letter gpay">G</span>
+                        } @else if (app.iconKey === 'phonepe') {
+                          <span class="upi-brand-letter phonepe">पे</span>
+                        } @else if (app.iconKey === 'paytm') {
+                          <span class="upi-brand-letter paytm">P</span>
+                        } @else if (app.iconKey === 'bhim') {
+                          <span class="upi-brand-letter bhim">B</span>
+                        } @else if (app.iconKey === 'cred') {
+                          <span class="upi-brand-letter cred">C</span>
+                        } @else {
+                          <ion-icon name="phone-portrait-outline"></ion-icon>
+                        }
+                      </div>
+                      <div class="flex-grow-1 text-truncate">
+                        <span class="fw-bold text-dark d-block text-truncate" style="font-size: 13px;">{{ app.name }}</span>
+                        <small class="text-success fw-semibold" style="font-size: 10px;">Tap to Pay</small>
+                      </div>
+                    </div>
+                  </div>
+                }
+              </div>
+            </div>
+          }
+
+          <button class="btn btn-success w-100 py-3 rounded-pill fw-bold fs-6 shadow-sm d-flex align-items-center justify-content-center gap-2 mb-2" 
                   (click)="processPayment()" 
                   [disabled]="isProcessingPayment || !payAmount || payAmount <= 0 || payAmount > (wallet?.balance?.commission_due || 0)">
-            <ion-icon name="checkmark-circle-outline" class="fs-5"></ion-icon>
-            {{ isProcessingPayment ? 'Processing Payment...' : 'Pay Now ₹' + (payAmount || 0) }}
+            <ion-icon name="card-outline" class="fs-5"></ion-icon>
+            {{ isProcessingPayment ? 'Processing Payment...' : 'Pay ₹' + (payAmount || 0) + ' via Razorpay (All Modes)' }}
           </button>
+          <p class="text-center text-muted mb-0" style="font-size: 11px;">
+            Supports Google Pay, PhonePe, Paytm, BHIM, Cards, NetBanking &amp; UPI QR
+          </p>
         </div>
       </ng-template>
     </ion-modal>

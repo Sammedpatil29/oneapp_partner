@@ -23,8 +23,7 @@ import {
   cashOutline,
   cardOutline,
   checkmarkCircleOutline,
-  arrowDownCircleOutline
-} from 'ionicons/icons';
+  arrowDownCircleOutline, phonePortraitOutline } from 'ionicons/icons';
 import { CaptainService } from 'src/app/services/captain.service';
 import { Router } from '@angular/router';
 
@@ -34,6 +33,7 @@ import { NoDataComponent } from 'src/app/components/no-data/no-data.component';
 import { ApiErrorComponent } from 'src/app/components/api-error/api-error.component';
 import { AlertModalComponent, AlertType } from 'src/app/components/alert-modal/alert-modal.component';
 import { NetworkService } from 'src/app/services/network.service';
+import { CaptainNativeService, UpiAppInfo } from 'src/app/services/captain-native.service';
 import { environment } from 'src/environments/environment';
 
 @Component({
@@ -92,23 +92,18 @@ export class WalletPage implements OnInit {
   payAmount: number = 0;
   isProcessingPayment: boolean = false;
 
+  installedUpiApps: UpiAppInfo[] = [];
+  selectedUpiApp: string | null = null;
+
   private captainService = inject(CaptainService);
+  private captainNative = inject(CaptainNativeService);
   private toastCtrl = inject(ToastController);
   private alertCtrl = inject(AlertController);
   private router = inject(Router);
   public networkService = inject(NetworkService);
 
   constructor() {
-    addIcons({
-      arrowBackOutline,
-      addCircleOutline,
-      removeCircleOutline,
-      walletOutline,
-      cashOutline,
-      cardOutline,
-      checkmarkCircleOutline,
-      arrowDownCircleOutline
-    });
+    addIcons({arrowBackOutline,walletOutline,cardOutline,cashOutline,phonePortraitOutline,addCircleOutline,removeCircleOutline,checkmarkCircleOutline,arrowDownCircleOutline});
 
     this.networkService.isOnline$.subscribe(online => {
       this.isOffline = !online;
@@ -120,6 +115,21 @@ export class WalletPage implements OnInit {
 
   ngOnInit() {
     this.fetchWallet();
+    this.loadInstalledUpiApps();
+  }
+
+  async loadInstalledUpiApps() {
+    try {
+      this.installedUpiApps = await this.captainNative.getInstalledUpiApps();
+    } catch (e) {
+      console.warn('Could not query UPI apps on device:', e);
+      this.installedUpiApps = [];
+    }
+  }
+
+  payWithApp(packageName: string) {
+    this.selectedUpiApp = packageName;
+    this.processPayment(packageName);
   }
 
   fetchWallet() {
@@ -181,7 +191,7 @@ export class WalletPage implements OnInit {
     });
   }
 
-  async processPayment() {
+  async processPayment(targetAppPackage?: string) {
     if (!this.payAmount || this.payAmount <= 0) {
       const toast = await this.toastCtrl.create({
         message: 'Please enter a valid payment amount',
@@ -208,13 +218,49 @@ export class WalletPage implements OnInit {
           return;
         }
 
-        const options = {
+        const options: any = {
           key: orderRes.key || environment.razorpayKeyId,
           amount: orderRes.amount,
           currency: orderRes.currency || 'INR',
           name: 'Pintu Captain',
           description: 'Platform Commission Settlement',
           order_id: orderRes.order_id,
+          config: {
+            display: {
+              blocks: {
+                upi: {
+                  name: 'Pay via UPI (Google Pay, PhonePe, Paytm, BHIM)',
+                  instruments: [
+                    {
+                      method: 'upi',
+                      flows: ['intent', 'qr']
+                    }
+                  ]
+                },
+                other: {
+                  name: 'Cards, NetBanking & Wallets',
+                  instruments: [
+                    { method: 'card' },
+                    { method: 'netbanking' },
+                    { method: 'wallet' }
+                  ]
+                }
+              },
+              sequence: ['block.upi', 'block.other'],
+              preferences: {
+                show_default_blocks: true
+              }
+            }
+          },
+          method: {
+            upi: true,
+            card: true,
+            netbanking: true,
+            wallet: true
+          },
+          upi: {
+            flow: 'intent'
+          },
           handler: (response: any) => {
             this.verifyAndCompletePayment({
               amount: this.payAmount,
@@ -226,6 +272,7 @@ export class WalletPage implements OnInit {
           modal: {
             ondismiss: () => {
               this.isProcessingPayment = false;
+              this.selectedUpiApp = null;
               console.log('Razorpay modal closed by user');
             }
           },
@@ -234,13 +281,21 @@ export class WalletPage implements OnInit {
             contact: localStorage.getItem('riderPhone') || ''
           },
           theme: {
-            color: '#2563eb'
+            color: '#a000e2'
           }
         };
+
+        if (targetAppPackage) {
+          options.upi = {
+            flow: 'intent',
+            app: targetAppPackage
+          };
+        }
 
         const rzp = new (window as any).Razorpay(options);
         rzp.on('payment.failed', async (failRes: any) => {
           this.isProcessingPayment = false;
+          this.selectedUpiApp = null;
           const toast = await this.toastCtrl.create({
             message: failRes?.error?.description || 'Payment was unsuccessful.',
             duration: 3000,
@@ -253,6 +308,7 @@ export class WalletPage implements OnInit {
       },
       error: async (err: any) => {
         this.isProcessingPayment = false;
+        this.selectedUpiApp = null;
         const toast = await this.toastCtrl.create({
           message: err?.error?.message || 'Failed to initialize payment order. Please try again.',
           duration: 3000,

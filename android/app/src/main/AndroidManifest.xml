@@ -55,9 +55,21 @@
     <uses-permission android:name="android.permission.VIBRATE" />
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
 
-    <!-- Queries to launch Google Maps and Navigation apps directly -->
+    <!-- Queries to launch Google Maps, Navigation, and Device UPI Payment Apps directly -->
     <queries>
         <package android:name="com.google.android.apps.maps" />
+        <!-- Popular Indian UPI Payment Apps -->
+        <package android:name="com.google.android.apps.nbu.paisa.user" /> <!-- Google Pay -->
+        <package android:name="com.phonepe.app" /> <!-- PhonePe -->
+        <package android:name="net.one97.paytm" /> <!-- Paytm -->
+        <package android:name="in.org.npci.upiapp" /> <!-- BHIM -->
+        <package android:name="com.whatsapp" /> <!-- WhatsApp Pay -->
+        <package android:name="com.dreamplug.androidapp" /> <!-- CRED -->
+        <package android:name="in.amazon.mShop.android.shopping" /> <!-- Amazon Pay -->
+        <package android:name="com.axis.mobile" />
+        <package android:name="com.icicibank.pockets" />
+        <package android:name="com.msf.kbank.mobile" />
+        <package android:name="com.sbi.upi" />
         <intent>
             <action android:name="android.intent.action.VIEW" />
             <data android:scheme="geo" />
@@ -65,6 +77,15 @@
         <intent>
             <action android:name="android.intent.action.VIEW" />
             <data android:scheme="google.navigation" />
+        </intent>
+        <!-- Generic UPI payment intent scheme -->
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:scheme="upi" />
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.SEND" />
+            <data android:mimeType="text/plain" />
         </intent>
     </queries>
 </manifest>
