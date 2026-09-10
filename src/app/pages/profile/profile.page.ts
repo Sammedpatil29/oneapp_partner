@@ -33,6 +33,7 @@ import {
   logoWhatsapp
 } from 'ionicons/icons';
 import { CaptainService, CaptainProfile } from 'src/app/services/captain.service';
+import { CaptainNativeService } from 'src/app/services/captain-native.service';
 import { LoaderComponent } from 'src/app/components/loader/loader.component';
 import { NoNetworkComponent } from 'src/app/components/no-network/no-network.component';
 import { NoDataComponent } from 'src/app/components/no-data/no-data.component';
@@ -102,6 +103,9 @@ export class ProfilePage implements OnInit {
   private captainService = inject(CaptainService);
   private alertCtrl = inject(AlertController);
   public networkService = inject(NetworkService);
+  public captainNative = inject(CaptainNativeService);
+
+  allPermissionsGranted: boolean = true;
 
   constructor() {
     addIcons({
@@ -130,9 +134,15 @@ export class ProfilePage implements OnInit {
     });
   }
 
-  ngOnInit() {
+  async ngOnInit() {
     this.riderId = localStorage.getItem('riderId') || '';
     this.fetchProfile();
+    try {
+      const perms = await this.captainNative.checkPermissions();
+      this.allPermissionsGranted = perms.allGranted;
+    } catch (e) {
+      // ignore
+    }
   }
 
   fetchProfile() {
@@ -151,6 +161,10 @@ export class ProfilePage implements OnInit {
         this.hasApiError = false;
       }
     });
+  }
+
+  gotoPermissions() {
+    this.router.navigate(['/layout/permissions']);
   }
 
   gotoWallet() {

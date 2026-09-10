@@ -1,0 +1,200 @@
+<ion-header class="ion-no-border bg-white pt-2">
+  <ion-toolbar>
+    <ion-buttons slot="start">
+      <ion-button (click)="goBack()">
+        <ion-icon name="arrow-back-outline" color="dark"></ion-icon>
+      </ion-button>
+    </ion-buttons>
+
+    <ion-title class="fw-bold text-dark">Device Permissions</ion-title>
+
+    <ion-buttons slot="end">
+      <ion-button (click)="refreshPermissions(true)" [disabled]="isRefreshing">
+        @if (isRefreshing) {
+          <ion-spinner name="crescent" color="primary"></ion-spinner>
+        } @else {
+          <ion-icon name="refresh-outline" color="primary"></ion-icon>
+        }
+      </ion-button>
+    </ion-buttons>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content class="permissions-content" [fullscreen]="true">
+  <div class="container px-3 py-3">
+
+    <!-- OVERALL HEALTH CARD -->
+    <div class="health-card" [class.all-good]="permissions.allGranted">
+      <div class="d-flex align-items-center justify-content-between">
+        <div class="health-meta">
+          <span class="health-badge-tag">{{ permissions.allGranted ? 'SYSTEM READY' : 'ACTION REQUIRED' }}</span>
+          <h3 class="health-title">{{ permissions.allGranted ? 'All Permissions Granted' : 'Some Permissions Missing' }}</h3>
+          <p class="health-subtitle">
+            {{ permissions.allGranted 
+                ? 'Your device is fully configured for background orders & floating GPS overlay.' 
+                : 'Please enable the highlighted permissions below to avoid missing trip alerts.' }}
+          </p>
+        </div>
+        <div class="health-icon-box" [class.good]="permissions.allGranted">
+          <ion-icon [name]="permissions.allGranted ? 'shield-checkmark' : 'alert-circle'"></ion-icon>
+        </div>
+      </div>
+    </div>
+
+    <!-- SECTION TITLE -->
+    <div class="section-heading mt-4 mb-2">
+      <h6 class="fw-bold text-dark mb-0">Required Driver Hardware & System Access</h6>
+      <small class="text-muted">Live diagnostic status of native Android capabilities</small>
+    </div>
+
+    <!-- 1. GPS LOCATION -->
+    <div class="perm-tile" [class.granted]="permissions.location">
+      <div class="perm-tile-header">
+        <div class="perm-icon-bubble gps">
+          <ion-icon name="navigate-circle-outline"></ion-icon>
+        </div>
+        <div class="perm-tile-text flex-grow-1">
+          <div class="d-flex align-items-center justify-content-between">
+            <h5 class="perm-name">High-Accuracy GPS Location</h5>
+            <span class="badge" [ngClass]="permissions.location ? 'bg-success-subtle text-success' : 'bg-danger-subtle text-danger'">
+              {{ permissions.location ? 'ACTIVE ✅' : 'REQUIRED ⚠️' }}
+            </span>
+          </div>
+          <p class="perm-details">
+            Tracks real-time coordinates for nearby passenger discovery, pickup arrival, and accurate fare calculations.
+          </p>
+        </div>
+      </div>
+      @if (!permissions.location) {
+        <div class="perm-tile-actions">
+          <button type="button" class="btn-action-grant primary" (click)="grantGps()">
+            <ion-icon name="navigate-circle-outline" class="me-1"></ion-icon>
+            Grant Location Access
+          </button>
+          <button type="button" class="btn-action-grant secondary" (click)="openLocationSettings()">
+            <ion-icon name="settings-outline" class="me-1"></ion-icon>
+            Location Settings
+          </button>
+        </div>
+      }
+    </div>
+
+    <!-- 2. DRAW OVER OTHER APPS (SYSTEM OVERLAY) -->
+    <div class="perm-tile" [class.granted]="permissions.overlay">
+      <div class="perm-tile-header">
+        <div class="perm-icon-bubble overlay">
+          <ion-icon name="browsers-outline"></ion-icon>
+        </div>
+        <div class="perm-tile-text flex-grow-1">
+          <div class="d-flex align-items-center justify-content-between">
+            <h5 class="perm-name">Draw Over Other Apps (Overlay)</h5>
+            <span class="badge" [ngClass]="permissions.overlay ? 'bg-success-subtle text-success' : 'bg-warning-subtle text-warning'">
+              {{ permissions.overlay ? 'ENABLED ✅' : 'REQUIRED ⚠️' }}
+            </span>
+          </div>
+          <p class="perm-details">
+            Displays the floating Rapido-style cockpit and incoming ride dispatch cards while you navigate with Google Maps.
+          </p>
+        </div>
+      </div>
+      @if (!permissions.overlay) {
+        <div class="perm-tile-actions">
+          <button type="button" class="btn-action-grant primary" (click)="grantOverlay()">
+            <ion-icon name="browsers-outline" class="me-1"></ion-icon>
+            Enable Overlay Permission
+          </button>
+        </div>
+      }
+    </div>
+
+    <!-- 3. UNRESTRICTED BATTERY / BACKGROUND RUN -->
+    <div class="perm-tile" [class.granted]="permissions.battery">
+      <div class="perm-tile-header">
+        <div class="perm-icon-bubble battery">
+          <ion-icon name="battery-charging-outline"></ion-icon>
+        </div>
+        <div class="perm-tile-text flex-grow-1">
+          <div class="d-flex align-items-center justify-content-between">
+            <h5 class="perm-name">Unrestricted Background Run</h5>
+            <span class="badge" [ngClass]="permissions.battery ? 'bg-success-subtle text-success' : 'bg-secondary-subtle text-secondary'">
+              {{ permissions.battery ? 'OPTIMIZED ✅' : 'RECOMMENDED ⚠️' }}
+            </span>
+          </div>
+          <p class="perm-details">
+            Prevents Android OS from freezing the socket connection & GPS tracking when the phone is locked or in your pocket.
+          </p>
+        </div>
+      </div>
+      @if (!permissions.battery) {
+        <div class="perm-tile-actions">
+          <button type="button" class="btn-action-grant primary" (click)="grantBattery()">
+            <ion-icon name="battery-charging-outline" class="me-1"></ion-icon>
+            Allow Unrestricted Run
+          </button>
+        </div>
+      }
+    </div>
+
+    <!-- 4. FLOATING BUBBLE TOGGLE -->
+    <div class="bg-white p-3 rounded-4 border mb-3 shadow-xs">
+      <div class="d-flex align-items-center justify-content-between">
+        <div class="d-flex align-items-center gap-3">
+          <div class="perm-icon-bubble bubble">
+            <ion-icon name="layers-outline"></ion-icon>
+          </div>
+          <div>
+            <h6 class="fw-bold text-dark mb-0">Floating Cockpit Pill</h6>
+            <small class="text-muted">Show floating shortcut bubble on screen</small>
+          </div>
+        </div>
+        <button type="button" class="btn-toggle-bubble" [class.active]="bubbleEnabled" (click)="toggleBubble()">
+          {{ bubbleEnabled ? 'VISIBLE' : 'HIDDEN' }}
+        </button>
+      </div>
+    </div>
+
+    <!-- SYSTEM APP SETTINGS SHORTCUT -->
+    <div class="bg-white p-3 rounded-4 border mb-4 shadow-xs">
+      <div class="d-flex align-items-center justify-content-between">
+        <div class="d-flex align-items-center gap-3">
+          <div class="perm-icon-bubble settings">
+            <ion-icon name="settings-outline"></ion-icon>
+          </div>
+          <div>
+            <h6 class="fw-bold text-dark mb-0">Android App Info Settings</h6>
+            <small class="text-muted">Manage all permissions in Android Settings</small>
+          </div>
+        </div>
+        <button type="button" class="btn-settings-open" (click)="openAppSettings()">
+          <ion-icon name="open-outline" class="me-1"></ion-icon>
+          OPEN
+        </button>
+      </div>
+    </div>
+
+    <!-- APP BUILD DIAGNOSTICS CARD -->
+    <div class="diagnostics-card p-3 rounded-4 border mb-4">
+      <div class="d-flex align-items-center gap-2 mb-2">
+        <ion-icon name="information-circle-outline" class="text-primary fs-5"></ion-icon>
+        <span class="fw-bold text-dark small">Application Diagnostics</span>
+      </div>
+      <div class="diag-row d-flex justify-content-between py-1 border-bottom">
+        <span class="text-muted small">Package ID</span>
+        <span class="fw-semibold text-dark small">io.oneapp.partner</span>
+      </div>
+      <div class="diag-row d-flex justify-content-between py-1 border-bottom">
+        <span class="text-muted small">App Version</span>
+        <span class="badge bg-primary text-white small">v{{ appVersion }} (Build {{ appBuildNumber }})</span>
+      </div>
+      <div class="diag-row d-flex justify-content-between py-1 border-bottom">
+        <span class="text-muted small">API Environment</span>
+        <span class="text-dark small fw-semibold">Production (Live)</span>
+      </div>
+      <div class="diag-row d-flex justify-content-between py-1">
+        <span class="text-muted small">Live Gateway</span>
+        <span class="text-muted small text-truncate" style="max-width: 180px;">{{ apiUrl }}</span>
+      </div>
+    </div>
+
+  </div>
+</ion-content>

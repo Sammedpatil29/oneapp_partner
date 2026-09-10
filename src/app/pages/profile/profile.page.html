@@ -155,10 +155,26 @@
         <ion-icon name="chevron-forward-outline" color="medium"></ion-icon>
       </div>
 
+      <div class="p-3 d-flex align-items-center justify-content-between border-bottom cursor-pointer" (click)="gotoPermissions()">
+        <div class="d-flex align-items-center gap-3">
+          <ion-icon name="shield-checkmark-outline" color="primary" class="fs-4"></ion-icon>
+          <div>
+            <span class="fw-semibold text-dark d-block">Device &amp; App Permissions</span>
+            <small class="text-muted">GPS, Overlay, Battery &amp; Background Diagnostics</small>
+          </div>
+        </div>
+        <div class="d-flex align-items-center gap-2">
+          <span class="badge" [ngClass]="allPermissionsGranted ? 'bg-success-subtle text-success' : 'bg-warning-subtle text-warning'">
+            {{ allPermissionsGranted ? 'Active ✅' : 'Setup Needed ⚠️' }}
+          </span>
+          <ion-icon name="chevron-forward-outline" color="medium"></ion-icon>
+        </div>
+      </div>
+
       <div class="p-3 d-flex align-items-center justify-content-between border-bottom cursor-pointer" (click)="gotoNeedHelp()">
         <div class="d-flex align-items-center gap-3">
           <ion-icon name="help-circle-outline" color="secondary" class="fs-4"></ion-icon>
-          <span class="fw-semibold text-dark">Emergency SOS & Captain Support</span>
+          <span class="fw-semibold text-dark">Emergency SOS &amp; Captain Support</span>
         </div>
         <ion-icon name="chevron-forward-outline" color="medium"></ion-icon>
       </div>
