@@ -1,6 +1,7 @@
 import { Component, OnInit, OnDestroy, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { firstValueFrom } from 'rxjs';
 import { 
   IonContent, IonHeader, IonTitle, IonToolbar, IonToggle, IonIcon, 
   IonCard, IonCardHeader, IonCardTitle, IonCardContent, IonButton, 
@@ -226,6 +227,18 @@ export class HomePage implements OnInit, OnDestroy {
         }
       }
     });
+
+    // 5. Listen for status rejection (e.g. commission limit exceeded)
+    this.socketService.onStatusRejected((msg: any) => {
+      console.warn('⚠️ [Partner] Rider status rejected by server:', msg);
+      this.status = false;
+      this.captainNative.setDutyStatus(false);
+      this.dialogService.showAlert(
+        'Duty Status Rejected',
+        msg?.message || 'Could not change duty status to online.',
+        'warning'
+      );
+    });
   }
 
   async refreshPermissions() {
@@ -290,6 +303,13 @@ export class HomePage implements OnInit, OnDestroy {
         console.warn('Could not load rider profile:', err?.message);
       }
     });
+  }
+
+  onAvatarError() {
+    if (this.riderProfile) {
+      this.riderProfile.image_url = null;
+      this.riderProfile.selfie = null;
+    }
   }
 
   checkOngoingActiveRide() {
@@ -366,18 +386,35 @@ export class HomePage implements OnInit, OnDestroy {
 
   async changeStatus() {
     if (this.status) {
-      // Trying to go ONLINE -> Validate permissions first
+      // 1. Guard: Check platform commission due (Limit ₹50)
+      try {
+        const walletRes: any = await firstValueFrom(this.captainService.getWallet());
+        const due = Number(walletRes?.data?.balance?.commission_due || 0);
+        if (due > 50) {
+          this.status = false;
+          this.dialogService.showAlert(
+            'Commission Limit Exceeded (Max ₹50)',
+            `Your outstanding platform commission is ₹${due}, which exceeds the allowed threshold of ₹50. Please settle your commission in the Wallet to go online.`,
+            'warning'
+          );
+          return;
+        }
+      } catch (wErr) {
+        console.warn('Could not verify wallet commission before going online:', wErr);
+      }
+
+      // 2. Guard: Validate all required permissions (Location & Overlay)
       const perms = await this.captainNative.checkPermissions();
       this.permissions = perms;
 
       if (!perms.location) {
         const granted = await this.captainNative.requestLocationPermission();
         await this.refreshPermissions();
-        if (!granted && !this.permissions.location) {
+        if (!granted || !this.permissions.location) {
           this.status = false;
           this.dialogService.showAlert(
             'GPS Location Required',
-            'Please grant GPS location permission so customers can discover you and request rides.',
+            'GPS location permission must be granted before you can go online and receive rides.',
             'warning'
           );
           return;
@@ -385,21 +422,20 @@ export class HomePage implements OnInit, OnDestroy {
       }
 
       if (!perms.overlay) {
+        this.status = false;
         this.alertModal = {
           isOpen: true,
-          type: 'info',
-          title: 'Overlay Permission Recommended',
-          message: 'Enable "Draw Over Other Apps" so the floating ride cockpit and incoming trip alerts appear while using Google Maps.',
-          confirmText: 'Enable Now',
-          cancelText: 'Continue Online',
+          type: 'warning',
+          title: 'Overlay Permission Required',
+          message: 'Draw Over Other Apps permission is required to go online so incoming trip alerts and the navigation cockpit can appear over maps.',
+          confirmText: 'Enable Permission',
+          cancelText: 'Cancel',
           showCancel: true,
           onConfirm: async () => {
             await this.captainNative.requestOverlayPermission();
-            this.proceedDutyChange(true);
+            await this.refreshPermissions();
           }
         };
-        // Continue online if they choose cancel/continue
-        this.proceedDutyChange(true);
         return;
       }
 

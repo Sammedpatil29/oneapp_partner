@@ -42,8 +42,14 @@
           <ion-icon name="flash-outline"></ion-icon>
         </button>
 
-        <div class="captain-avatar-btn" (click)="openProfile()">
-          <img [src]="riderProfile?.image_url || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80'" alt="Profile" />
+        <div class="captain-avatar-btn" (click)="openProfile()" title="Captain Profile">
+          @if (riderProfile?.image_url || riderProfile?.selfie) {
+            <img [src]="riderProfile?.image_url || riderProfile?.selfie" (error)="onAvatarError()" alt="Captain Selfie" />
+          } @else {
+            <div class="avatar-initial">
+              {{ (riderProfile?.name || 'C').charAt(0).toUpperCase() }}
+            </div>
+          }
           <span class="captain-badge-dot"></span>
         </div>
       </div>

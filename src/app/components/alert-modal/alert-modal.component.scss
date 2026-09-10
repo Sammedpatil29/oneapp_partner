@@ -74,9 +74,9 @@
   }
 
   &.confirm, &.info {
-    background: #eff6ff;
-    color: #02298a;
-    box-shadow: 0 0 0 6px rgba(2, 41, 138, 0.12);
+    background: #fbf0ff;
+    color: var(--app-theme-color, #a000e2);
+    box-shadow: 0 0 0 6px rgba(160, 0, 226, 0.15);
   }
 }
 
@@ -120,9 +120,9 @@
   }
 
   .btn-confirm {
-    background: #02298a;
+    background: var(--app-theme-color, #a000e2);
     color: #ffffff;
-    box-shadow: 0 4px 12px rgba(2, 41, 138, 0.25);
+    box-shadow: 0 4px 14px rgba(160, 0, 226, 0.35);
 
     &.success {
       background: #10b981;

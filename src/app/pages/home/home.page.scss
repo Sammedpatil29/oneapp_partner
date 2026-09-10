@@ -113,8 +113,9 @@
     }
 
     &.notif-btn {
-      background: #eff6ff;
-      color: #02298a;
+      background: #fbf0ff;
+      color: var(--app-theme-color, #a000e2);
+      border: 1px solid #f3d8ff;
     }
   }
 
@@ -124,7 +125,7 @@
     height: 38px;
     border-radius: 50%;
     overflow: hidden;
-    border: 2px solid #02298a;
+    border: 2px solid var(--app-theme-color, #a000e2);
     cursor: pointer;
 
     img {
@@ -133,13 +134,26 @@
       object-fit: cover;
     }
 
+    .avatar-initial {
+      width: 100%;
+      height: 100%;
+      background: var(--app-theme-color, #a000e2);
+      color: #ffffff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 800;
+      font-size: 15px;
+      text-transform: uppercase;
+    }
+
     .captain-badge-dot {
       position: absolute;
       bottom: 0;
       right: 0;
       width: 10px;
       height: 10px;
-      background: #ffc727;
+      background: #22c55e;
       border: 2px solid #ffffff;
       border-radius: 50%;
     }

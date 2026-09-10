@@ -34,6 +34,7 @@ import { NoDataComponent } from 'src/app/components/no-data/no-data.component';
 import { ApiErrorComponent } from 'src/app/components/api-error/api-error.component';
 import { AlertModalComponent, AlertType } from 'src/app/components/alert-modal/alert-modal.component';
 import { NetworkService } from 'src/app/services/network.service';
+import { environment } from 'src/environments/environment';
 
 @Component({
   selector: 'app-wallet',
@@ -145,12 +146,39 @@ export class WalletPage implements OnInit {
 
   openPayNow() {
     const due = Number(this.wallet.balance?.commission_due || 0);
-    this.payAmount = due > 0 ? due : 50;
+    if (due <= 0) return;
+    this.payAmount = due;
     this.showPayModal = true;
+  }
+
+  setPayAmount(amount: number) {
+    const maxDue = Number(this.wallet?.balance?.commission_due || 0);
+    this.payAmount = Math.max(1, Math.min(amount, maxDue));
+  }
+
+  onPayAmountChange() {
+    const maxDue = Number(this.wallet?.balance?.commission_due || 0);
+    if (this.payAmount > maxDue) {
+      this.payAmount = maxDue;
+    }
   }
 
   closePayNow() {
     this.showPayModal = false;
+  }
+
+  // Load Razorpay standard checkout SDK dynamically
+  private loadRazorpayScript(): Promise<boolean> {
+    return new Promise((resolve) => {
+      if ((window as any).Razorpay) {
+        return resolve(true);
+      }
+      const script = document.createElement('script');
+      script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+      script.onload = () => resolve(true);
+      script.onerror = () => resolve(false);
+      document.body.appendChild(script);
+    });
   }
 
   async processPayment() {
@@ -165,11 +193,88 @@ export class WalletPage implements OnInit {
     }
 
     this.isProcessingPayment = true;
-    this.captainService.payCommission(this.payAmount).subscribe({
+
+    this.captainService.createRazorpayOrder(this.payAmount).subscribe({
+      next: async (orderRes: any) => {
+        const loaded = await this.loadRazorpayScript();
+        if (!loaded) {
+          this.isProcessingPayment = false;
+          const toast = await this.toastCtrl.create({
+            message: 'Could not load payment gateway. Please check your network connection.',
+            duration: 3000,
+            color: 'danger'
+          });
+          await toast.present();
+          return;
+        }
+
+        const options = {
+          key: orderRes.key || environment.razorpayKeyId,
+          amount: orderRes.amount,
+          currency: orderRes.currency || 'INR',
+          name: 'Pintu Captain',
+          description: 'Platform Commission Settlement',
+          order_id: orderRes.order_id,
+          handler: (response: any) => {
+            this.verifyAndCompletePayment({
+              amount: this.payAmount,
+              razorpay_order_id: response.razorpay_order_id || orderRes.order_id,
+              razorpay_payment_id: response.razorpay_payment_id,
+              razorpay_signature: response.razorpay_signature
+            });
+          },
+          modal: {
+            ondismiss: () => {
+              this.isProcessingPayment = false;
+              console.log('Razorpay modal closed by user');
+            }
+          },
+          prefill: {
+            name: localStorage.getItem('riderName') || 'Captain',
+            contact: localStorage.getItem('riderPhone') || ''
+          },
+          theme: {
+            color: '#2563eb'
+          }
+        };
+
+        const rzp = new (window as any).Razorpay(options);
+        rzp.on('payment.failed', async (failRes: any) => {
+          this.isProcessingPayment = false;
+          const toast = await this.toastCtrl.create({
+            message: failRes?.error?.description || 'Payment was unsuccessful.',
+            duration: 3000,
+            color: 'danger'
+          });
+          await toast.present();
+        });
+
+        rzp.open();
+      },
+      error: async (err: any) => {
+        this.isProcessingPayment = false;
+        const toast = await this.toastCtrl.create({
+          message: err?.error?.message || 'Failed to initialize payment order. Please try again.',
+          duration: 3000,
+          color: 'danger'
+        });
+        await toast.present();
+      }
+    });
+  }
+
+  private verifyAndCompletePayment(payload: {
+    amount: number;
+    razorpay_order_id: string;
+    razorpay_payment_id: string;
+    razorpay_signature?: string;
+  }) {
+    this.isProcessingPayment = true;
+    this.captainService.verifyRazorpayPayment(payload).subscribe({
       next: async (res) => {
         this.isProcessingPayment = false;
         this.showPayModal = false;
-        const paid = this.payAmount;
+        const paid = payload.amount;
 
         if (res?.commission_due !== undefined) {
           this.wallet.balance.commission_due = res.commission_due;
@@ -179,8 +284,8 @@ export class WalletPage implements OnInit {
 
         // Add to recent transactions ledger
         this.wallet.transactions.unshift({
-          txnId: `TXN${Date.now()}`,
-          title: `Platform Commission Paid`,
+          txnId: payload.razorpay_payment_id || `TXN${Date.now()}`,
+          title: `Platform Commission Paid (Razorpay)`,
           amount: paid,
           type: 'CREDIT',
           category: 'commission_payment',
@@ -191,7 +296,7 @@ export class WalletPage implements OnInit {
 
         const alert = await this.alertCtrl.create({
           header: 'Payment Successful! ✅',
-          message: res?.message || `₹${paid} has been paid towards your platform commission.`,
+          message: res?.message || `₹${paid} has been settled towards your platform commission.`,
           buttons: ['OK']
         });
         await alert.present();
@@ -199,7 +304,7 @@ export class WalletPage implements OnInit {
       error: async (err) => {
         this.isProcessingPayment = false;
         const toast = await this.toastCtrl.create({
-          message: err?.error?.message || 'Payment failed. Please try again.',
+          message: err?.error?.message || 'Payment verification failed. Please contact support.',
           duration: 3000,
           color: 'danger'
         });

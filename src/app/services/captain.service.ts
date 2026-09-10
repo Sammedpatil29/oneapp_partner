@@ -105,6 +105,24 @@ export class CaptainService {
     return this.http.post(`${this.apiUrl}/api/rider/wallet/pay-commission`, { id, amount });
   }
 
+  createRazorpayOrder(amount: number): Observable<any> {
+    const id = this.getRiderId();
+    return this.http.post(`${this.apiUrl}/api/rider/wallet/razorpay/order`, { id, amount });
+  }
+
+  verifyRazorpayPayment(payload: {
+    amount: number;
+    razorpay_order_id: string;
+    razorpay_payment_id: string;
+    razorpay_signature?: string;
+  }): Observable<any> {
+    const id = this.getRiderId();
+    return this.http.post(`${this.apiUrl}/api/rider/wallet/razorpay/verify`, {
+      id,
+      ...payload
+    });
+  }
+
   withdrawEarnings(amount: number, upiId?: string): Observable<any> {
     const id = this.getRiderId();
     return this.http.post(`${this.apiUrl}/api/rider/wallet/pay-commission`, { id, amount });

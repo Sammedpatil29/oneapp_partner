@@ -63,6 +63,48 @@ export class AppDialogService {
   }
 
   /**
+   * Shows an interactive prompt dialog with input field
+   */
+  async showPrompt(options: {
+    title: string;
+    message?: string;
+    placeholder?: string;
+    inputType?: 'text' | 'number' | 'tel' | 'password';
+    initialValue?: string;
+    confirmText?: string;
+    cancelText?: string;
+  }): Promise<string | null> {
+    return new Promise(async (resolve) => {
+      const alert = await this.alertCtrl.create({
+        header: options.title,
+        message: options.message,
+        inputs: [
+          {
+            name: 'inputValue',
+            type: options.inputType || 'text',
+            placeholder: options.placeholder || 'Enter value...',
+            value: options.initialValue || ''
+          }
+        ],
+        buttons: [
+          {
+            text: options.cancelText || 'Cancel',
+            role: 'cancel',
+            handler: () => resolve(null)
+          },
+          {
+            text: options.confirmText || 'Submit',
+            role: 'confirm',
+            handler: (data) => resolve(data?.inputValue ?? '')
+          }
+        ],
+        cssClass: 'custom-partner-alert custom-partner-prompt'
+      });
+      await alert.present();
+    });
+  }
+
+  /**
    * Shows a Toast message notification
    */
   async showToast(

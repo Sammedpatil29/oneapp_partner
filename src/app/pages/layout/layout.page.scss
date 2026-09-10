@@ -53,16 +53,16 @@
     }
 
     &.active {
-      color: #02298a;
+      color: var(--app-theme-color, #a000e2);
 
       ion-icon {
         transform: translateY(-2px);
-        color: #02298a;
+        color: var(--app-theme-color, #a000e2);
       }
 
       span {
         font-weight: 700;
-        color: #02298a;
+        color: var(--app-theme-color, #a000e2);
       }
 
       &::after {
@@ -71,7 +71,7 @@
         bottom: 2px;
         width: 16px;
         height: 3px;
-        background: #02298a;
+        background: var(--app-theme-color, #a000e2);
         border-radius: 99px;
       }
     }

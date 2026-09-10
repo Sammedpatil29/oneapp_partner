@@ -70,6 +70,10 @@ export class SocketService {
     this.socket.on('ride:active_resume', callback);
   }
 
+  onStatusRejected(callback: (msg: any) => void) {
+    this.socket.on('rider:status_rejected', callback);
+  }
+
   // --- Emitters ---
   syncRider(data: any) {
     this.socket.emit('syncRider', data);
