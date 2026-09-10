@@ -1,4 +1,4 @@
-﻿<ion-header class="ion-no-border onboarding-header">
+<ion-header class="ion-no-border onboarding-header">
   <ion-toolbar>
     <ion-buttons slot="start">
       <ion-button (click)="prevStep()" class="back-btn">
@@ -89,30 +89,6 @@
           </div>
         </div>
 
-        <!-- PROFILE PHOTO PICKER WITH REAL FILE INPUT -->
-        <div class="profile-photo-picker text-center my-3">
-          <input
-            type="file"
-            #profilePhotoInput
-            accept="image/*"
-            class="d-none"
-            (change)="onProfilePhotoSelected($event)" />
-
-          <div
-            class="photo-placeholder position-relative mx-auto cursor-pointer"
-            (click)="profilePhotoInput.click()">
-            @if (personal.profilePhotoUrl) {
-              <img [src]="personal.profilePhotoUrl" alt="Profile" class="profile-img-preview" />
-            } @else {
-              <span class="avatar-initials">{{ personal.fullName.charAt(0).toUpperCase() }}</span>
-            }
-            <button type="button" class="photo-camera-btn">
-              <ion-icon name="camera-outline"></ion-icon>
-            </button>
-          </div>
-          <p class="small text-muted mt-2 mb-0">Tap to upload passport style photo</p>
-        </div>
-
         <!-- FULL NAME -->
         <div class="field-item mb-3">
           <label class="field-label">Full Legal Name (as on Driving License)</label>
@@ -139,12 +115,21 @@
 
         <!-- EMAIL -->
         <div class="field-item mb-3">
-          <label class="field-label">Email Address (Optional)</label>
+          <div class="d-flex justify-content-between align-items-center mb-1">
+            <label class="field-label mb-0">Email Address</label>
+            @if (isEmailPreVerified) {
+              <span class="badge bg-success text-white small px-2 py-0.5 rounded-pill d-inline-flex align-items-center gap-1">
+                <ion-icon name="checkmark-circle"></ion-icon>
+                <span>Email Verified</span>
+              </span>
+            }
+          </div>
           <input
             type="email"
             class="form-control-custom"
             placeholder="captain@example.com"
-            [(ngModel)]="personal.email" />
+            [(ngModel)]="personal.email"
+            [readonly]="isEmailPreVerified" />
         </div>
 
         <!-- OPERATING CITY -->
@@ -276,6 +261,8 @@
         <div class="field-item mb-4">
           <label class="field-label">Manufacturing Year</label>
           <select class="form-control-custom" [(ngModel)]="vehicle.year">
+            <option value="" disabled selected>Select Year</option>
+            <option value="2026">2026</option>
             <option value="2025">2025</option>
             <option value="2024">2024</option>
             <option value="2023">2023</option>
@@ -619,22 +606,6 @@
               <span>Priority Help</span>
             </button>
           </div>
-
-          <!-- Instant Fast-Track testing shortcut (DEVELOPMENT ONLY) -->
-          @if (!isProduction) {
-            <button
-              type="button"
-              class="btn-instant-approve-shortcut"
-              [disabled]="isApproving"
-              (click)="fastTrackApproveDemo()">
-              @if (isApproving) {
-                <ion-spinner name="crescent" class="spinner-small me-1"></ion-spinner>
-                <span>Approving...</span>
-              } @else {
-                <span>⚡ Fast-Track Instant Approve (Dev/Demo)</span>
-              }
-            </button>
-          }
         }
 
       </div>

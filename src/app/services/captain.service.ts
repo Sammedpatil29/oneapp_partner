@@ -71,7 +71,7 @@ export class CaptainService {
     return localStorage.getItem('riderId') || '101';
   }
 
-  // 1. Profile
+  // 1. Profile & Status
   getProfile(): Observable<any> {
     const id = this.getRiderId();
     return this.http.get(`${this.apiUrl}/api/rider/profile/${id}`);
@@ -80,6 +80,12 @@ export class CaptainService {
   updateProfile(data: any): Observable<any> {
     const id = this.getRiderId();
     return this.http.put(`${this.apiUrl}/api/rider/profile/${id}`, data);
+  }
+
+  updateStatus(status: boolean | string, lat?: number, lng?: number): Observable<any> {
+    const id = this.getRiderId();
+    const statusStr = status === true || status === 'online' ? 'online' : 'offline';
+    return this.http.put(`${this.apiUrl}/api/rider/status/${id}`, { status: statusStr, lat, lng });
   }
 
   // 2. Earnings

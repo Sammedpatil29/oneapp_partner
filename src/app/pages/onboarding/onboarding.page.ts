@@ -1,4 +1,4 @@
-﻿import { Component, OnInit, OnDestroy, inject } from '@angular/core';
+import { Component, OnInit, OnDestroy, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import {
@@ -12,7 +12,7 @@ import {
   IonSpinner,
   IonBadge
 } from '@ionic/angular/standalone';
-import { Router } from '@angular/router';
+import { Router, ActivatedRoute } from '@angular/router';
 import { addIcons } from 'ionicons';
 import {
   personOutline,
@@ -85,6 +85,7 @@ export class OnboardingPage implements OnInit, OnDestroy {
   private authService = inject(AuthService);
   private captainService = inject(CaptainService);
   private router = inject(Router);
+  private route = inject(ActivatedRoute);
   private dialogService = inject(AppDialogService);
   public networkService = inject(NetworkService);
   private http = inject(HttpClient);
@@ -95,19 +96,18 @@ export class OnboardingPage implements OnInit, OnDestroy {
   currentStep: number = 1; // 1: Personal, 2: Vehicle, 3: KYC Documents, 4: Verification Status
   isSubmitting: boolean = false;
   isCheckingStatus: boolean = false;
-  isApproving: boolean = false;
   createdRiderId: string = '';
+  isEmailPreVerified: boolean = false;
 
   private statusPollInterval: any;
 
   // Step 1: Personal Profile
   personal = {
-    fullName: 'Sammed Patil',
-    phone: '9876543210',
-    email: 'sammed.patil@example.com',
-    emergencyContact: '9876500000',
-    city: 'Bangalore',
-    profilePhotoUrl: ''
+    fullName: '',
+    phone: '',
+    email: '',
+    emergencyContact: '',
+    city: 'Bangalore'
   };
 
   // Step 2: Vehicle Profile
@@ -120,49 +120,49 @@ export class OnboardingPage implements OnInit, OnDestroy {
 
   vehicle = {
     type: 'bike',
-    model: 'Hero Splendor Plus',
-    number: 'KA-01-AB-1234',
+    model: '',
+    number: '',
     fuelType: 'petrol',
-    year: '2023'
+    year: ''
   };
 
-  // Step 3: Documents KYC
+  // Step 3: Documents KYC (Initialized empty - no dummy placeholder values)
   documents: { [key: string]: DocumentItem } = {
     drivingLicense: {
       name: 'Driving License (DL)',
-      number: 'DL-1420180092144',
-      uploaded: true,
-      fileName: 'dl_front.jpg',
-      fileSize: '450 KB'
+      number: '',
+      uploaded: false,
+      fileName: '',
+      fileSize: ''
     },
     vehicleRc: {
       name: 'Vehicle RC Book',
-      number: 'KA-01-AB-1234',
-      uploaded: true,
-      fileName: 'rc_book.pdf',
-      fileSize: '1.2 MB'
+      number: '',
+      uploaded: false,
+      fileName: '',
+      fileSize: ''
     },
     insurance: {
       name: 'Active Vehicle Insurance',
-      number: 'POL-992384',
-      validUntil: '2027-12-31',
-      uploaded: true,
-      fileName: 'insurance_policy.pdf',
-      fileSize: '820 KB'
+      number: '',
+      validUntil: '',
+      uploaded: false,
+      fileName: '',
+      fileSize: ''
     },
     aadhaarPan: {
       name: 'Aadhaar / PAN Card',
-      number: '•••• •••• 8492',
-      uploaded: true,
-      fileName: 'aadhaar_card.jpg',
-      fileSize: '510 KB'
+      number: '',
+      uploaded: false,
+      fileName: '',
+      fileSize: ''
     },
     selfie: {
       name: 'Captain Live Photo / Selfie',
-      number: 'Selfie Verified',
-      uploaded: true,
-      fileName: 'live_selfie.jpg',
-      fileSize: '680 KB'
+      number: '',
+      uploaded: false,
+      fileName: '',
+      fileSize: ''
     }
   };
 
@@ -197,14 +197,51 @@ export class OnboardingPage implements OnInit, OnDestroy {
   }
 
   ngOnInit() {
+    const stepParam = this.route.snapshot.queryParams['step'];
+    if (stepParam) {
+      const parsedStep = parseInt(stepParam, 10);
+      if (parsedStep >= 1 && parsedStep <= 4) {
+        this.currentStep = parsedStep;
+      }
+    }
+
+    const emailParam = this.route.snapshot.queryParams['email'];
+    if (emailParam) {
+      this.personal.email = emailParam;
+      this.isEmailPreVerified = true;
+    }
+
+    const storedRider = localStorage.getItem('riderInfo');
+    if (storedRider) {
+      try {
+        const parsed = JSON.parse(storedRider);
+        if (parsed.email && !this.personal.email) {
+          this.personal.email = parsed.email;
+          this.isEmailPreVerified = true;
+        }
+        if (parsed.name && !this.personal.fullName) {
+          this.personal.fullName = parsed.name;
+        }
+        if (parsed.phone && !this.personal.phone) {
+          this.personal.phone = parsed.phone;
+        }
+      } catch {}
+    }
+
     const storedPhone = localStorage.getItem('riderPhone');
-    if (storedPhone) {
+    if (storedPhone && !this.personal.phone) {
       this.personal.phone = storedPhone;
     }
 
     const storedRiderId = localStorage.getItem('riderId');
     if (storedRiderId) {
       this.createdRiderId = storedRiderId;
+    }
+
+    // If starting on Step 4 (status review), fetch current status immediately & begin polling
+    if (this.currentStep === 4) {
+      this.fetchVerificationStatus(false);
+      this.startStatusPolling();
     }
   }
 
@@ -266,18 +303,6 @@ export class OnboardingPage implements OnInit, OnDestroy {
     reader.readAsDataURL(file);
   }
 
-  onProfilePhotoSelected(event: any) {
-    const file = event.target.files?.[0];
-    if (!file) return;
-
-    const reader = new FileReader();
-    reader.onload = (e: any) => {
-      this.personal.profilePhotoUrl = e.target.result;
-      this.dialogService.showToast('Profile photo updated! ✅', 'success', 2000);
-    };
-    reader.readAsDataURL(file);
-  }
-
   submitOnboardingApplication() {
     this.isSubmitting = true;
 
@@ -323,7 +348,7 @@ export class OnboardingPage implements OnInit, OnDestroy {
       vehicle_model: this.vehicle.model,
       vehicle_number: this.vehicle.number.toUpperCase(),
       fuel_type: this.vehicle.fuelType,
-      image_url: this.personal.profilePhotoUrl || '',
+      image_url: this.documents['selfie'].filePreview || '',
       kyc_docs: kycDocsPayload,
       current_location: { lat: 12.9716, lng: 77.5946 },
       status: 'offline',
@@ -372,10 +397,9 @@ export class OnboardingPage implements OnInit, OnDestroy {
   }
 
   fetchVerificationStatus(showToastOnCheck: boolean = false) {
-    const id = this.createdRiderId || localStorage.getItem('riderId') || '101';
-    this.http.get<any>(`${this.apiUrl}/api/rider/profile/${id}`).subscribe({
+    this.authService.checkAuthStatus().subscribe({
       next: (res) => {
-        if (res?.data?.is_verified) {
+        if (res?.is_verified) {
           this.verificationStatus = 'verified';
           this.verificationMessage = 'Your account has been fully verified and approved by operations!';
           if (this.statusPollInterval) clearInterval(this.statusPollInterval);
@@ -383,12 +407,30 @@ export class OnboardingPage implements OnInit, OnDestroy {
             this.dialogService.showToast('Account Verified & Approved! 🚀', 'success', 3000);
           }
         } else {
+          this.verificationStatus = 'pending';
+          this.verificationMessage = 'Our security operations team is reviewing your KYC documents.';
           if (showToastOnCheck) {
             this.dialogService.showToast('Verification in progress: 15–30 min remaining ⏳', 'primary', 2500);
           }
         }
       },
       error: () => {
+        // Fallback to direct profile lookup if needed
+        const id = this.createdRiderId || localStorage.getItem('riderId');
+        if (id) {
+          this.http.get<any>(`${this.apiUrl}/api/rider/profile/${id}`).subscribe({
+            next: (res) => {
+              if (res?.data?.is_verified) {
+                this.verificationStatus = 'verified';
+                this.verificationMessage = 'Your account has been fully verified and approved by operations!';
+                if (this.statusPollInterval) clearInterval(this.statusPollInterval);
+                if (showToastOnCheck) {
+                  this.dialogService.showToast('Account Verified & Approved! 🚀', 'success', 3000);
+                }
+              }
+            }
+          });
+        }
         if (showToastOnCheck) {
           this.dialogService.showToast('Checking verification queue... ⏳', 'primary', 2000);
         }
@@ -404,36 +446,7 @@ export class OnboardingPage implements OnInit, OnDestroy {
     }, 800);
   }
 
-  fastTrackApproveDemo() {
-    if (this.isProduction) return;
-    this.isApproving = true;
-    const id = this.createdRiderId || localStorage.getItem('riderId') || '101';
-
-    setTimeout(() => {
-      this.isApproving = false;
-      this.verificationStatus = 'verified';
-      this.verificationMessage = 'Approved via Fast-Track verification portal.';
-      if (this.statusPollInterval) clearInterval(this.statusPollInterval);
-      this.dialogService.showAlert(
-        'Account Verified! 🚀',
-        'Congratulations Captain! Your documents have been approved. You are now ready to accept rides and earn.',
-        'success'
-      );
-    }, 1000);
-  }
-
   enterDriverConsole() {
-    if (!this.authService.hasToken()) {
-      const generatedToken = 'jwt_rider_' + Date.now();
-      this.authService.setSession({
-        token: generatedToken,
-        riderId: this.createdRiderId || localStorage.getItem('riderId') || '101',
-        phone: this.personal.phone,
-        name: this.personal.fullName,
-        role: 'captain',
-        is_verified: true
-      });
-    }
     this.router.navigate(['/layout/home']);
   }
 

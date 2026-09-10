@@ -43,7 +43,7 @@
         </button>
 
         <div class="captain-avatar-btn" (click)="openProfile()">
-          <img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80" alt="Profile" />
+          <img [src]="riderProfile?.image_url || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80'" alt="Profile" />
           <span class="captain-badge-dot"></span>
         </div>
       </div>
@@ -66,7 +66,7 @@
     <div class="metric-divider"></div>
     <div class="metric-col" (click)="gotoWallet()">
       <span class="metric-label">RATING</span>
-      <span class="metric-val text-warning">⭐ 4.88</span>
+      <span class="metric-val text-warning">⭐ {{ riderRating }}</span>
     </div>
   </div>
 
@@ -127,8 +127,18 @@
             <ion-icon name="gift-outline"></ion-icon>
           </div>
           <div>
-            <h4>Daily Milestone Bonus</h4>
-            <p>Complete 8 more rides to unlock ₹350 bonus!</p>
+            <h4>{{ activeIncentive?.title || 'Daily Milestone Bonus' }}</h4>
+            <p>
+              @if (activeIncentive) {
+                @if (activeIncentive.is_completed) {
+                  🎉 Goal reached! ₹{{ activeIncentive.reward_amount }} credited to wallet.
+                } @else {
+                  Complete {{ activeIncentive.target_rides - activeIncentive.completed_rides }} more rides to unlock ₹{{ activeIncentive.reward_amount }}!
+                }
+              } @else {
+                Earn extra daily target rewards on completed orders.
+              }
+            </p>
           </div>
         </div>
         <ion-icon name="chevron-forward-outline" class="arrow-right"></ion-icon>
@@ -167,10 +177,6 @@
           <h3>Searching for High-Demand Orders...</h3>
           <p>Stay near active tech parks and metro stations for instant requests.</p>
         </div>
-
-        <button class="btn-simulate-test" (click)="simulateRide()">
-          ⚡ Demo: Simulate Incoming Trip
-        </button>
       </div>
     }
 

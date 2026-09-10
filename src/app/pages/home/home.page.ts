@@ -19,6 +19,7 @@ import { AlertModalComponent, AlertType } from 'src/app/components/alert-modal/a
 import { PermissionsHubComponent } from 'src/app/components/permissions-hub/permissions-hub.component';
 import { NetworkService } from 'src/app/services/network.service';
 import { AppDialogService } from 'src/app/services/app-dialog.service';
+import { AuthService } from 'src/app/services/auth.service';
 import { addIcons } from 'ionicons';
 import { 
   powerOutline, locationOutline, flagOutline, callOutline, 
@@ -64,6 +65,9 @@ export class HomePage implements OnInit, OnDestroy {
   isLoading: boolean = false;
   riderId: any;
   riderData: any;
+  riderProfile: any = null;
+  riderRating: number = 4.9;
+  activeIncentive: any = null;
   lat: number = 12.9716;
   lng: number = 77.5946;
   map!: any;
@@ -89,8 +93,8 @@ export class HomePage implements OnInit, OnDestroy {
 
   // Today's Live Performance
   todayStats = {
-    earnings: 640,
-    rides: 6
+    earnings: 0,
+    rides: 0
   };
 
   // Offline & Error States
@@ -111,6 +115,7 @@ export class HomePage implements OnInit, OnDestroy {
 
   private socketService = inject(SocketService);
   private captainService = inject(CaptainService);
+  private authService = inject(AuthService);
   private locationService = inject(Location);
   private router = inject(Router);
   public networkService = inject(NetworkService);
@@ -129,9 +134,10 @@ export class HomePage implements OnInit, OnDestroy {
   }
 
   async ngOnInit() {
-    this.riderId = localStorage.getItem('riderId');
+    this.riderId = this.authService.getRiderId() || localStorage.getItem('riderId');
     await this.refreshPermissions();
     await this.initLocation();
+    this.loadProfile();
     this.loadTodayEarnings();
 
     if (this.riderId) {
@@ -171,29 +177,60 @@ export class HomePage implements OnInit, OnDestroy {
     }
   }
 
+  private mapRetryCount = 0;
+
   async initLocation() {
     try {
       const loc = await this.locationService.getCurrentLocation();
       if (loc && loc.lat && loc.lng) {
         this.lat = loc.lat;
         this.lng = loc.lng;
+        if (this.map && this.marker && typeof google !== 'undefined' && google.maps) {
+          const pos = new google.maps.LatLng(this.lat, this.lng);
+          this.map.panTo(pos);
+          this.marker.setPosition(pos);
+        } else if (this.status) {
+          this.loadMap();
+        }
       }
     } catch (err) {
       console.warn('Location detection fallback to default coordinates', err);
     }
   }
 
+  loadProfile() {
+    this.captainService.getProfile().subscribe({
+      next: (res: any) => {
+        if (res?.data) {
+          this.riderProfile = res.data;
+          this.riderRating = res.data.rating?.average || (typeof res.data.rating === 'number' ? res.data.rating : 4.9);
+          if (res.data.status) {
+            this.status = res.data.status === 'online';
+            if (this.status) {
+              setTimeout(() => this.loadMap(), 300);
+            }
+          }
+        }
+      },
+      error: (err: any) => {
+        console.warn('Could not load rider profile:', err?.message);
+      }
+    });
+  }
+
   loadTodayEarnings() {
     this.captainService.getEarnings().subscribe({
       next: (res: any) => {
         if (res?.data?.today) {
-          this.todayStats.earnings = res.data.today.total_earnings || this.todayStats.earnings;
-          this.todayStats.rides = res.data.today.rides_completed || this.todayStats.rides;
+          this.todayStats.earnings = res.data.today.total_earnings || 0;
+          this.todayStats.rides = res.data.today.rides_completed || 0;
+        }
+        if (res?.data?.active_incentives && res.data.active_incentives.length > 0) {
+          this.activeIncentive = res.data.active_incentives[0];
         }
         this.hasApiError = false;
       },
       error: () => {
-        // Fallback to local default stats if server is offline
         this.hasApiError = false;
       }
     });
@@ -202,11 +239,15 @@ export class HomePage implements OnInit, OnDestroy {
   retryLoading() {
     this.hasApiError = false;
     this.isLoading = true;
+    this.loadProfile();
     this.captainService.getEarnings().subscribe({
       next: (res: any) => {
         if (res?.data?.today) {
-          this.todayStats.earnings = res.data.today.total_earnings || this.todayStats.earnings;
-          this.todayStats.rides = res.data.today.rides_completed || this.todayStats.rides;
+          this.todayStats.earnings = res.data.today.total_earnings || 0;
+          this.todayStats.rides = res.data.today.rides_completed || 0;
+        }
+        if (res?.data?.active_incentives && res.data.active_incentives.length > 0) {
+          this.activeIncentive = res.data.active_incentives[0];
         }
         this.isLoading = false;
       },
@@ -280,9 +321,24 @@ export class HomePage implements OnInit, OnDestroy {
     } catch (e) {}
 
     const statusStr = online ? 'online' : 'offline';
+    this.riderId = this.authService.getRiderId() || localStorage.getItem('riderId') || '';
+
+    // 1. Emit real-time update via WebSocket
     this.socketService.changeRiderStatus({
       status: statusStr,
-      riderId: this.riderId
+      riderId: this.riderId,
+      lat: this.lat,
+      lng: this.lng
+    });
+
+    // 2. Persist directly in Database via REST API
+    this.captainService.updateStatus(statusStr, this.lat, this.lng).subscribe({
+      next: (res: any) => {
+        console.log('✅ Captain duty status persisted in DB:', res?.message || statusStr);
+      },
+      error: (err: any) => {
+        console.warn('Could not persist status via REST endpoint:', err?.message);
+      }
     });
 
     this.captainNative.setDutyStatus(online);
@@ -295,9 +351,28 @@ export class HomePage implements OnInit, OnDestroy {
   }
 
   loadMap() {
+    if (!this.status) return;
+
     const mapEl = document.getElementById('map');
     if (!mapEl || typeof google === 'undefined') return;
+    if (!mapEl) {
+      if (this.mapRetryCount < 15) {
+        this.mapRetryCount++;
+        setTimeout(() => this.loadMap(), 300);
+      }
+      return;
+    }
 
+    if (typeof google === 'undefined' || !google.maps || !google.maps.Map) {
+      console.warn('Google Maps SDK not ready yet. Retrying...');
+      if (this.mapRetryCount < 20) {
+        this.mapRetryCount++;
+        setTimeout(() => this.loadMap(), 500);
+      }
+      return;
+    }
+
+    this.mapRetryCount = 0;
     const latLng = new google.maps.LatLng(this.lat, this.lng);
     this.map = new google.maps.Map(mapEl, {
       center: latLng,
@@ -324,51 +399,76 @@ export class HomePage implements OnInit, OnDestroy {
         strokeWeight: 3
       }
     });
+    if (this.map) {
+      try {
+        google.maps.event.trigger(this.map, 'resize');
+        this.map.setCenter(latLng);
+        if (this.marker) {
+          this.marker.setPosition(latLng);
+        }
+      } catch (e) {}
+      return;
+    }
+
+    try {
+      this.map = new google.maps.Map(mapEl, {
+        center: latLng,
+        zoom: 16,
+        disableDefaultUI: true,
+        mapTypeControl: false,
+        zoomControl: false,
+        streetViewControl: false,
+        fullscreenControl: false,
+        styles: [
+          { featureType: 'poi', stylers: [{ visibility: 'off' }] },
+          { featureType: 'transit', stylers: [{ visibility: 'off' }] },
+          { featureType: 'road', elementType: 'labels', stylers: [{ visibility: 'simplified' }] }
+        ]
+      });
+
+      this.marker = new google.maps.Marker({
+        position: latLng,
+        map: this.map,
+        title: 'Captain Location',
+        icon: {
+          path: google.maps.SymbolPath.CIRCLE,
+          scale: 9,
+          fillColor: '#02298a',
+          fillOpacity: 1,
+          strokeColor: '#ffffff',
+          strokeWeight: 3
+        }
+      });
+    } catch (mapInitErr) {
+      console.error('Error initializing Google Maps:', mapInitErr);
+    }
   }
 
   startTripFlow(data: any) {
     this.activeRide = {
       id: data.rideId || data.id || 'RD-' + Math.floor(1000 + Math.random() * 9000),
-      customerName: data.customerName || data.user_details?.name || 'Rahul Sharma',
-      customerPhone: data.customerPhone || data.user_details?.phone || '+91 9876543210',
+      customerName: data.customerName || data.user_details?.name || 'Customer',
+      customerPhone: data.customerPhone || data.user_details?.phone || '',
       customerRating: data.customerRating || 4.9,
       serviceType: data.service_details?.type || data.vehicleType || 'Bike Taxi',
       origin: {
-        name: data.trip_details?.origin?.name || data.origin?.name || 'MG Road Metro Station, Gate 2',
+        name: data.trip_details?.origin?.name || data.origin?.name || 'Pickup Location',
         lat: data.trip_details?.origin?.lat || this.lat,
         lng: data.trip_details?.origin?.lng || this.lng
       },
       destination: {
-        name: data.trip_details?.drop?.name || data.destination?.name || 'Indiranagar 100ft Road, Bangalore',
+        name: data.trip_details?.drop?.name || data.destination?.name || 'Drop Location',
         lat: data.trip_details?.drop?.lat || this.lat + 0.02,
         lng: data.trip_details?.drop?.lng || this.lng + 0.02
       },
-      fare: data.fare || 95,
-      distance: data.distance || 4.2,
-      duration: data.duration || 14,
+      fare: data.fare || 0,
+      distance: data.distance || 0,
+      duration: data.duration || 0,
       status: 'accepted',
-      otp: data.otp || '4821',
+      otp: data.otp || '',
       paymentMode: 'CASH'
     };
     this.captainNative.setActiveRide(this.activeRide);
-  }
-
-  simulateRide() {
-    this.startTripFlow({
-      rideId: 'RD-8392',
-      customerName: 'Priya Sundaram',
-      customerPhone: '+91 98765 12345',
-      customerRating: 4.95,
-      service_details: { type: 'Bike Taxi' },
-      trip_details: {
-        origin: { name: 'Koramangala 5th Block Club' },
-        drop: { name: 'Embassy Golf Links (EGL) Tech Park' }
-      },
-      fare: 135,
-      distance: 5.8,
-      duration: 18,
-      otp: '5284'
-    });
   }
 
   markArrived() {

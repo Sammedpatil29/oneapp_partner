@@ -1,4 +1,4 @@
-import { Component, OnInit, inject } from '@angular/core';
+import { Component, OnInit, OnDestroy, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import {
@@ -8,30 +8,22 @@ import {
   IonToolbar,
   IonButton,
   IonIcon,
-  IonSpinner,
-  IonBadge
+  IonSpinner
 } from '@ionic/angular/standalone';
 import { Router, ActivatedRoute } from '@angular/router';
 import { addIcons } from 'ionicons';
 import {
-  callOutline,
-  lockClosedOutline,
-  eyeOutline,
-  eyeOffOutline,
+  mailOutline,
+  mail,
   shieldCheckmarkOutline,
-  sparklesOutline,
   arrowForwardOutline,
   logoWhatsapp,
-  helpCircleOutline,
-  personAddOutline,
-  logInOutline,
-  keypadOutline
+  keypadOutline,
+  createOutline
 } from 'ionicons/icons';
 import { AuthService } from 'src/app/services/auth.service';
 import { AppDialogService } from 'src/app/services/app-dialog.service';
-import { NetworkService } from 'src/app/services/network.service';
 import { CaptainNativeService } from 'src/app/services/captain-native.service';
-import { environment } from 'src/environments/environment';
 
 @Component({
   selector: 'app-login',
@@ -47,27 +39,20 @@ import { environment } from 'src/environments/environment';
     IonToolbar,
     IonButton,
     IonIcon,
-    IonSpinner,
-    IonBadge
+    IonSpinner
   ]
 })
-export class LoginPage implements OnInit {
+export class LoginPage implements OnInit, OnDestroy {
   private authService = inject(AuthService);
   private router = inject(Router);
   private route = inject(ActivatedRoute);
   private dialogService = inject(AppDialogService);
   private captainNative = inject(CaptainNativeService);
-  public networkService = inject(NetworkService);
 
-  isProduction: boolean = environment.production;
-
-  loginMode: 'password' | 'otp' = 'password';
-  phoneNumber: string = '';
-  password: string = '';
+  email: string = '';
   otpCode: string = '';
-  showPassword: boolean = false;
   isLoading: boolean = false;
-  otpSent: boolean = false;
+  emailOtpSent: boolean = false;
   otpTimer: number = 0;
   private otpInterval: any;
 
@@ -75,18 +60,13 @@ export class LoginPage implements OnInit {
 
   constructor() {
     addIcons({
-      callOutline,
-      lockClosedOutline,
-      eyeOutline,
-      eyeOffOutline,
+      mailOutline,
+      mail,
       shieldCheckmarkOutline,
-      sparklesOutline,
       arrowForwardOutline,
       logoWhatsapp,
-      helpCircleOutline,
-      personAddOutline,
-      logInOutline,
-      keypadOutline
+      keypadOutline,
+      createOutline
     });
   }
 
@@ -99,126 +79,101 @@ export class LoginPage implements OnInit {
     }
   }
 
-  togglePasswordVisibility() {
-    this.showPassword = !this.showPassword;
-  }
-
-  setLoginMode(mode: 'password' | 'otp') {
-    this.loginMode = mode;
-    this.otpSent = false;
-    this.otpCode = '';
-  }
-
-  fillDemoCredentials() {
-    if (this.isProduction) return;
-    this.phoneNumber = '9876543210';
-    this.password = 'captain123';
-    this.loginMode = 'password';
-  }
-
-  sendOtp() {
-    if (!this.phoneNumber || this.phoneNumber.length < 10) {
-      this.dialogService.showAlert('Invalid Number', 'Please enter a valid 10-digit mobile number.', 'warning');
-      return;
+  ngOnDestroy() {
+    if (this.otpInterval) {
+      clearInterval(this.otpInterval);
     }
+  }
 
-    this.isLoading = true;
-    setTimeout(() => {
-      this.isLoading = false;
-      this.otpSent = true;
-      this.otpTimer = 30;
-      
-      if (!this.isProduction) {
-        this.dialogService.showToast('OTP sent: 1234 (Demo verification code)', 'success', 4000);
+  private isValidEmail(val: string): boolean {
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test((val || '').trim());
+  }
+
+  private startTimer(durationSec: number = 60) {
+    this.otpTimer = durationSec;
+    if (this.otpInterval) clearInterval(this.otpInterval);
+    this.otpInterval = setInterval(() => {
+      if (this.otpTimer > 0) {
+        this.otpTimer--;
       } else {
-        this.dialogService.showToast('Verification code sent via SMS to your mobile number.', 'success', 4000);
+        clearInterval(this.otpInterval);
       }
-
-      if (this.otpInterval) clearInterval(this.otpInterval);
-      this.otpInterval = setInterval(() => {
-        if (this.otpTimer > 0) {
-          this.otpTimer--;
-        } else {
-          clearInterval(this.otpInterval);
-        }
-      }, 1000);
-    }, 800);
+    }, 1000);
   }
 
-  fillDemoOtp() {
-    if (this.isProduction) return;
-    this.otpCode = '1234';
+  isOtpReady(): boolean {
+    const code = String(this.otpCode || '').trim();
+    return code.length >= 4 && code.length <= 6;
   }
 
-  login() {
-    if (!this.networkService.isOnline) {
-      this.dialogService.showAlert('Offline', 'Please check your internet connection before logging in.', 'warning');
-      return;
-    }
+  // ===== EMAIL OTP AUTH FLOW =====
+  sendEmailOtp() {
+    const cleanEmail = String(this.email || '').toLowerCase().trim();
 
-    if (this.phoneNumber.length !== 10) {
-      this.dialogService.showAlert('Invalid Phone', 'Please enter a 10-digit phone number.', 'warning');
-      return;
-    }
-
-    if (this.loginMode === 'password' && !this.password) {
-      this.dialogService.showAlert('Password Required', 'Please enter your password.', 'warning');
-      return;
-    }
-
-    if (this.loginMode === 'otp' && (!this.otpCode || this.otpCode.length < 4)) {
-      this.dialogService.showAlert('Invalid OTP', 'Please enter the 4-digit verification code.', 'warning');
+    if (!this.isValidEmail(cleanEmail)) {
+      this.dialogService.showAlert('Invalid Email', 'Please enter a valid email address.', 'warning');
       return;
     }
 
     this.isLoading = true;
-
-    const payload: any = {
-      phone: this.phoneNumber,
-      password: this.password
-    };
-
-    if (this.loginMode === 'otp') {
-      payload.otp = this.otpCode;
-    }
-
-    this.authService.login(payload).subscribe({
+    this.authService.sendEmailOtp(cleanEmail).subscribe({
       next: (res) => {
         this.isLoading = false;
-        if (res?.tokenData?.token) {
-          this.dialogService.showToast('Login Successful! Welcome back, Captain.', 'success', 2000);
-          this.router.navigateByUrl(this.returnUrl);
-        } else {
-          this.dialogService.showAlert('Login Failed', res?.message || 'Invalid credentials. Please try again.', 'error');
-        }
+        this.emailOtpSent = true;
+        this.startTimer(60);
+        this.dialogService.showToast('Verification code sent to ' + cleanEmail, 'success', 3000);
       },
       error: (err) => {
         this.isLoading = false;
-        if (this.isProduction) {
-          // Production: Strict rejection
-          const errMsg = err?.error?.message || 'Invalid phone number or password. Please try again.';
-          this.dialogService.showAlert('Authentication Failed', errMsg, 'error');
-        } else {
-          // Development/Local: Allow local testing session
-          console.warn('Development offline fallback login active:', err);
-          const fallbackToken = 'jwt_dev_' + Date.now();
-          this.authService.setSession({
-            token: fallbackToken,
-            riderId: '101',
-            phone: this.phoneNumber,
-            name: 'Sammed Patil',
-            role: 'captain',
-            is_verified: true
-          });
-          this.dialogService.showToast('Welcome, Captain (Dev Local Session)', 'primary', 2000);
-          this.router.navigateByUrl(this.returnUrl);
-        }
+        const msg = err?.error?.message || 'Failed to send verification email. Please check your connection and try again.';
+        this.dialogService.showAlert('Error', msg, 'error');
       }
     });
   }
 
-  goToOnboarding() {
-    this.router.navigate(['/onboarding']);
+  verifyEmailOtp() {
+    const cleanEmail = String(this.email || '').toLowerCase().trim();
+    const cleanOtp = String(this.otpCode || '').trim();
+
+    if (!this.isValidEmail(cleanEmail)) {
+      this.dialogService.showAlert('Invalid Email', 'Please enter a valid email address.', 'warning');
+      return;
+    }
+
+    if (!cleanOtp || cleanOtp.length < 4) {
+      this.dialogService.showAlert('Invalid Code', 'Please enter the verification code sent to your email.', 'warning');
+      return;
+    }
+
+    this.isLoading = true;
+    this.authService.verifyEmailOtp(cleanEmail, cleanOtp).subscribe({
+      next: (res) => {
+        this.isLoading = false;
+        if (res.is_verified) {
+          // Active, approved Captain -> Go directly to Home
+          this.dialogService.showToast('Welcome back, Captain!', 'success', 2000);
+          this.router.navigateByUrl('/layout/home');
+        } else if (res.has_submitted_docs || res.verification_status === 'verifying') {
+          // Documents submitted and awaiting review -> Go to Step 4 status review
+          this.dialogService.showToast('Welcome back! Your KYC verification is in progress.', 'primary', 2500);
+          this.router.navigate(['/onboarding'], { queryParams: { step: '4' } });
+        } else {
+          // New Captain or yet to submit details -> Go to Step 1 onboarding
+          this.dialogService.showToast('Email verified! Let us set up your Captain profile.', 'success', 3000);
+          this.router.navigate(['/onboarding'], { queryParams: { step: '1', email: cleanEmail } });
+        }
+      },
+      error: (err) => {
+        this.isLoading = false;
+        const msg = err?.error?.message || 'Invalid or expired verification code. Please check and try again.';
+        this.dialogService.showAlert('Verification Failed', msg, 'error');
+      }
+    });
+  }
+
+  changeEmail() {
+    this.emailOtpSent = false;
+    this.otpCode = '';
   }
 
   openWhatsAppSupport() {
@@ -227,3 +182,4 @@ export class LoginPage implements OnInit {
     window.open(`https://wa.me/${phone}?text=${message}`, '_system');
   }
 }
+
