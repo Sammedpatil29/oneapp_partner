@@ -1,13 +1,104 @@
-<ion-header [translucent]="true">
+<ion-header class="ion-no-border bg-white pt-2">
   <ion-toolbar>
-    <ion-title>settings</ion-title>
+    <ion-buttons slot="start">
+      <ion-button (click)="goBack()">
+        <ion-icon name="arrow-back-outline" color="dark"></ion-icon>
+      </ion-button>
+    </ion-buttons>
+
+    <ion-title class="fw-bold text-dark">Captain Settings</ion-title>
   </ion-toolbar>
 </ion-header>
 
-<ion-content [fullscreen]="true">
-  <ion-header collapse="condense">
-    <ion-toolbar>
-      <ion-title size="large">settings</ion-title>
-    </ion-toolbar>
-  </ion-header>
+<ion-content class="bg-light" [fullscreen]="true">
+  <div class="container px-3 py-3">
+
+    <!-- PERMISSIONS & DIAGNOSTICS CARD -->
+    <div class="bg-white rounded-4 border mb-3 shadow-xs overflow-hidden">
+      <div class="p-3 d-flex align-items-center justify-content-between border-bottom cursor-pointer" (click)="gotoPermissions()">
+        <div class="d-flex align-items-center gap-3">
+          <div class="p-2 bg-primary-subtle text-primary rounded-3">
+            <ion-icon name="shield-checkmark-outline" class="fs-4"></ion-icon>
+          </div>
+          <div>
+            <h6 class="fw-bold text-dark mb-0">Device &amp; App Permissions</h6>
+            <small class="text-muted">GPS, Overlay, Battery &amp; Background Diagnostics</small>
+          </div>
+        </div>
+        <div class="d-flex align-items-center gap-2">
+          <span class="badge" [ngClass]="allPermissionsGranted ? 'bg-success-subtle text-success' : 'bg-warning-subtle text-warning'">
+            {{ allPermissionsGranted ? 'Active ✅' : 'Setup Needed ⚠️' }}
+          </span>
+          <ion-icon name="chevron-forward-outline" color="medium"></ion-icon>
+        </div>
+      </div>
+
+      <!-- SYSTEM APP INFO -->
+      <div class="p-3 d-flex align-items-center justify-content-between cursor-pointer" (click)="openSystemSettings()">
+        <div class="d-flex align-items-center gap-3">
+          <div class="p-2 bg-secondary-subtle text-secondary rounded-3">
+            <ion-icon name="settings-outline" class="fs-4"></ion-icon>
+          </div>
+          <div>
+            <h6 class="fw-bold text-dark mb-0">Android OS App Settings</h6>
+            <small class="text-muted">Directly manage system notifications &amp; permissions</small>
+          </div>
+        </div>
+        <ion-icon name="chevron-forward-outline" color="medium"></ion-icon>
+      </div>
+    </div>
+
+    <!-- PREFERENCES CARD -->
+    <div class="bg-white rounded-4 border mb-3 shadow-xs overflow-hidden">
+      <!-- FLOATING COCKPIT PILL -->
+      <div class="p-3 d-flex align-items-center justify-content-between border-bottom">
+        <div class="d-flex align-items-center gap-3">
+          <div class="p-2 bg-success-subtle text-success rounded-3">
+            <ion-icon name="layers-outline" class="fs-4"></ion-icon>
+          </div>
+          <div>
+            <h6 class="fw-bold text-dark mb-0">Floating Shortcut Pill</h6>
+            <small class="text-muted">Show mini-cockpit on screen over other apps</small>
+          </div>
+        </div>
+        <ion-toggle [(ngModel)]="bubbleEnabled" (ionChange)="toggleBubble()"></ion-toggle>
+      </div>
+
+      <!-- SOUND NOTIFICATIONS -->
+      <div class="p-3 d-flex align-items-center justify-content-between">
+        <div class="d-flex align-items-center gap-3">
+          <div class="p-2 bg-warning-subtle text-warning rounded-3">
+            <ion-icon name="volume-high-outline" class="fs-4"></ion-icon>
+          </div>
+          <div>
+            <h6 class="fw-bold text-dark mb-0">Ride Alert Chimes &amp; Sounds</h6>
+            <small class="text-muted">Play loud dispatch chimes for incoming trips</small>
+          </div>
+        </div>
+        <ion-toggle [(ngModel)]="soundEnabled"></ion-toggle>
+      </div>
+    </div>
+
+    <!-- APP VERSION & BUILD INFO -->
+    <div class="bg-white rounded-4 border p-3 shadow-xs">
+      <div class="d-flex align-items-center gap-2 mb-2">
+        <ion-icon name="information-circle-outline" class="text-primary fs-5"></ion-icon>
+        <span class="fw-bold text-dark small">Pintu Partner Fleet Application</span>
+      </div>
+      <div class="d-flex justify-content-between py-1 border-bottom small text-muted">
+        <span>Installed Version</span>
+        <span class="fw-semibold text-dark">v0.0.8 (Build 5)</span>
+      </div>
+      <div class="d-flex justify-content-between py-1 border-bottom small text-muted">
+        <span>Package Name</span>
+        <span class="fw-semibold text-dark">io.oneapp.partner</span>
+      </div>
+      <div class="d-flex justify-content-between py-1 small text-muted">
+        <span>Environment</span>
+        <span class="fw-semibold text-success">Production Gateway Active</span>
+      </div>
+    </div>
+
+  </div>
 </ion-content>
+

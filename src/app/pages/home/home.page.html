@@ -28,8 +28,12 @@
         <ion-toggle color="success" [(ngModel)]="status" (ionChange)="changeStatus()"></ion-toggle>
       </div>
 
-      <!-- Right: SOS, Notifications, Profile Shortcuts -->
+      <!-- Right: Permissions, SOS, Notifications, Profile Shortcuts -->
       <div class="header-actions">
+        <button class="icon-btn perm-btn" (click)="openPermissionsHub()" title="Device Permissions">
+          <ion-icon name="shield-checkmark-outline"></ion-icon>
+        </button>
+
         <button class="icon-btn sos-btn" (click)="triggerEmergencySos()" title="Emergency SOS">
           <ion-icon name="shield-outline"></ion-icon>
         </button>

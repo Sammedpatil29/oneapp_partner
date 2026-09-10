@@ -39,15 +39,15 @@ jobs:
       - name: Set up Android SDK Build Tools
         uses: android-actions/setup-android@v3
 
-      - name: Sync Capacitor Android Project
-        run: npx cap sync android
-
       - name: Clean Gradle Build Cache & Stale Artifacts
         run: |
           cd android
           chmod +x gradlew
           ./gradlew clean --no-daemon
           rm -rf app/build .gradle
+
+      - name: Sync Capacitor Android Project (Copy Fresh Web Assets)
+        run: npx cap sync android
 
       - name: Build Android Release (AAB & APK)
         run: |
