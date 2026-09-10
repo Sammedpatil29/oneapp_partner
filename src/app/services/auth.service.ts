@@ -113,6 +113,7 @@ export class AuthService {
     status: string;
     has_submitted_docs: boolean;
     verification_status: 'verified' | 'verifying' | 'pending_details';
+    verification_checklist?: { [key: string]: 'pending' | 'verified' | 'not_verified' | string };
     rider?: any;
     message?: string;
   }> {

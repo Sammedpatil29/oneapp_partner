@@ -131,6 +131,21 @@ export class LoginPage implements OnInit, OnDestroy {
     });
   }
 
+  ionViewWillEnter() {
+    this.resetForm();
+  }
+
+  resetForm() {
+    this.email = '';
+    this.otpCode = '';
+    this.emailOtpSent = false;
+    this.otpTimer = 0;
+    if (this.otpInterval) {
+      clearInterval(this.otpInterval);
+      this.otpInterval = null;
+    }
+  }
+
   verifyEmailOtp() {
     const cleanEmail = String(this.email || '').toLowerCase().trim();
     const cleanOtp = String(this.otpCode || '').trim();
@@ -149,6 +164,10 @@ export class LoginPage implements OnInit, OnDestroy {
     this.authService.verifyEmailOtp(cleanEmail, cleanOtp).subscribe({
       next: (res) => {
         this.isLoading = false;
+
+        // Clear the form and set it to empty
+        this.resetForm();
+
         if (res.is_verified) {
           // Active, approved Captain -> Go directly to Home
           this.dialogService.showToast('Welcome back, Captain!', 'success', 2000);

@@ -133,5 +133,16 @@ export class CaptainService {
       rideId
     });
   }
+
+  // 8. FCM Token
+  sendFcmToken(fcm_token: string): Observable<any> {
+    const riderId = this.getRiderId();
+    const token = localStorage.getItem('riderToken') || '';
+    return this.http.patch(
+      `${this.apiUrl}/api/rider/fcm-token`,
+      { fcm_token, riderId },
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
+  }
 }
 

@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy, inject } from '@angular/core';
+import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import {
@@ -35,8 +35,8 @@ import {
   logOutOutline,
   alertCircleOutline,
   checkmarkDoneOutline,
-  trashOutline
-} from 'ionicons/icons';
+  closeCircle,
+  trashOutline, paperPlaneOutline } from 'ionicons/icons';
 import { AuthService } from 'src/app/services/auth.service';
 import { CaptainService } from 'src/app/services/captain.service';
 import { AppDialogService } from 'src/app/services/app-dialog.service';
@@ -82,7 +82,7 @@ export interface DocumentItem {
     IonBadge
   ]
 })
-export class OnboardingPage implements OnInit, OnDestroy {
+export class OnboardingPage implements OnInit {
   private authService = inject(AuthService);
   private captainService = inject(CaptainService);
   private router = inject(Router);
@@ -105,7 +105,18 @@ export class OnboardingPage implements OnInit, OnDestroy {
   // Local storage for uploaded raw document files (to bundle into ZIP)
   localDocFiles: { [key: string]: File } = {};
 
-  private statusPollInterval: any;
+  // Step 4: Database-driven Verification Checklist (pending | verified | not_verified)
+  verificationChecklist: { [key: string]: 'pending' | 'verified' | 'not_verified' | string } = {
+    personal_details: 'pending',
+    vehicle_details: 'pending',
+    driving_license: 'pending',
+    vehicle_rc: 'pending',
+    vehicle_insurance: 'pending',
+    aadhaar_pan: 'pending',
+    live_selfie: 'pending',
+    background_verification: 'pending',
+    safety_activation: 'pending'
+  };
 
   // Step 1: Personal Profile
   personal = {
@@ -177,29 +188,7 @@ export class OnboardingPage implements OnInit, OnDestroy {
   verificationMessage: string = 'Our security operations team is reviewing your KYC documents.';
 
   constructor() {
-    addIcons({
-      personOutline,
-      bicycleOutline,
-      carOutline,
-      documentTextOutline,
-      checkmarkCircle,
-      checkmarkCircleOutline,
-      cloudUploadOutline,
-      cameraOutline,
-      shieldCheckmarkOutline,
-      logoWhatsapp,
-      arrowBackOutline,
-      arrowForwardOutline,
-      refreshOutline,
-      sparklesOutline,
-      flashOutline,
-      timeOutline,
-      callOutline,
-      logOutOutline,
-      alertCircleOutline,
-      checkmarkDoneOutline,
-      trashOutline
-    });
+    addIcons({arrowBackOutline,logoWhatsapp,logOutOutline,checkmarkCircle,closeCircle,personOutline,alertCircleOutline,arrowForwardOutline,bicycleOutline,documentTextOutline,cloudUploadOutline,cameraOutline,shieldCheckmarkOutline,paperPlaneOutline,timeOutline,flashOutline,refreshOutline,carOutline,checkmarkCircleOutline,sparklesOutline,callOutline,checkmarkDoneOutline,trashOutline});
   }
 
   ngOnInit() {
@@ -242,16 +231,9 @@ export class OnboardingPage implements OnInit, OnDestroy {
       this.createdRiderId = storedRiderId;
     }
 
-    // If starting on Step 4 (status review), fetch current status immediately & begin polling
+    // If starting on Step 4 (status review), fetch current status immediately
     if (this.currentStep === 4) {
       this.fetchVerificationStatus(false);
-      this.startStatusPolling();
-    }
-  }
-
-  ngOnDestroy() {
-    if (this.statusPollInterval) {
-      clearInterval(this.statusPollInterval);
     }
   }
 
@@ -341,8 +323,28 @@ export class OnboardingPage implements OnInit, OnDestroy {
     const file = event.target.files?.[0];
     if (!file) return;
 
-    // Cache the raw File object locally for final ZIP bundling
-    this.localDocFiles[docKey] = file;
+    // Standard filename prefixes based on document type
+    const prefixMap: { [key: string]: string } = {
+      drivingLicense: 'dl',
+      vehicleRc: 'rc',
+      insurance: 'insurance',
+      aadhaarPan: 'aadhaar',
+      selfie: 'selfie'
+    };
+
+    const prefix = prefixMap[docKey] || docKey;
+    let ext = 'jpg';
+    if (file.name && file.name.includes('.')) {
+      ext = file.name.split('.').pop().toLowerCase();
+    } else if (file.type) {
+      ext = file.type.includes('pdf') ? 'pdf' : (file.type.includes('png') ? 'png' : 'jpg');
+    }
+
+    const renamedFileName = `${prefix}.${ext}`;
+    const renamedFile = new File([file], renamedFileName, { type: file.type });
+
+    // Cache the renamed File object locally for final ZIP bundling
+    this.localDocFiles[docKey] = renamedFile;
 
     const fileSizeFormatted = (file.size / 1024 < 1024) 
       ? `${(file.size / 1024).toFixed(0)} KB` 
@@ -353,17 +355,17 @@ export class OnboardingPage implements OnInit, OnDestroy {
       this.documents[docKey] = {
         ...this.documents[docKey],
         uploaded: true,
-        fileName: file.name,
+        fileName: renamedFileName,
         fileSize: fileSizeFormatted,
         filePreview: e.target.result
       };
-      this.dialogService.showToast(`${this.documents[docKey].name} selected! (${fileSizeFormatted}) ✅`, 'success', 2000);
+      this.dialogService.showToast(`${this.documents[docKey].name} renamed to ${renamedFileName} ✅`, 'success', 2000);
     };
     reader.readAsDataURL(file);
   }
 
   async submitOnboardingApplication() {
-    // 1. Strict Validation for all 5 documents
+    // 1. Strict Validation for all 5 documents (including mandatory selfie)
     const missingItems: string[] = [];
 
     if (!this.documents['drivingLicense'].uploaded || !this.localDocFiles['drivingLicense']) {
@@ -395,7 +397,7 @@ export class OnboardingPage implements OnInit, OnDestroy {
     }
 
     if (!this.documents['selfie'].uploaded || !this.localDocFiles['selfie']) {
-      missingItems.push('Captain Live Photo / Selfie');
+      missingItems.push('Captain Live Selfie (Mandatory)');
     }
 
     if (missingItems.length > 0) {
@@ -412,13 +414,13 @@ export class OnboardingPage implements OnInit, OnDestroy {
     try {
       this.dialogService.showToast('Packaging documents into secure ZIP archive... 📦', 'primary', 2500);
 
-      // 2. Bundle all local documents into a ZIP archive via JSZip
+      // 2. Bundle all renamed local documents into a ZIP archive via JSZip
       const zip = new JSZip();
       const sanitizedPhone = String(this.personal.phone || 'captain').trim();
       const folder = zip.folder(`kyc_${sanitizedPhone}`);
 
       for (const [key, file] of Object.entries(this.localDocFiles)) {
-        folder?.file(`${key}_${file.name}`, file);
+        folder?.file(file.name, file);
       }
 
       const kycDocsMeta = {
@@ -495,7 +497,6 @@ export class OnboardingPage implements OnInit, OnDestroy {
           }
           this.currentStep = 4;
           this.verificationStatus = 'pending';
-          this.startStatusPolling();
           this.dialogService.showAlert(
             'Application & Documents Submitted! 🎉',
             'Your vehicle information and KYC documents ZIP have been successfully uploaded to the operations review desk. Fast-track verification is now in progress.',
@@ -516,25 +517,31 @@ export class OnboardingPage implements OnInit, OnDestroy {
     }
   }
 
-  startStatusPolling() {
-    if (this.statusPollInterval) clearInterval(this.statusPollInterval);
-
-    this.statusPollInterval = setInterval(() => {
-      if (this.verificationStatus !== 'verified') {
-        this.fetchVerificationStatus(false);
-      }
-    }, 8000);
-  }
-
   fetchVerificationStatus(showToastOnCheck: boolean = false) {
     this.authService.checkAuthStatus().subscribe({
       next: (res) => {
-        if (res?.is_verified) {
+        const incomingChecklist = res?.verification_checklist || (res as any)?.kyc_docs?.checklist || (res as any)?.rider?.kyc_docs?.checklist || (res as any)?.rider?.verification_checklist;
+        if (incomingChecklist && typeof incomingChecklist === 'object') {
+          this.verificationChecklist = {
+            ...this.verificationChecklist,
+            ...incomingChecklist
+          };
+        }
+
+        const anyNotVerified = Object.values(this.verificationChecklist).some(s => s === 'not_verified');
+        const allVerified = Object.values(this.verificationChecklist).every(s => s === 'verified');
+
+        if (res?.is_verified || allVerified) {
           this.verificationStatus = 'verified';
           this.verificationMessage = 'Your account has been fully verified and approved by operations!';
-          if (this.statusPollInterval) clearInterval(this.statusPollInterval);
           if (showToastOnCheck) {
             this.dialogService.showToast('Account Verified & Approved! 🚀', 'success', 3000);
+          }
+        } else if (anyNotVerified) {
+          this.verificationStatus = 'rejected';
+          this.verificationMessage = 'One or more checklist documents require your attention or re-upload.';
+          if (showToastOnCheck) {
+            this.dialogService.showToast('Some documents were not approved ❌', 'danger', 3000);
           }
         } else {
           this.verificationStatus = 'pending';
@@ -550,10 +557,17 @@ export class OnboardingPage implements OnInit, OnDestroy {
         if (id) {
           this.http.get<any>(`${this.apiUrl}/api/rider/profile/${id}`).subscribe({
             next: (res) => {
-              if (res?.data?.is_verified) {
+              const incomingChecklist = res?.data?.verification_checklist || res?.verification_checklist;
+              if (incomingChecklist && typeof incomingChecklist === 'object') {
+                this.verificationChecklist = {
+                  ...this.verificationChecklist,
+                  ...incomingChecklist
+                };
+              }
+              const allVerified = Object.values(this.verificationChecklist).every(s => s === 'verified');
+              if (res?.data?.is_verified || allVerified) {
                 this.verificationStatus = 'verified';
                 this.verificationMessage = 'Your account has been fully verified and approved by operations!';
-                if (this.statusPollInterval) clearInterval(this.statusPollInterval);
                 if (showToastOnCheck) {
                   this.dialogService.showToast('Account Verified & Approved! 🚀', 'success', 3000);
                 }

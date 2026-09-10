@@ -461,17 +461,24 @@
             capture="user"
             class="d-none"
             (change)="onFileSelected($event, 'selfie')" />
-          <div class="d-flex justify-content-between align-items-center">
+          <div class="d-flex justify-content-between align-items-center mb-2">
             <div>
-              <h6 class="doc-name mb-0">5. Captain Live Selfie</h6>
-              <small class="text-muted">Take a clear face photo</small>
+              <h6 class="doc-name mb-0">5. Captain Live Selfie <span class="text-danger fw-bold">*</span></h6>
+              <small class="text-muted">Take a clear face photo (Mandatory)</small>
             </div>
+            @if (documents['selfie'].uploaded) {
+              <span class="badge bg-success-subtle text-success rounded-pill px-2 py-1 small">
+                ✅ {{ documents['selfie'].fileName || 'Uploaded' }}
+              </span>
+            }
+          </div>
+          <div class="d-flex justify-content-end">
             <button
               type="button"
               class="btn-upload-pill"
               (click)="selfieInput.click()">
               <ion-icon name="camera-outline" class="me-1"></ion-icon>
-              {{ documents['selfie'].uploaded ? 'Retake Photo' : 'Capture' }}
+              {{ documents['selfie'].uploaded ? 'Retake Photo' : 'Take Selfie' }}
             </button>
           </div>
         </div>
@@ -483,49 +490,44 @@
           </button>
           <button
             type="button"
-            class="btn-step-action flex-grow-2"
+            class="btn-step-next flex-grow-2"
             [disabled]="isSubmitting"
             (click)="nextStep()">
             @if (isSubmitting) {
-              <ion-spinner name="crescent" class="spinner-small me-2"></ion-spinner>
-              <span>Creating ZIP &amp; Uploading KYC...</span>
+              <ion-spinner name="crescent" class="spinner-small me-1"></ion-spinner>
+              <span>Submitting KYC Package...</span>
             } @else {
-              <ion-icon name="shield-checkmark-outline" class="me-2"></ion-icon>
-              <span>Submit &amp; Fast-Track Verify</span>
+              <span>Submit for Verification</span>
+              <ion-icon name="paper-plane-outline" class="ms-1"></ion-icon>
             }
           </button>
         </div>
       </div>
     }
 
-    <!-- ==================== STEP 4: VERIFICATION & APPROVAL DASHBOARD ==================== -->
+    <!-- ================================================================ -->
+    <!-- STEP 4: VERIFICATION IN PROGRESS / SUCCESS CONSOLE               -->
+    <!-- ================================================================ -->
     @if (currentStep === 4) {
-      <div class="verification-status-dashboard text-center">
-
-        <!-- ANIMATION BADGE CARD -->
-        <div class="status-hero-card shadow-sm p-4 mb-3">
-          <div class="status-badge-icon mb-3">
-            @if (verificationStatus === 'verified') {
-              <div class="icon-circle success-glow">
-                <ion-icon name="checkmark-circle" color="success" class="display-3"></ion-icon>
-              </div>
-            } @else {
-              <div class="icon-circle pending-glow">
-                <img
-                  src="assets/icon/wired-flat-500-fingerprint-security-hover-pinch.gif"
-                  alt="Security Verification"
-                  class="gif-icon" />
-              </div>
-            }
-          </div>
-
+      <div class="step-card fade-in text-center">
+        <!-- HEADER / STATUS ICON -->
+        <div class="status-hero mb-4">
           @if (verificationStatus === 'verified') {
-            <h4 class="fw-bold text-success mb-1">Account Verified &amp; Active! 🚀</h4>
-            <p class="text-muted small mb-3">{{ verificationMessage }}</p>
-            <span class="badge bg-success text-white rounded-pill px-3 py-2 fw-semibold">
-              Ready to Accept Rides &amp; Deliveries
-            </span>
+            <div class="status-icon-bubble verified mb-3">
+              <ion-icon name="checkmark-circle" color="success" style="font-size: 52px;"></ion-icon>
+            </div>
+            <h4 class="fw-bold text-success mb-1">Application Approved! 🎉</h4>
+            <p class="text-muted small mb-0">{{ verificationMessage }}</p>
+          } @else if (verificationStatus === 'rejected') {
+            <div class="status-icon-bubble rejected mb-3">
+              <ion-icon name="close-circle" color="danger" style="font-size: 52px;"></ion-icon>
+            </div>
+            <h4 class="fw-bold text-danger mb-1">Verification Requires Attention</h4>
+            <p class="text-muted small mb-2">{{ verificationMessage }}</p>
           } @else {
+            <div class="status-icon-bubble pending mb-3">
+              <ion-icon name="time-outline" color="warning" style="font-size: 52px;"></ion-icon>
+            </div>
             <h4 class="fw-bold text-dark mb-1">Verification in Progress</h4>
             <p class="text-muted small mb-2">{{ verificationMessage }}</p>
             <div class="badge bg-warning-subtle text-dark border border-warning rounded-pill px-3 py-2 small fw-semibold">
@@ -534,58 +536,199 @@
           }
         </div>
 
-        <!-- VERIFICATION STEPS CHECKLIST -->
+        <!-- VERIFICATION CHECKLIST (SYNCHRONIZED WITH DATABASE) -->
         <div class="verification-checklist bg-white p-3 rounded-4 border shadow-xs text-start mb-3">
           <h6 class="fw-bold text-dark mb-3 d-flex align-items-center gap-2">
             <ion-icon name="shield-checkmark-outline" color="primary"></ion-icon>
             Verification Checklist
           </h6>
 
+          <!-- 1. Personal Details -->
           <div class="check-item d-flex justify-content-between align-items-center py-2 border-bottom">
             <div class="d-flex align-items-center gap-2">
-              <ion-icon name="checkmark-circle" color="success" class="fs-5"></ion-icon>
-              <span class="small fw-semibold text-dark">Driving License &amp; ID Proof</span>
-            </div>
-            <span class="badge bg-success-subtle text-success rounded-pill px-2 py-1 small">Verified ✅</span>
-          </div>
-
-          <div class="check-item d-flex justify-content-between align-items-center py-2 border-bottom">
-            <div class="d-flex align-items-center gap-2">
-              <ion-icon name="checkmark-circle" color="success" class="fs-5"></ion-icon>
-              <span class="small fw-semibold text-dark">Vehicle RC &amp; Insurance</span>
-            </div>
-            <span class="badge bg-success-subtle text-success rounded-pill px-2 py-1 small">Verified ✅</span>
-          </div>
-
-          <div class="check-item d-flex justify-content-between align-items-center py-2 border-bottom">
-            <div class="d-flex align-items-center gap-2">
-              @if (verificationStatus === 'verified') {
+              @if (verificationChecklist['personal_details'] === 'verified') {
                 <ion-icon name="checkmark-circle" color="success" class="fs-5"></ion-icon>
+              } @else if (verificationChecklist['personal_details'] === 'not_verified') {
+                <ion-icon name="close-circle" color="danger" class="fs-5"></ion-icon>
+              } @else {
+                <ion-icon name="time-outline" color="warning" class="fs-5"></ion-icon>
+              }
+              <span class="small fw-semibold text-dark">Personal Details (Name, Mobile, City)</span>
+            </div>
+            @if (verificationChecklist['personal_details'] === 'verified') {
+              <span class="badge bg-success-subtle text-success rounded-pill px-2 py-1 small">Verified ✅</span>
+            } @else if (verificationChecklist['personal_details'] === 'not_verified') {
+              <span class="badge bg-danger-subtle text-danger rounded-pill px-2 py-1 small">Not Verified ❌</span>
+            } @else {
+              <span class="badge bg-warning-subtle text-warning rounded-pill px-2 py-1 small">Pending ⏳</span>
+            }
+          </div>
+
+          <!-- 2. Vehicle Details -->
+          <div class="check-item d-flex justify-content-between align-items-center py-2 border-bottom">
+            <div class="d-flex align-items-center gap-2">
+              @if (verificationChecklist['vehicle_details'] === 'verified') {
+                <ion-icon name="checkmark-circle" color="success" class="fs-5"></ion-icon>
+              } @else if (verificationChecklist['vehicle_details'] === 'not_verified') {
+                <ion-icon name="close-circle" color="danger" class="fs-5"></ion-icon>
+              } @else {
+                <ion-icon name="time-outline" color="warning" class="fs-5"></ion-icon>
+              }
+              <span class="small fw-semibold text-dark">Vehicle Details (Type, Model, RC, Year)</span>
+            </div>
+            @if (verificationChecklist['vehicle_details'] === 'verified') {
+              <span class="badge bg-success-subtle text-success rounded-pill px-2 py-1 small">Verified ✅</span>
+            } @else if (verificationChecklist['vehicle_details'] === 'not_verified') {
+              <span class="badge bg-danger-subtle text-danger rounded-pill px-2 py-1 small">Not Verified ❌</span>
+            } @else {
+              <span class="badge bg-warning-subtle text-warning rounded-pill px-2 py-1 small">Pending ⏳</span>
+            }
+          </div>
+
+          <!-- 3. Driving License -->
+          <div class="check-item d-flex justify-content-between align-items-center py-2 border-bottom">
+            <div class="d-flex align-items-center gap-2">
+              @if (verificationChecklist['driving_license'] === 'verified') {
+                <ion-icon name="checkmark-circle" color="success" class="fs-5"></ion-icon>
+              } @else if (verificationChecklist['driving_license'] === 'not_verified') {
+                <ion-icon name="close-circle" color="danger" class="fs-5"></ion-icon>
+              } @else {
+                <ion-icon name="time-outline" color="warning" class="fs-5"></ion-icon>
+              }
+              <span class="small fw-semibold text-dark">Driving License (DL)</span>
+            </div>
+            @if (verificationChecklist['driving_license'] === 'verified') {
+              <span class="badge bg-success-subtle text-success rounded-pill px-2 py-1 small">Verified ✅</span>
+            } @else if (verificationChecklist['driving_license'] === 'not_verified') {
+              <span class="badge bg-danger-subtle text-danger rounded-pill px-2 py-1 small">Not Verified ❌</span>
+            } @else {
+              <span class="badge bg-warning-subtle text-warning rounded-pill px-2 py-1 small">Pending ⏳</span>
+            }
+          </div>
+
+          <!-- 4. Vehicle RC Book -->
+          <div class="check-item d-flex justify-content-between align-items-center py-2 border-bottom">
+            <div class="d-flex align-items-center gap-2">
+              @if (verificationChecklist['vehicle_rc'] === 'verified') {
+                <ion-icon name="checkmark-circle" color="success" class="fs-5"></ion-icon>
+              } @else if (verificationChecklist['vehicle_rc'] === 'not_verified') {
+                <ion-icon name="close-circle" color="danger" class="fs-5"></ion-icon>
+              } @else {
+                <ion-icon name="time-outline" color="warning" class="fs-5"></ion-icon>
+              }
+              <span class="small fw-semibold text-dark">Vehicle RC Book</span>
+            </div>
+            @if (verificationChecklist['vehicle_rc'] === 'verified') {
+              <span class="badge bg-success-subtle text-success rounded-pill px-2 py-1 small">Verified ✅</span>
+            } @else if (verificationChecklist['vehicle_rc'] === 'not_verified') {
+              <span class="badge bg-danger-subtle text-danger rounded-pill px-2 py-1 small">Not Verified ❌</span>
+            } @else {
+              <span class="badge bg-warning-subtle text-warning rounded-pill px-2 py-1 small">Pending ⏳</span>
+            }
+          </div>
+
+          <!-- 5. Active Vehicle Insurance -->
+          <div class="check-item d-flex justify-content-between align-items-center py-2 border-bottom">
+            <div class="d-flex align-items-center gap-2">
+              @if (verificationChecklist['vehicle_insurance'] === 'verified') {
+                <ion-icon name="checkmark-circle" color="success" class="fs-5"></ion-icon>
+              } @else if (verificationChecklist['vehicle_insurance'] === 'not_verified') {
+                <ion-icon name="close-circle" color="danger" class="fs-5"></ion-icon>
+              } @else {
+                <ion-icon name="time-outline" color="warning" class="fs-5"></ion-icon>
+              }
+              <span class="small fw-semibold text-dark">Active Vehicle Insurance</span>
+            </div>
+            @if (verificationChecklist['vehicle_insurance'] === 'verified') {
+              <span class="badge bg-success-subtle text-success rounded-pill px-2 py-1 small">Verified ✅</span>
+            } @else if (verificationChecklist['vehicle_insurance'] === 'not_verified') {
+              <span class="badge bg-danger-subtle text-danger rounded-pill px-2 py-1 small">Not Verified ❌</span>
+            } @else {
+              <span class="badge bg-warning-subtle text-warning rounded-pill px-2 py-1 small">Pending ⏳</span>
+            }
+          </div>
+
+          <!-- 6. Aadhaar / PAN Card -->
+          <div class="check-item d-flex justify-content-between align-items-center py-2 border-bottom">
+            <div class="d-flex align-items-center gap-2">
+              @if (verificationChecklist['aadhaar_pan'] === 'verified') {
+                <ion-icon name="checkmark-circle" color="success" class="fs-5"></ion-icon>
+              } @else if (verificationChecklist['aadhaar_pan'] === 'not_verified') {
+                <ion-icon name="close-circle" color="danger" class="fs-5"></ion-icon>
+              } @else {
+                <ion-icon name="time-outline" color="warning" class="fs-5"></ion-icon>
+              }
+              <span class="small fw-semibold text-dark">Aadhaar / PAN Card</span>
+            </div>
+            @if (verificationChecklist['aadhaar_pan'] === 'verified') {
+              <span class="badge bg-success-subtle text-success rounded-pill px-2 py-1 small">Verified ✅</span>
+            } @else if (verificationChecklist['aadhaar_pan'] === 'not_verified') {
+              <span class="badge bg-danger-subtle text-danger rounded-pill px-2 py-1 small">Not Verified ❌</span>
+            } @else {
+              <span class="badge bg-warning-subtle text-warning rounded-pill px-2 py-1 small">Pending ⏳</span>
+            }
+          </div>
+
+          <!-- 7. Captain Live Selfie -->
+          <div class="check-item d-flex justify-content-between align-items-center py-2 border-bottom">
+            <div class="d-flex align-items-center gap-2">
+              @if (verificationChecklist['live_selfie'] === 'verified') {
+                <ion-icon name="checkmark-circle" color="success" class="fs-5"></ion-icon>
+              } @else if (verificationChecklist['live_selfie'] === 'not_verified') {
+                <ion-icon name="close-circle" color="danger" class="fs-5"></ion-icon>
+              } @else {
+                <ion-icon name="time-outline" color="warning" class="fs-5"></ion-icon>
+              }
+              <span class="small fw-semibold text-dark">Captain Live Selfie</span>
+            </div>
+            @if (verificationChecklist['live_selfie'] === 'verified') {
+              <span class="badge bg-success-subtle text-success rounded-pill px-2 py-1 small">Verified ✅</span>
+            } @else if (verificationChecklist['live_selfie'] === 'not_verified') {
+              <span class="badge bg-danger-subtle text-danger rounded-pill px-2 py-1 small">Not Verified ❌</span>
+            } @else {
+              <span class="badge bg-warning-subtle text-warning rounded-pill px-2 py-1 small">Pending ⏳</span>
+            }
+          </div>
+
+          <!-- 8. Background Verification -->
+          <div class="check-item d-flex justify-content-between align-items-center py-2 border-bottom">
+            <div class="d-flex align-items-center gap-2">
+              @if (verificationChecklist['background_verification'] === 'verified') {
+                <ion-icon name="checkmark-circle" color="success" class="fs-5"></ion-icon>
+              } @else if (verificationChecklist['background_verification'] === 'not_verified') {
+                <ion-icon name="close-circle" color="danger" class="fs-5"></ion-icon>
               } @else {
                 <ion-icon name="time-outline" color="warning" class="fs-5"></ion-icon>
               }
               <span class="small fw-semibold text-dark">Background Verification</span>
             </div>
-            @if (verificationStatus === 'verified') {
+            @if (verificationChecklist['background_verification'] === 'verified') {
               <span class="badge bg-success-subtle text-success rounded-pill px-2 py-1 small">Passed ✅</span>
+            } @else if (verificationChecklist['background_verification'] === 'not_verified') {
+              <span class="badge bg-danger-subtle text-danger rounded-pill px-2 py-1 small">Not Verified ❌</span>
             } @else {
-              <span class="badge bg-warning-subtle text-warning rounded-pill px-2 py-1 small">In Review ⏳</span>
+              <span class="badge bg-warning-subtle text-warning rounded-pill px-2 py-1 small">Pending ⏳</span>
             }
           </div>
 
+          <!-- 9. Captain Onboarding & Safety Activation -->
           <div class="check-item d-flex justify-content-between align-items-center py-2">
             <div class="d-flex align-items-center gap-2">
-              @if (verificationStatus === 'verified') {
+              @if (verificationChecklist['safety_activation'] === 'verified') {
                 <ion-icon name="checkmark-circle" color="success" class="fs-5"></ion-icon>
+              } @else if (verificationChecklist['safety_activation'] === 'not_verified') {
+                <ion-icon name="close-circle" color="danger" class="fs-5"></ion-icon>
               } @else {
                 <ion-icon name="time-outline" color="warning" class="fs-5"></ion-icon>
               }
               <span class="small fw-semibold text-dark">Captain Onboarding &amp; Safety Activation</span>
             </div>
-            @if (verificationStatus === 'verified') {
+            @if (verificationChecklist['safety_activation'] === 'verified') {
               <span class="badge bg-success-subtle text-success rounded-pill px-2 py-1 small">Active 🟢</span>
+            } @else if (verificationChecklist['safety_activation'] === 'not_verified') {
+              <span class="badge bg-danger-subtle text-danger rounded-pill px-2 py-1 small">Not Verified ❌</span>
             } @else {
-              <span class="badge bg-light text-muted rounded-pill px-2 py-1 small">Pending</span>
+              <span class="badge bg-warning-subtle text-warning rounded-pill px-2 py-1 small">Pending ⏳</span>
             }
           </div>
         </div>

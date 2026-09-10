@@ -5,8 +5,8 @@ import { Router } from '@angular/router';
 import { CustomSplashComponent } from "./pages/custom-splash/custom-splash.component";
 import { OtaService } from './services/ota.service';
 import { CaptainNativeService } from './services/captain-native.service';
-
 import { AuthService } from './services/auth.service';
+import { RegisterFcmService } from './services/register-fcm.service';
 
 @Component({
   selector: 'app-root',
@@ -23,6 +23,7 @@ export class AppComponent implements OnInit {
   private otaService = inject(OtaService);
   private captainNative = inject(CaptainNativeService);
   private authService = inject(AuthService);
+  private fcmService = inject(RegisterFcmService);
 
   constructor() {
     setTimeout(() => {
@@ -59,6 +60,9 @@ export class AppComponent implements OnInit {
   async ngOnInit() {
     // 🚀 Initialize OTA Live Update Checks
     this.otaService.initialize();
+
+    // 🔔 Initialize FCM Push Notifications
+    this.fcmService.initPush();
 
     // 🛡️ Proactively prompt essential driver runtime permissions on startup
     try {
