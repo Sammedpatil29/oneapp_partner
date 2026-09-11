@@ -12,6 +12,8 @@ import {
   IonList,
   IonModal,
   IonSpinner,
+  IonRefresher,
+  IonRefresherContent,
   ToastController,
   AlertController
 } from '@ionic/angular/standalone';
@@ -57,6 +59,8 @@ import { environment } from 'src/environments/environment';
     IonList,
     IonModal,
     IonSpinner,
+    IonRefresher,
+    IonRefresherContent,
     CommonModule,
     FormsModule,
     LoaderComponent,
@@ -230,6 +234,24 @@ export class WalletPage implements OnInit, OnDestroy {
       error: () => {
         this.isLoading = false;
         this.hasApiError = false;
+      }
+    });
+  }
+
+  handleRefresh(event: any) {
+    this.captainService.getWallet().subscribe({
+      next: (res) => {
+        if (res?.data) {
+          this.wallet = res.data;
+          const due = Number(this.wallet.balance?.commission_due || 0);
+          if (due > 0 && !this.payAmount) {
+            this.payAmount = due;
+          }
+        }
+        event.target.complete();
+      },
+      error: () => {
+        event.target.complete();
       }
     });
   }
@@ -464,7 +486,7 @@ export class WalletPage implements OnInit, OnDestroy {
     });
 
     const alert = await this.alertCtrl.create({
-      header: 'Payment Successful! ✅',
+      header: 'Payment Successful!',
       message: `₹${amount} has been settled towards your platform commission.`,
       buttons: ['OK']
     });

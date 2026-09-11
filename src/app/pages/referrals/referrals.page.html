@@ -10,6 +10,10 @@
 </ion-header>
 
 <ion-content class="referrals-content" [fullscreen]="true">
+  <ion-refresher slot="fixed" (ionRefresh)="handleRefresh($event)">
+    <ion-refresher-content pullingIcon="chevron-down-circle-outline" refreshingSpinner="crescent"></ion-refresher-content>
+  </ion-refresher>
+
   @if (isLoading) {
     <app-loader message="Loading Referral Data..."></app-loader>
   } @else if (isOffline) {

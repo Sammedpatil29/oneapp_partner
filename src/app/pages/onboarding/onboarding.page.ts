@@ -359,7 +359,10 @@ export class OnboardingPage implements OnInit {
         fileSize: fileSizeFormatted,
         filePreview: e.target.result
       };
-      this.dialogService.showToast(`${this.documents[docKey].name} renamed to ${renamedFileName} ✅`, 'success', 2000);
+      if (docKey === 'selfie' && e.target.result) {
+        localStorage.setItem('riderSelfie', e.target.result);
+      }
+      this.dialogService.showToast(`${this.documents[docKey].name} uploaded (${renamedFileName})`, 'success', 2000);
     };
     reader.readAsDataURL(file);
   }
@@ -541,13 +544,13 @@ export class OnboardingPage implements OnInit {
           this.verificationStatus = 'rejected';
           this.verificationMessage = 'One or more checklist documents require your attention or re-upload.';
           if (showToastOnCheck) {
-            this.dialogService.showToast('Some documents were not approved ❌', 'danger', 3000);
+            this.dialogService.showToast('Some documents were not approved', 'danger', 3000);
           }
         } else {
           this.verificationStatus = 'pending';
           this.verificationMessage = 'Our security operations team is reviewing your KYC documents.';
           if (showToastOnCheck) {
-            this.dialogService.showToast('Verification in progress: 15–30 min remaining ⏳', 'primary', 2500);
+            this.dialogService.showToast('Verification in progress: 15–30 min remaining', 'primary', 2500);
           }
         }
       },
@@ -569,14 +572,14 @@ export class OnboardingPage implements OnInit {
                 this.verificationStatus = 'verified';
                 this.verificationMessage = 'Your account has been fully verified and approved by operations!';
                 if (showToastOnCheck) {
-                  this.dialogService.showToast('Account Verified & Approved! 🚀', 'success', 3000);
+                  this.dialogService.showToast('Account Verified & Approved!', 'success', 3000);
                 }
               }
             }
           });
         }
         if (showToastOnCheck) {
-          this.dialogService.showToast('Checking verification queue... ⏳', 'primary', 2000);
+          this.dialogService.showToast('Checking verification queue...', 'primary', 2000);
         }
       }
     });

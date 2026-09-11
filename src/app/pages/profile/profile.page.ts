@@ -10,6 +10,8 @@ import {
   IonButton,
   IonIcon,
   IonBadge,
+  IonRefresher,
+  IonRefresherContent,
   AlertController
 } from '@ionic/angular/standalone';
 import { Router } from '@angular/router';
@@ -39,6 +41,7 @@ import { NoNetworkComponent } from 'src/app/components/no-network/no-network.com
 import { NoDataComponent } from 'src/app/components/no-data/no-data.component';
 import { ApiErrorComponent } from 'src/app/components/api-error/api-error.component';
 import { NetworkService } from 'src/app/services/network.service';
+import { environment } from 'src/environments/environment';
 
 @Component({
   selector: 'app-profile',
@@ -54,6 +57,8 @@ import { NetworkService } from 'src/app/services/network.service';
     IonButton,
     IonIcon,
     IonBadge,
+    IonRefresher,
+    IonRefresherContent,
     CommonModule,
     FormsModule,
     LoaderComponent,
@@ -141,22 +146,71 @@ export class ProfilePage implements OnInit {
     }
   }
 
-  fetchProfile() {
+  fetchProfile(onComplete?: () => void) {
     this.isLoading = true;
     this.hasApiError = false;
     this.captainService.getProfile().subscribe({
       next: (res) => {
         if (res?.data) {
           this.captain = res.data;
+          const selfie = res.data.image_url 
+            || res.data.kyc_docs?.extracted_files?.live_selfie 
+            || res.data.kyc_docs?.selfie;
+          if (selfie) {
+            localStorage.setItem('riderSelfie', selfie);
+          }
         }
         this.isLoading = false;
         this.hasApiError = false;
+        if (onComplete) onComplete();
       },
       error: () => {
         this.isLoading = false;
         this.hasApiError = false;
+        if (onComplete) onComplete();
       }
     });
+  }
+
+  handleRefresh(event: any) {
+    this.captainService.getProfile().subscribe({
+      next: (res) => {
+        if (res?.data) {
+          this.captain = res.data;
+          const selfie = res.data.image_url 
+            || res.data.kyc_docs?.extracted_files?.live_selfie 
+            || res.data.kyc_docs?.selfie;
+          if (selfie) {
+            localStorage.setItem('riderSelfie', selfie);
+          }
+        }
+        event.target.complete();
+      },
+      error: () => {
+        event.target.complete();
+      }
+    });
+  }
+
+  getCaptainSelfie(): string {
+    const raw = this.captain?.image_url 
+      || this.captain?.kyc_docs?.extracted_files?.live_selfie 
+      || this.captain?.kyc_docs?.selfie 
+      || localStorage.getItem('riderSelfie') 
+      || '';
+    if (!raw) return '';
+    if (raw.startsWith('http://') || raw.startsWith('https://') || raw.startsWith('blob:') || raw.startsWith('data:')) {
+      return raw;
+    }
+    const clean = raw.startsWith('/') ? raw : `/${raw}`;
+    const base = environment.apiUrl || 'https://pintu-api.democompany.in.net';
+    return `${base}${clean}`;
+  }
+
+  onAvatarError() {
+    if (this.captain) {
+      this.captain.image_url = '';
+    }
   }
 
   gotoPermissions() {
@@ -177,10 +231,6 @@ export class ProfilePage implements OnInit {
 
   gotoReferrals() {
     this.router.navigate(['/layout/referrals']);
-  }
-
-  gotoNotifications() {
-    this.router.navigate(['/layout/notifications']);
   }
 
   gotoNeedHelp() {

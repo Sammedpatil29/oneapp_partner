@@ -13,7 +13,9 @@ import {
   IonSegmentButton,
   IonLabel,
   IonModal,
-  IonBadge
+  IonBadge,
+  IonRefresher,
+  IonRefresherContent
 } from '@ionic/angular/standalone';
 import { addIcons } from 'ionicons';
 import {
@@ -55,6 +57,8 @@ import { NetworkService } from 'src/app/services/network.service';
     IonLabel,
     IonModal,
     IonBadge,
+    IonRefresher,
+    IonRefresherContent,
     CommonModule,
     FormsModule,
     LoaderComponent,
@@ -116,6 +120,24 @@ export class RideHistoryPage implements OnInit {
         this.rides = [];
         this.isLoading = false;
         this.hasApiError = false;
+      }
+    });
+  }
+
+  handleRefresh(event: any) {
+    this.captainService.getRideHistory(this.selectedFilter).subscribe({
+      next: (res) => {
+        this.rides = res?.data || [];
+        if (res?.summary) {
+          this.summary = res.summary;
+        } else {
+          this.summary.totalRides = this.rides.length;
+          this.summary.totalEarnings = this.rides.reduce((acc: number, r: any) => acc + (r.amount || r.fare || 0), 0);
+        }
+        event.target.complete();
+      },
+      error: () => {
+        event.target.complete();
       }
     });
   }

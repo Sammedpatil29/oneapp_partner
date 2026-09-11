@@ -21,6 +21,7 @@ import { PermissionsHubComponent } from 'src/app/components/permissions-hub/perm
 import { NetworkService } from 'src/app/services/network.service';
 import { AppDialogService } from 'src/app/services/app-dialog.service';
 import { AuthService } from 'src/app/services/auth.service';
+import { environment } from 'src/environments/environment';
 import { addIcons } from 'ionicons';
 import { 
   powerOutline, locationOutline, flagOutline, callOutline, 
@@ -28,7 +29,7 @@ import {
   checkmarkCircleOutline, flashOutline, star, alertCircleOutline,
   qrCodeOutline, checkmarkDoneCircleOutline, refreshOutline, locateOutline,
   chevronForwardOutline, chevronBackOutline, giftOutline, cashOutline, shieldCheckmarkOutline,
-  closeOutline, timeOutline, carOutline, arrowForwardOutline } from 'ionicons/icons';
+  closeOutline, timeOutline, carOutline, arrowForwardOutline, scanOutline } from 'ionicons/icons';
 
 declare var google: any;
 
@@ -194,7 +195,7 @@ export class HomePage implements OnInit, OnDestroy {
       alertCircleOutline, checkmarkCircleOutline, chevronForwardOutline, chevronBackOutline,
       giftOutline, locationOutline, star, callOutline, chatbubbleEllipsesOutline, 
       navigateCircleOutline, checkmarkDoneCircleOutline, flagOutline, cashOutline, 
-      qrCodeOutline, refreshOutline, locateOutline, closeOutline, timeOutline, carOutline, arrowForwardOutline
+      qrCodeOutline, refreshOutline, locateOutline, closeOutline, timeOutline, carOutline, arrowForwardOutline, scanOutline
     });
 
     this.networkService.isOnline$.subscribe(online => {
@@ -205,8 +206,26 @@ export class HomePage implements OnInit, OnDestroy {
     });
   }
 
+  ionViewWillEnter() {
+    this.loadProfile();
+    const cachedRide = localStorage.getItem('pintu_active_ride');
+    if (cachedRide) {
+      try {
+        const parsed = JSON.parse(cachedRide);
+        if (parsed && parsed.id) {
+          this.activeRide = parsed;
+          this.captainNative.setActiveRide(this.activeRide);
+        }
+      } catch (e) {}
+    } else if (this.activeRide) {
+      this.activeRide = null;
+      this.captainNative.setActiveRide(null);
+    }
+  }
+
   async ngOnInit() {
     this.riderId = this.authService.getRiderId() || localStorage.getItem('riderId');
+    this.loadProfile();
 
     // 0. Immediate local restoration for instant screen rendering
     const cachedRide = localStorage.getItem('pintu_active_ride');
@@ -372,6 +391,12 @@ export class HomePage implements OnInit, OnDestroy {
       next: (res: any) => {
         if (res?.data) {
           this.riderProfile = res.data;
+          const selfie = res.data.image_url 
+            || res.data.kyc_docs?.extracted_files?.live_selfie 
+            || res.data.kyc_docs?.selfie;
+          if (selfie) {
+            localStorage.setItem('riderSelfie', selfie);
+          }
           const hasReviews = (res.data.rating?.total_reviews || 0) > 0;
           this.riderRating = hasReviews ? (res.data.rating.average || 0) : (typeof res.data.rating === 'number' && res.data.rating > 0 ? res.data.rating : 0);
           if (this.activeRide) {
@@ -1028,18 +1053,43 @@ export class HomePage implements OnInit, OnDestroy {
   }
 
   triggerEmergencySos() {
-    if (confirm('🚨 ACTIVATE EMERGENCY SAFETY SOS?\n\nThis will instantly dispatch emergency alerts to the Safety Control Room and share your live GPS location.')) {
+    if (confirm('ACTIVATE EMERGENCY SAFETY SOS?\n\nThis will instantly dispatch emergency alerts to the Safety Control Room and share your live GPS location.')) {
       this.captainService.triggerSos(
         this.lat,
         this.lng,
         this.activeRide?.id ? String(this.activeRide.id) : undefined
       ).subscribe({
         next: () => {
-          alert('🛡️ SOS Dispatched! The safety response team has been alerted.');
+          alert('SOS Dispatched! The safety response team has been alerted.');
         },
         error: () => {
-          alert('🛡️ Emergency alert sent to local control dispatch.');
+          alert('Emergency alert sent to local control dispatch.');
         }
+      });
+    }
+  }
+
+  getCaptainSelfie(): string {
+    const raw = this.riderProfile?.image_url 
+      || this.riderProfile?.kyc_docs?.extracted_files?.live_selfie 
+      || this.riderProfile?.kyc_docs?.selfie 
+      || this.riderProfile?.selfie 
+      || localStorage.getItem('riderSelfie') 
+      || '';
+    if (!raw) return '';
+    if (raw.startsWith('http://') || raw.startsWith('https://') || raw.startsWith('blob:') || raw.startsWith('data:')) {
+      return raw;
+    }
+    const clean = raw.startsWith('/') ? raw : `/${raw}`;
+    const base = environment.apiUrl || 'https://pintu-api.democompany.in.net';
+    return `${base}${clean}`;
+  }
+
+  openRideDetails() {
+    if (this.activeRide) {
+      this.router.navigate(['/layout/ride-details'], {
+        state: { ride: this.activeRide, isActive: true },
+        queryParams: { rideId: this.activeRide.id, active: 'true' }
       });
     }
   }
@@ -1062,9 +1112,5 @@ export class HomePage implements OnInit, OnDestroy {
 
   gotoHelp() {
     this.router.navigate(['/layout/need-help']);
-  }
-
-  gotoNotifications() {
-    this.router.navigate(['/layout/notifications']);
   }
 }

@@ -1,122 +1,273 @@
-<ion-header [translucent]="true" class="bg-white pt-4">
+<ion-header [translucent]="true" class="bg-white pt-2">
   <ion-toolbar>
-     <ion-buttons slot="start">
-      <ion-button (click)="goback()">
+    <ion-buttons slot="start">
+      <ion-button (click)="goback()" aria-label="Go Back">
         <ion-icon name="arrow-back-outline"></ion-icon>
       </ion-button>
     </ion-buttons>
-    <ion-title>Ride Details</ion-title>
+    <ion-title>{{ isActive ? 'Active Order Details' : 'Order Details' }}</ion-title>
+    <ion-buttons slot="end" *ngIf="isActive">
+      <ion-button color="danger" class="btn-sos-header" (click)="triggerEmergencySos()" title="Emergency SOS" aria-label="Emergency SOS">
+        <img src="assets/icon/siren.svg" alt="SOS" class="siren-icon-header" />
+        <span class="sos-text">SOS</span>
+      </ion-button>
+    </ion-buttons>
   </ion-toolbar>
 </ion-header>
 
-<ion-content [fullscreen]="true">
+<ion-content [fullscreen]="true" class="order-details-content">
 
- <!-- RIDE STATUS -->
-<div
-  class="ride-status"
-  [ngClass]="rideDetails?.status === 'COMPLETED' ? 'success' : 'warning'">
-  {{ rideDetails?.status }}
-</div>
+  <!-- LOADING SPINNER -->
+  <div *ngIf="isLoading" class="text-center py-5">
+    <ion-spinner name="crescent" color="primary"></ion-spinner>
+    <p class="text-muted mt-2">Loading order details...</p>
+  </div>
 
+  <div *ngIf="!isLoading && rideDetails" class="details-container pb-5">
 
- <!-- ROUTE CARD -->
-<div class="detail-card">
+    <!-- HERO STATUS & FARE BANNER -->
+    <div class="hero-status-card" [ngClass]="status">
+      <div class="status-meta">
+        <div class="status-pill" [ngClass]="status">
+          <span class="pulse-dot" *ngIf="status !== 'completed'"></span>
+          <span class="status-label">
+            <ng-container [ngSwitch]="status">
+              <span *ngSwitchCase="'accepted'">HEADING TO PICKUP</span>
+              <span *ngSwitchCase="'arrived'">ARRIVED AT PICKUP (WAITING)</span>
+              <span *ngSwitchCase="'in_progress'">TRIP IN PROGRESS</span>
+              <span *ngSwitchCase="'completed'">TRIP COMPLETED</span>
+              <span *ngSwitchDefault>{{ status | uppercase }}</span>
+            </ng-container>
+          </span>
+        </div>
 
-  <div class="route-row">
-    <div class="dot start"></div>
-    <div class="route-text">
-      <small>Pickup</small>
-      <p>{{ rideDetails?.pickup?.address }}</p>
+        <div class="order-id-chip" *ngIf="rideId" (click)="copyOrderId()" title="Tap to copy Order ID">
+          <span>#{{ rideId }}</span>
+          <ion-icon name="copy-outline"></ion-icon>
+        </div>
+      </div>
+
+      <div class="hero-fare-wrap">
+        <div class="fare-sub">Estimated Fare</div>
+        <div class="hero-fare">₹{{ fareAmount }}</div>
+        <div class="payment-badge" [class.cash]="paymentMode === 'CASH'">
+          <ion-icon name="cash-outline"></ion-icon>
+          <span>{{ paymentMode }} PAYMENT</span>
+        </div>
+      </div>
     </div>
-  </div>
 
-  <div class="route-line"></div>
+    <!-- CUSTOMER CARD -->
+    <div class="detail-card customer-card">
+      <div class="card-section-title">Customer Information</div>
+      <div class="customer-row">
+        <div class="cust-avatar-circle">
+          {{ customerName.charAt(0).toUpperCase() }}
+        </div>
+        <div class="cust-meta">
+          <h3 class="cust-name">{{ customerName }}</h3>
+          <div class="cust-rating-row">
+            <div class="rating-badge">
+              <ion-icon name="star"></ion-icon>
+              <span>{{ customerRating }}</span>
+            </div>
+            <span class="service-pill">{{ serviceType }}</span>
+          </div>
+        </div>
 
-  <div class="route-row">
-    <div class="dot end"></div>
-    <div class="route-text">
-      <small>Drop</small>
-      <p>{{ rideDetails?.drop?.address }}</p>
+        <div class="customer-actions" *ngIf="customerPhone">
+          <button type="button" class="btn-action-circle call" (click)="callCustomer()" title="Call Customer" aria-label="Call Customer">
+            <ion-icon name="call-outline"></ion-icon>
+          </button>
+          <button type="button" class="btn-action-circle chat" (click)="chatCustomer()" title="Message Customer" aria-label="Message Customer">
+            <ion-icon name="chatbubble-ellipses-outline"></ion-icon>
+          </button>
+        </div>
+      </div>
     </div>
+
+    <!-- ROUTE & NAVIGATION CARD -->
+    <div class="detail-card route-card">
+      <div class="card-section-title">Trip Route & Directions</div>
+
+      <!-- Pickup Point -->
+      <div class="route-item pickup" [class.highlight]="status === 'accepted'">
+        <div class="pin-indicator start">
+          <div class="pin-dot"></div>
+          <div class="pin-line"></div>
+        </div>
+        <div class="route-info">
+          <div class="pin-label">PICKUP POINT</div>
+          <div class="pin-address">{{ pickupAddress }}</div>
+        </div>
+        <button type="button" class="btn-maps-nav" (click)="openNavigation('pickup')" title="Navigate in Google Maps">
+          <ion-icon name="navigate-circle-outline"></ion-icon>
+          <span>MAPS</span>
+        </button>
+      </div>
+
+      <!-- Drop Point -->
+      <div class="route-item drop" [class.highlight]="status === 'in_progress'">
+        <div class="pin-indicator end">
+          <div class="pin-dot"></div>
+        </div>
+        <div class="route-info">
+          <div class="pin-label">DROP DESTINATION</div>
+          <div class="pin-address">{{ dropAddress }}</div>
+        </div>
+        <button type="button" class="btn-maps-nav" (click)="openNavigation('drop')" title="Navigate in Google Maps">
+          <ion-icon name="navigate-circle-outline"></ion-icon>
+          <span>MAPS</span>
+        </button>
+      </div>
+
+      <!-- Trip Quick Metrics Strip -->
+      <div class="route-metrics-grid">
+        <div class="metric-item">
+          <div class="metric-icon"><ion-icon name="speedometer-outline"></ion-icon></div>
+          <div class="metric-val">{{ distance }} km</div>
+          <div class="metric-label">Est. Distance</div>
+        </div>
+        <div class="metric-item">
+          <div class="metric-icon"><ion-icon name="time-outline"></ion-icon></div>
+          <div class="metric-val">{{ duration }} mins</div>
+          <div class="metric-label">Est. Duration</div>
+        </div>
+        <div class="metric-item">
+          <div class="metric-icon"><ion-icon name="wallet-outline"></ion-icon></div>
+          <div class="metric-val">₹{{ fareAmount }}</div>
+          <div class="metric-label">Earnings</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- OTP VERIFICATION CARD (When status is arrived) -->
+    <div class="detail-card otp-card" *ngIf="status === 'arrived' && isActive">
+      <div class="otp-card-header">
+        <div class="otp-icon-bubble">
+          <ion-icon name="shield-checkmark-outline"></ion-icon>
+        </div>
+        <div>
+          <h4>Customer Ride Start PIN</h4>
+          <p>Collect the secret 4-digit code from customer</p>
+        </div>
+      </div>
+
+      <div class="otp-input-container">
+        <input
+          type="tel"
+          maxlength="4"
+          placeholder="----"
+          [(ngModel)]="enteredOtp"
+          class="otp-large-input"
+          [class.error]="otpError"
+        />
+      </div>
+
+      <div class="otp-error-note" *ngIf="otpError">
+        <ion-icon name="alert-circle-outline"></ion-icon>
+        <span>Invalid PIN. Please ask customer to re-check or try ({{ rideDetails.otp }})</span>
+      </div>
+
+      <button
+        type="button"
+        class="btn-cta-large verify"
+        [disabled]="isActionLoading || enteredOtp.length !== 4"
+        (click)="verifyOtp()"
+      >
+        <ion-icon name="checkmark-done-circle-outline"></ion-icon>
+        <span>VERIFY PIN &amp; START TRIP</span>
+      </button>
+    </div>
+
+    <!-- FARE & PAYMENT BREAKDOWN CARD -->
+    <div class="detail-card payment-breakdown-card">
+      <div class="card-section-title">Fare &amp; Payment Breakdown</div>
+
+      <div class="breakdown-row">
+        <span>Base Fare</span>
+        <span>₹{{ fareAmount }}</span>
+      </div>
+
+      <div class="breakdown-row" *ngIf="rideDetails?.fare?.incentive">
+        <span>Milestone Incentive</span>
+        <span class="text-success">+₹{{ rideDetails?.fare?.incentive }}</span>
+      </div>
+
+      <div class="breakdown-row total">
+        <span>Total Rider Earning</span>
+        <span class="fare-total-val">₹{{ fareAmount }}</span>
+      </div>
+
+      <div class="cash-collection-alert" *ngIf="paymentMode === 'CASH'">
+        <ion-icon name="alert-circle-outline"></ion-icon>
+        <div>
+          <strong>Collect Cash from Customer:</strong>
+          <p>Please collect ₹{{ fareAmount }} in cash at the end of the trip.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- ACTIVE RIDE LIVE PHASE ACTION BUTTONS -->
+    <div class="action-footer-sticky" *ngIf="isActive">
+      <!-- PHASE 1: ACCEPTED -> I HAVE ARRIVED -->
+      <div *ngIf="status === 'accepted'">
+        <button
+          type="button"
+          class="btn-cta-large arrived"
+          [disabled]="isActionLoading"
+          (click)="markArrived()"
+        >
+          <ion-icon name="checkmark-circle-outline"></ion-icon>
+          <span>I HAVE ARRIVED AT PICKUP</span>
+        </button>
+      </div>
+
+      <!-- PHASE 2: IN PROGRESS -> COMPLETE TRIP -->
+      <div *ngIf="status === 'in_progress'">
+        <button
+          type="button"
+          class="btn-cta-large complete"
+          [disabled]="isActionLoading"
+          (click)="completeTrip()"
+        >
+          <ion-icon name="flag-outline"></ion-icon>
+          <span>END TRIP &amp; COLLECT FARE</span>
+        </button>
+      </div>
+
+      <!-- PHASE 3: COMPLETED -> CASH COLLECTED / RETURN TO HOME -->
+      <div *ngIf="status === 'completed'">
+        <button
+          type="button"
+          class="btn-cta-large done"
+          (click)="finishOrder()"
+        >
+          <ion-icon name="cash-outline"></ion-icon>
+          <span>CASH COLLECTED (₹{{ fareAmount }}) - FINISH</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- EMERGENCY SOS ACTION ROW -->
+    <div class="p-3" *ngIf="isActive && status !== 'completed'">
+      <button
+        type="button"
+        class="btn-emergency-sos w-100"
+        (click)="triggerEmergencySos()"
+      >
+        <img src="assets/icon/siren.svg" alt="SOS Siren" class="sos-icon-svg" />
+        <span>ACTIVATE EMERGENCY SAFETY SOS</span>
+      </button>
+    </div>
+
+    <!-- NEED HELP BUTTON -->
+    <div class="px-3 pb-3">
+      <ion-button expand="block" color="primary" fill="outline" class="title-case-btn help-btn" (click)="gotoHelp()">
+        <ion-icon name="help-circle-outline" slot="start"></ion-icon>
+        Need Help with this Order?
+      </ion-button>
+    </div>
+
   </div>
-
-</div>
-
-
-  <!-- RIDE SUMMARY -->
-<div class="detail-card mt-3">
-
-  <div class="summary-row">
-    <span>Date</span>
-    <span>{{ rideDetails?.date | date:'dd MMM yyyy' }}</span>
-  </div>
-
-  <div class="summary-row">
-    <span>Time</span>
-    <span>{{ rideDetails?.time }}</span>
-  </div>
-
-  <div class="summary-row">
-    <span>Distance</span>
-    <span>{{ rideDetails?.distance }}</span>
-  </div>
-
-  <div class="summary-row">
-    <span>Duration</span>
-    <span>{{ rideDetails?.duration }}</span>
-  </div>
-
-</div>
-
-
-  <!-- EARNINGS -->
-<div class="detail-card mt-3">
-
-  <div class="summary-row">
-    <span>Ride Fare</span>
-    <span>₹{{ rideDetails?.fare?.rideFare }}</span>
-  </div>
-
-  <div class="summary-row">
-    <span>Incentive</span>
-    <span>₹{{ rideDetails?.fare?.incentive }}</span>
-  </div>
-
-  <div class="summary-row total">
-    <span>Total Earning</span>
-    <span class="text-success">
-      ₹{{ rideDetails?.fare?.total }}
-    </span>
-  </div>
-
-</div>
-
-
- <!-- CUSTOMER INFO -->
-<div class="detail-card mt-3">
-
-  <div class="summary-row">
-    <span>Customer</span>
-    <span>{{ rideDetails?.customer?.name }}</span>
-  </div>
-
-  <div class="summary-row">
-    <span>Payment Mode</span>
-    <span>{{ rideDetails?.payment?.mode }}</span>
-  </div>
-
-  <div class="summary-row">
-    <span>Ride ID</span>
-    <span>#{{ rideDetails?.rideId }}</span>
-  </div>
-
-</div>
-
-
- <div class="p-3">
-    <ion-button expand="block" color="primary" fill="outline" class="title-case-btn" (click)="gotoHelp()">
-      Need Help?
-    </ion-button>
-  </div>
-
 </ion-content>

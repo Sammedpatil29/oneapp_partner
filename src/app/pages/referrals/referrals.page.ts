@@ -13,6 +13,8 @@ import {
   IonCardContent,
   IonBadge,
   IonProgressBar,
+  IonRefresher,
+  IonRefresherContent,
   ToastController
 } from '@ionic/angular/standalone';
 import { addIcons } from 'ionicons';
@@ -51,6 +53,8 @@ import { NetworkService } from 'src/app/services/network.service';
     IonCardContent,
     IonBadge,
     IonProgressBar,
+    IonRefresher,
+    IonRefresherContent,
     CommonModule,
     FormsModule,
     LoaderComponent,
@@ -118,6 +122,20 @@ export class ReferralsPage implements OnInit {
       error: () => {
         this.isLoading = false;
         this.hasApiError = false;
+      }
+    });
+  }
+
+  handleRefresh(event: any) {
+    this.captainService.getReferrals().subscribe({
+      next: (res) => {
+        if (res?.data) {
+          this.referralData = res.data;
+        }
+        event.target.complete();
+      },
+      error: () => {
+        event.target.complete();
       }
     });
   }

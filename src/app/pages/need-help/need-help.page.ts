@@ -9,6 +9,8 @@ import {
   IonButtons,
   IonButton,
   IonIcon,
+  IonRefresher,
+  IonRefresherContent,
   AlertController,
   ToastController
 } from '@ionic/angular/standalone';
@@ -41,6 +43,8 @@ import { Router } from '@angular/router';
     IonButtons,
     IonButton,
     IonIcon,
+    IonRefresher,
+    IonRefresherContent,
     CommonModule,
     FormsModule
   ]
@@ -89,9 +93,16 @@ export class NeedHelpPage {
   }
 
 
+  handleRefresh(event: any) {
+    setTimeout(() => {
+      this.isSosTriggered = false;
+      event.target.complete();
+    }, 800);
+  }
+
   async triggerEmergencySos() {
     const alert = await this.alertCtrl.create({
-      header: '🚨 TRIGGER EMERGENCY SOS?',
+      header: 'TRIGGER EMERGENCY SOS?',
       message: 'This will immediately broadcast your live GPS coordinates to the Central Safety Response Desk and alert local emergency authorities.',
       buttons: [
         { text: 'Cancel', role: 'cancel' },
@@ -109,7 +120,7 @@ export class NeedHelpPage {
 
               this.isSosTriggered = true;
               const toast = await this.toastCtrl.create({
-                message: '🚨 SOS Alert Dispatched! Safety team is monitoring your location.',
+                message: 'SOS Alert Dispatched! Safety team is monitoring your location.',
                 duration: 5000,
                 color: 'danger'
               });

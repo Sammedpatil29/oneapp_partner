@@ -57,7 +57,7 @@
           <div class="d-flex align-items-center justify-content-between">
             <h5 class="perm-name">High-Accuracy GPS Location</h5>
             <span class="badge" [ngClass]="permissions.location ? 'bg-success-subtle text-success' : 'bg-danger-subtle text-danger'">
-              {{ permissions.location ? 'ACTIVE ✅' : 'REQUIRED ⚠️' }}
+              {{ permissions.location ? 'ACTIVE' : 'REQUIRED' }}
             </span>
           </div>
           <p class="perm-details">
@@ -89,7 +89,7 @@
           <div class="d-flex align-items-center justify-content-between">
             <h5 class="perm-name">Draw Over Other Apps (Overlay)</h5>
             <span class="badge" [ngClass]="permissions.overlay ? 'bg-success-subtle text-success' : 'bg-warning-subtle text-warning'">
-              {{ permissions.overlay ? 'ENABLED ✅' : 'REQUIRED ⚠️' }}
+              {{ permissions.overlay ? 'ENABLED' : 'REQUIRED' }}
             </span>
           </div>
           <p class="perm-details">
@@ -117,7 +117,7 @@
           <div class="d-flex align-items-center justify-content-between">
             <h5 class="perm-name">Unrestricted Background Run</h5>
             <span class="badge" [ngClass]="permissions.battery ? 'bg-success-subtle text-success' : 'bg-secondary-subtle text-secondary'">
-              {{ permissions.battery ? 'OPTIMIZED ✅' : 'RECOMMENDED ⚠️' }}
+              {{ permissions.battery ? 'OPTIMIZED' : 'RECOMMENDED' }}
             </span>
           </div>
           <p class="perm-details">

@@ -721,6 +721,32 @@
       }
     }
 
+    .btn-large-view {
+      background: #f1f5f9;
+      border: 1px solid #cbd5e1;
+      color: #0f172a;
+      font-size: 11px;
+      font-weight: 700;
+      border-radius: 20px;
+      padding: 4px 10px;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      cursor: pointer;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+      transition: all 0.15s ease;
+
+      ion-icon {
+        font-size: 13px;
+        color: var(--app-theme-color, #a000e2);
+      }
+
+      &:active {
+        transform: scale(0.93);
+        background: #e2e8f0;
+      }
+    }
+
     .fare-badge {
       font-size: 20px;
       font-weight: 900;

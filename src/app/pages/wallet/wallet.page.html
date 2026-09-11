@@ -10,6 +10,10 @@
 </ion-header>
 
 <ion-content class="wallet-content" [fullscreen]="true">
+  <ion-refresher slot="fixed" (ionRefresh)="handleRefresh($event)">
+    <ion-refresher-content pullingIcon="chevron-down-circle-outline" refreshingSpinner="crescent"></ion-refresher-content>
+  </ion-refresher>
+
   @if (isLoading) {
     <app-loader message="Loading Wallet Balance..."></app-loader>
   } @else if (isOffline) {

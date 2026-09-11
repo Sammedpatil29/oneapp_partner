@@ -10,6 +10,10 @@
 </ion-header>
 
 <ion-content class="history-content" [fullscreen]="true">
+  <ion-refresher slot="fixed" (ionRefresh)="handleRefresh($event)">
+    <ion-refresher-content pullingIcon="chevron-down-circle-outline" refreshingSpinner="crescent"></ion-refresher-content>
+  </ion-refresher>
+
   @if (isLoading) {
     <app-loader message="Loading Ride History..."></app-loader>
   } @else if (isOffline) {
@@ -85,7 +89,7 @@
           <div class="d-flex justify-content-between align-items-center mt-3 pt-2 border-top small text-muted">
             <span>{{ ride.distance_km || 0 }} km • {{ ride.duration_mins || 0 }} mins</span>
             <span class="badge rounded-pill" [class.bg-success-subtle]="(ride.status | uppercase) === 'COMPLETED'" [class.text-success]="(ride.status | uppercase) === 'COMPLETED'" [class.bg-danger-subtle]="(ride.status | uppercase) === 'CANCELLED'" [class.text-danger]="(ride.status | uppercase) === 'CANCELLED'">
-              {{ (ride.status | uppercase) === 'COMPLETED' ? 'Completed ✅' : 'Cancelled ❌' }}
+              {{ (ride.status | uppercase) === 'COMPLETED' ? 'Completed' : 'Cancelled' }}
             </span>
           </div>
         </div>

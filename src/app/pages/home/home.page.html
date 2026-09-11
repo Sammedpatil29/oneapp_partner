@@ -35,23 +35,19 @@
         </div>
       }
 
-      <!-- Right: Permissions, SOS, Notifications, Profile Shortcuts -->
+      <!-- Right: Permissions, SOS, Profile Shortcuts -->
       <div class="header-actions">
         <button class="icon-btn perm-btn" (click)="openPermissionsHub()" title="Device Permissions">
           <ion-icon name="shield-checkmark-outline"></ion-icon>
         </button>
 
         <button class="icon-btn sos-btn" (click)="triggerEmergencySos()" title="Emergency SOS">
-          <ion-icon name="shield-outline"></ion-icon>
-        </button>
-
-        <button class="icon-btn notif-btn" (click)="gotoNotifications()" title="Notifications">
-          <ion-icon name="flash-outline"></ion-icon>
+          <ion-icon src="assets/icon/siren.svg"></ion-icon>
         </button>
 
         <div class="captain-avatar-btn" (click)="openProfile()" title="Captain Profile">
-          @if (riderProfile?.image_url || riderProfile?.selfie) {
-            <img [src]="riderProfile?.image_url || riderProfile?.selfie" (error)="onAvatarError()" alt="Captain Selfie" />
+          @if (getCaptainSelfie()) {
+            <img [src]="getCaptainSelfie()" (error)="onAvatarError()" alt="Captain Selfie" />
           } @else {
             <div class="avatar-initial">
               {{ (riderProfile?.name || 'C').charAt(0).toUpperCase() }}
@@ -342,7 +338,13 @@
               <span class="status-dot done"></span> TRIP COMPLETED
             }
           </div>
-          <div class="fare-badge">₹{{ activeRide.fare }}</div>
+          <div class="d-flex align-items-center gap-2">
+            <button type="button" class="btn-large-view" (click)="openRideDetails()" title="Large View">
+              <ion-icon name="scan-outline"></ion-icon>
+              <span>Large View</span>
+            </button>
+            <div class="fare-badge">₹{{ activeRide.fare }}</div>
+          </div>
         </div>
 
         <!-- Customer Profile Strip -->
@@ -450,7 +452,7 @@
             </div>
 
             @if (otpError) {
-              <p class="otp-error-msg">⚠️ Incorrect OTP. Please ask customer or try ({{ activeRide.otp }})</p>
+              <p class="otp-error-msg">Incorrect OTP. Please ask customer or try ({{ activeRide.otp }})</p>
             }
 
             <button class="btn-primary-slide start" (click)="verifyOtp()">

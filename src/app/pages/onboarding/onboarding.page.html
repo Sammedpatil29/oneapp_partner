@@ -327,7 +327,7 @@
             </div>
             @if (documents['drivingLicense'].uploaded) {
               <span class="badge bg-success-subtle text-success rounded-pill px-2 py-1 small">
-                ✅ {{ documents['drivingLicense'].fileName || 'Uploaded' }}
+                {{ documents['drivingLicense'].fileName || 'Uploaded' }}
               </span>
             }
           </div>
@@ -362,7 +362,7 @@
             </div>
             @if (documents['vehicleRc'].uploaded) {
               <span class="badge bg-success-subtle text-success rounded-pill px-2 py-1 small">
-                ✅ {{ documents['vehicleRc'].fileName || 'Uploaded' }}
+                {{ documents['vehicleRc'].fileName || 'Uploaded' }}
               </span>
             }
           </div>
@@ -397,7 +397,7 @@
             </div>
             @if (documents['insurance'].uploaded) {
               <span class="badge bg-success-subtle text-success rounded-pill px-2 py-1 small">
-                ✅ {{ documents['insurance'].fileName || 'Uploaded' }}
+                {{ documents['insurance'].fileName || 'Uploaded' }}
               </span>
             }
           </div>
@@ -432,7 +432,7 @@
             </div>
             @if (documents['aadhaarPan'].uploaded) {
               <span class="badge bg-success-subtle text-success rounded-pill px-2 py-1 small">
-                ✅ {{ documents['aadhaarPan'].fileName || 'Uploaded' }}
+                {{ documents['aadhaarPan'].fileName || 'Uploaded' }}
               </span>
             }
           </div>
@@ -468,7 +468,7 @@
             </div>
             @if (documents['selfie'].uploaded) {
               <span class="badge bg-success-subtle text-success rounded-pill px-2 py-1 small">
-                ✅ {{ documents['selfie'].fileName || 'Uploaded' }}
+                {{ documents['selfie'].fileName || 'Uploaded' }}
               </span>
             }
           </div>
@@ -556,11 +556,11 @@
               <span class="small fw-semibold text-dark">Personal Details (Name, Mobile, City)</span>
             </div>
             @if (verificationChecklist['personal_details'] === 'verified') {
-              <span class="badge bg-success-subtle text-success rounded-pill px-2 py-1 small">Verified ✅</span>
+              <span class="badge bg-success-subtle text-success rounded-pill px-2 py-1 small">Verified</span>
             } @else if (verificationChecklist['personal_details'] === 'not_verified') {
-              <span class="badge bg-danger-subtle text-danger rounded-pill px-2 py-1 small">Not Verified ❌</span>
+              <span class="badge bg-danger-subtle text-danger rounded-pill px-2 py-1 small">Not Verified</span>
             } @else {
-              <span class="badge bg-warning-subtle text-warning rounded-pill px-2 py-1 small">Pending ⏳</span>
+              <span class="badge bg-warning-subtle text-warning rounded-pill px-2 py-1 small">Pending</span>
             }
           </div>
 
@@ -577,11 +577,11 @@
               <span class="small fw-semibold text-dark">Vehicle Details (Type, Model, RC, Year)</span>
             </div>
             @if (verificationChecklist['vehicle_details'] === 'verified') {
-              <span class="badge bg-success-subtle text-success rounded-pill px-2 py-1 small">Verified ✅</span>
+              <span class="badge bg-success-subtle text-success rounded-pill px-2 py-1 small">Verified</span>
             } @else if (verificationChecklist['vehicle_details'] === 'not_verified') {
-              <span class="badge bg-danger-subtle text-danger rounded-pill px-2 py-1 small">Not Verified ❌</span>
+              <span class="badge bg-danger-subtle text-danger rounded-pill px-2 py-1 small">Not Verified</span>
             } @else {
-              <span class="badge bg-warning-subtle text-warning rounded-pill px-2 py-1 small">Pending ⏳</span>
+              <span class="badge bg-warning-subtle text-warning rounded-pill px-2 py-1 small">Pending</span>
             }
           </div>
 
@@ -598,11 +598,11 @@
               <span class="small fw-semibold text-dark">Driving License (DL)</span>
             </div>
             @if (verificationChecklist['driving_license'] === 'verified') {
-              <span class="badge bg-success-subtle text-success rounded-pill px-2 py-1 small">Verified ✅</span>
+              <span class="badge bg-success-subtle text-success rounded-pill px-2 py-1 small">Verified</span>
             } @else if (verificationChecklist['driving_license'] === 'not_verified') {
-              <span class="badge bg-danger-subtle text-danger rounded-pill px-2 py-1 small">Not Verified ❌</span>
+              <span class="badge bg-danger-subtle text-danger rounded-pill px-2 py-1 small">Not Verified</span>
             } @else {
-              <span class="badge bg-warning-subtle text-warning rounded-pill px-2 py-1 small">Pending ⏳</span>
+              <span class="badge bg-warning-subtle text-warning rounded-pill px-2 py-1 small">Pending</span>
             }
           </div>
 
@@ -619,11 +619,11 @@
               <span class="small fw-semibold text-dark">Vehicle RC Book</span>
             </div>
             @if (verificationChecklist['vehicle_rc'] === 'verified') {
-              <span class="badge bg-success-subtle text-success rounded-pill px-2 py-1 small">Verified ✅</span>
+              <span class="badge bg-success-subtle text-success rounded-pill px-2 py-1 small">Verified</span>
             } @else if (verificationChecklist['vehicle_rc'] === 'not_verified') {
-              <span class="badge bg-danger-subtle text-danger rounded-pill px-2 py-1 small">Not Verified ❌</span>
+              <span class="badge bg-danger-subtle text-danger rounded-pill px-2 py-1 small">Not Verified</span>
             } @else {
-              <span class="badge bg-warning-subtle text-warning rounded-pill px-2 py-1 small">Pending ⏳</span>
+              <span class="badge bg-warning-subtle text-warning rounded-pill px-2 py-1 small">Pending</span>
             }
           </div>
 
@@ -640,11 +640,11 @@
               <span class="small fw-semibold text-dark">Active Vehicle Insurance</span>
             </div>
             @if (verificationChecklist['vehicle_insurance'] === 'verified') {
-              <span class="badge bg-success-subtle text-success rounded-pill px-2 py-1 small">Verified ✅</span>
+              <span class="badge bg-success-subtle text-success rounded-pill px-2 py-1 small">Verified</span>
             } @else if (verificationChecklist['vehicle_insurance'] === 'not_verified') {
-              <span class="badge bg-danger-subtle text-danger rounded-pill px-2 py-1 small">Not Verified ❌</span>
+              <span class="badge bg-danger-subtle text-danger rounded-pill px-2 py-1 small">Not Verified</span>
             } @else {
-              <span class="badge bg-warning-subtle text-warning rounded-pill px-2 py-1 small">Pending ⏳</span>
+              <span class="badge bg-warning-subtle text-warning rounded-pill px-2 py-1 small">Pending</span>
             }
           </div>
 
@@ -661,11 +661,11 @@
               <span class="small fw-semibold text-dark">Aadhaar / PAN Card</span>
             </div>
             @if (verificationChecklist['aadhaar_pan'] === 'verified') {
-              <span class="badge bg-success-subtle text-success rounded-pill px-2 py-1 small">Verified ✅</span>
+              <span class="badge bg-success-subtle text-success rounded-pill px-2 py-1 small">Verified</span>
             } @else if (verificationChecklist['aadhaar_pan'] === 'not_verified') {
-              <span class="badge bg-danger-subtle text-danger rounded-pill px-2 py-1 small">Not Verified ❌</span>
+              <span class="badge bg-danger-subtle text-danger rounded-pill px-2 py-1 small">Not Verified</span>
             } @else {
-              <span class="badge bg-warning-subtle text-warning rounded-pill px-2 py-1 small">Pending ⏳</span>
+              <span class="badge bg-warning-subtle text-warning rounded-pill px-2 py-1 small">Pending</span>
             }
           </div>
 
@@ -682,11 +682,11 @@
               <span class="small fw-semibold text-dark">Captain Live Selfie</span>
             </div>
             @if (verificationChecklist['live_selfie'] === 'verified') {
-              <span class="badge bg-success-subtle text-success rounded-pill px-2 py-1 small">Verified ✅</span>
+              <span class="badge bg-success-subtle text-success rounded-pill px-2 py-1 small">Verified</span>
             } @else if (verificationChecklist['live_selfie'] === 'not_verified') {
-              <span class="badge bg-danger-subtle text-danger rounded-pill px-2 py-1 small">Not Verified ❌</span>
+              <span class="badge bg-danger-subtle text-danger rounded-pill px-2 py-1 small">Not Verified</span>
             } @else {
-              <span class="badge bg-warning-subtle text-warning rounded-pill px-2 py-1 small">Pending ⏳</span>
+              <span class="badge bg-warning-subtle text-warning rounded-pill px-2 py-1 small">Pending</span>
             }
           </div>
 
@@ -703,11 +703,11 @@
               <span class="small fw-semibold text-dark">Background Verification</span>
             </div>
             @if (verificationChecklist['background_verification'] === 'verified') {
-              <span class="badge bg-success-subtle text-success rounded-pill px-2 py-1 small">Passed ✅</span>
+              <span class="badge bg-success-subtle text-success rounded-pill px-2 py-1 small">Passed</span>
             } @else if (verificationChecklist['background_verification'] === 'not_verified') {
-              <span class="badge bg-danger-subtle text-danger rounded-pill px-2 py-1 small">Not Verified ❌</span>
+              <span class="badge bg-danger-subtle text-danger rounded-pill px-2 py-1 small">Not Verified</span>
             } @else {
-              <span class="badge bg-warning-subtle text-warning rounded-pill px-2 py-1 small">Pending ⏳</span>
+              <span class="badge bg-warning-subtle text-warning rounded-pill px-2 py-1 small">Pending</span>
             }
           </div>
 
@@ -724,11 +724,11 @@
               <span class="small fw-semibold text-dark">Captain Onboarding &amp; Safety Activation</span>
             </div>
             @if (verificationChecklist['safety_activation'] === 'verified') {
-              <span class="badge bg-success-subtle text-success rounded-pill px-2 py-1 small">Active 🟢</span>
+              <span class="badge bg-success-subtle text-success rounded-pill px-2 py-1 small">Active</span>
             } @else if (verificationChecklist['safety_activation'] === 'not_verified') {
-              <span class="badge bg-danger-subtle text-danger rounded-pill px-2 py-1 small">Not Verified ❌</span>
+              <span class="badge bg-danger-subtle text-danger rounded-pill px-2 py-1 small">Not Verified</span>
             } @else {
-              <span class="badge bg-warning-subtle text-warning rounded-pill px-2 py-1 small">Pending ⏳</span>
+              <span class="badge bg-warning-subtle text-warning rounded-pill px-2 py-1 small">Pending</span>
             }
           </div>
         </div>
