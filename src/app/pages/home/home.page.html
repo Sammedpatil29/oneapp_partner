@@ -22,11 +22,18 @@
   <ion-toolbar>
     <div class="header-inner">
       <!-- Left: Online/Offline Duty Switch -->
-      <div class="duty-pill" [class.online]="status && !activeRide" [class.onride]="activeRide">
-        <span class="duty-indicator"></span>
-        <span class="duty-text">{{ activeRide ? 'ON RIDE' : (status ? 'ONLINE' : 'OFFLINE') }}</span>
-        <ion-toggle color="success" [(ngModel)]="status" (ionChange)="changeStatus()" [disabled]="!!activeRide"></ion-toggle>
-      </div>
+      @if (isSyncingStatus) {
+        <div class="duty-sync-pill">
+          <span class="sync-dot"></span>
+          <span class="sync-text">Syncing...</span>
+        </div>
+      } @else {
+        <div class="duty-pill" [class.online]="status && !activeRide" [class.onride]="activeRide">
+          <span class="duty-indicator"></span>
+          <span class="duty-text">{{ activeRide ? 'ON RIDE' : (status ? 'ONLINE' : 'OFFLINE') }}</span>
+          <ion-toggle color="success" [(ngModel)]="status" (ionChange)="changeStatus()" [disabled]="!!activeRide"></ion-toggle>
+        </div>
+      }
 
       <!-- Right: Permissions, SOS, Notifications, Profile Shortcuts -->
       <div class="header-actions">
@@ -76,8 +83,16 @@
     </div>
   </div>
 
-  <!-- ================= OFFLINE STATE ================= -->
-  @if (!status) {
+  <!-- ================= SYNCING STATE ================= -->
+  @if (isSyncingStatus) {
+    <div class="syncing-hero-container">
+      <div class="syncing-card">
+        <div class="syncing-spinner-ring"></div>
+        <h3>Connecting to Dispatch...</h3>
+        <p>Syncing live duty status &amp; GPS location</p>
+      </div>
+    </div>
+  } @else if (!status) {
     <div class="offline-hero-container">
       <div class="offline-card">
         <div class="offline-icon-pulse">

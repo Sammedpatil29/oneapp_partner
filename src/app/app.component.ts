@@ -34,33 +34,63 @@ export class AppComponent implements OnInit {
       document.body.removeAttribute('data-theme');
       try { localStorage.removeItem('app_theme'); } catch (e) {}
     }
+
+    const startTime = Date.now();
+    this.routeBasedOnAuth(startTime);
+
+    // Fallback safety: ensure splash is never stuck longer than 3.5s
     setTimeout(() => {
-      this.showSplash = false;
-      this.routeBasedOnAuth();
-    }, 1800);
+      if (this.showSplash) {
+        this.showSplash = false;
+      }
+    }, 3500);
   }
 
-  private routeBasedOnAuth() {
+  private dismissSplash(startTime: number) {
+    const elapsed = Date.now() - startTime;
+    const minDisplay = 800; // minimum 800ms so loader smoothly displays without flickering
+    const delay = Math.max(0, minDisplay - elapsed);
+    setTimeout(() => {
+      this.showSplash = false;
+    }, delay);
+  }
+
+  private routeBasedOnAuth(startTime: number) {
     if (!this.authService.hasToken()) {
-      this.router.navigateByUrl('/login');
+      this.router.navigateByUrl('/login').then(() => {
+        this.dismissSplash(startTime);
+      }).catch(() => {
+        this.dismissSplash(startTime);
+      });
       return;
     }
 
     this.authService.checkAuthStatus().subscribe({
       next: (res) => {
+        let targetUrl = '/layout/home';
         if (res?.is_verified) {
           // Captain is active & approved -> Go to Driver Console
-          this.router.navigateByUrl('/layout/home');
+          targetUrl = '/layout/home';
         } else if (res?.has_submitted_docs || res?.verification_status === 'verifying') {
           // Documents submitted -> Show verification status review
-          this.router.navigate(['/onboarding'], { queryParams: { step: '4' } });
+          targetUrl = '/onboarding?step=4';
         } else {
           // Email verified, yet to add personal & vehicle details -> Step 1
-          this.router.navigate(['/onboarding'], { queryParams: { step: '1' } });
+          targetUrl = '/onboarding?step=1';
         }
+        this.router.navigateByUrl(targetUrl).then(() => {
+          this.dismissSplash(startTime);
+        }).catch(() => {
+          this.dismissSplash(startTime);
+        });
       },
       error: () => {
         this.authService.logout();
+        this.router.navigateByUrl('/login').then(() => {
+          this.dismissSplash(startTime);
+        }).catch(() => {
+          this.dismissSplash(startTime);
+        });
       }
     });
   }

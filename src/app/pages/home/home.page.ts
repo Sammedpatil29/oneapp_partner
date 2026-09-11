@@ -64,6 +64,7 @@ export interface ActiveRide {
 export class HomePage implements OnInit, OnDestroy {
 
   status: boolean = false;
+  isSyncingStatus: boolean = true;
   isLoading: boolean = false;
   riderId: any;
   riderData: any;
@@ -159,6 +160,7 @@ export class HomePage implements OnInit, OnDestroy {
         if (parsed && parsed.id && parsed.status !== 'completed') {
           this.activeRide = parsed;
           this.status = true;
+          this.isSyncingStatus = false;
           this.captainNative.setActiveRide(this.activeRide);
           this.captainNative.updateNativeSystemOverlay();
         }
@@ -173,6 +175,13 @@ export class HomePage implements OnInit, OnDestroy {
     this.loadTodayEarnings();
     this.checkOngoingActiveRide();
 
+    // Safety timeout: dismiss syncing loader after max 1500ms so screen is never blocked
+    setTimeout(() => {
+      if (this.isSyncingStatus) {
+        this.isSyncingStatus = false;
+      }
+    }, 1500);
+
     if (this.riderId) {
       this.socketService.syncRider({ riderId: this.riderId });
     }
@@ -182,6 +191,7 @@ export class HomePage implements OnInit, OnDestroy {
       if (msg.status && !this.activeRide) {
         this.status = msg.status === 'online';
       }
+      this.isSyncingStatus = false;
     });
 
     // 1. Listen for new incoming ride offers
@@ -206,6 +216,7 @@ export class HomePage implements OnInit, OnDestroy {
       if (ride) {
         this.resumeActiveTrip(ride);
       }
+      this.isSyncingStatus = false;
     });
 
     // 4. Listen for customer cancellation
@@ -298,9 +309,11 @@ export class HomePage implements OnInit, OnDestroy {
             setTimeout(() => this.loadMap(), 300);
           }
         }
+        this.isSyncingStatus = false;
       },
       error: (err: any) => {
         console.warn('Could not load rider profile:', err?.message);
+        this.isSyncingStatus = false;
       }
     });
   }
@@ -327,9 +340,11 @@ export class HomePage implements OnInit, OnDestroy {
             this.captainNative.updateNativeSystemOverlay();
           }
         }
+        this.isSyncingStatus = false;
       },
       error: (err: any) => {
         console.warn('Could not verify active ride via REST:', err?.message);
+        this.isSyncingStatus = false;
       }
     });
   }
