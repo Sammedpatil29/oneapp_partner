@@ -29,8 +29,8 @@ export class AlertModalComponent {
   @Input() cancelText: string = 'Cancel';
   @Input() showCancel: boolean = false;
 
-  @Output() confirm = new EventEmitter<void>();
-  @Output() cancel = new EventEmitter<void>();
+  @Output() confirmed = new EventEmitter<void>();
+  @Output() cancelled = new EventEmitter<void>();
 
   constructor() {
     addIcons({
@@ -44,11 +44,11 @@ export class AlertModalComponent {
   }
 
   onConfirm() {
-    this.confirm.emit();
+    this.confirmed.emit();
   }
 
   onCancel() {
-    this.cancel.emit();
+    this.cancelled.emit();
   }
 }
 

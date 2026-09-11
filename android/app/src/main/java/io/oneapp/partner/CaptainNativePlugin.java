@@ -44,6 +44,11 @@ public class CaptainNativePlugin extends Plugin {
     @Override
     public Boolean shouldOverrideLoad(Uri url) {
         if (url == null) return null;
+        if (isPaymentCompleteUrl(url.toString())) {
+            handlePaymentCompletedUrl(url);
+            return true;
+        }
+
         String scheme = url.getScheme();
         if (scheme == null) return null;
         scheme = scheme.toLowerCase();
@@ -76,6 +81,47 @@ public class CaptainNativePlugin extends Plugin {
             }
         }
         return null;
+    }
+
+    private boolean isPaymentCompleteUrl(String url) {
+        if (url == null) return false;
+        String lower = url.toLowerCase();
+        return lower.contains("/wallet/razorpay/callback") ||
+               lower.contains("payment-completed") ||
+               lower.contains("payment_success=true") ||
+               lower.contains("razorpay_payment_id=") ||
+               lower.contains("status=paid") ||
+               lower.startsWith("pintu://") ||
+               lower.startsWith("oneapp://");
+    }
+
+    private void handlePaymentCompletedUrl(Uri uri) {
+        Activity activity = getActivity();
+        if (activity != null) {
+            activity.runOnUiThread(() -> {
+                if (inAppBrowserDialog != null && inAppBrowserDialog.isShowing()) {
+                    try {
+                        inAppBrowserDialog.dismiss();
+                    } catch (Exception ignored) {}
+                    inAppBrowserDialog = null;
+                }
+            });
+        }
+        JSObject data = new JSObject();
+        data.put("url", uri != null ? uri.toString() : "");
+        if (uri != null) {
+            try {
+                String paymentId = uri.getQueryParameter("razorpay_payment_id");
+                if (paymentId != null) data.put("razorpay_payment_id", paymentId);
+                String orderId = uri.getQueryParameter("razorpay_order_id");
+                if (orderId != null) data.put("razorpay_order_id", orderId);
+                String signature = uri.getQueryParameter("razorpay_signature");
+                if (signature != null) data.put("razorpay_signature", signature);
+            } catch (Exception e) {
+                Log.w(TAG, "Error parsing payment query params: " + e.getMessage());
+            }
+        }
+        notifyListeners("inAppBrowserPaymentCompleted", data);
     }
 
     @PluginMethod
@@ -478,49 +524,66 @@ public class CaptainNativePlugin extends Plugin {
 
                 webView.setWebViewClient(new WebViewClient() {
                     @Override
+                    public void onPageStarted(WebView view, String urlString, android.graphics.Bitmap favicon) {
+                        super.onPageStarted(view, urlString, favicon);
+                        if (urlString != null && isPaymentCompleteUrl(urlString)) {
+                            Log.i(TAG, "Payment complete URL detected in onPageStarted: " + urlString);
+                            try {
+                                view.stopLoading();
+                            } catch (Exception ignored) {}
+                            handlePaymentCompletedUrl(Uri.parse(urlString));
+                        }
+                    }
+
+                    @Override
                     public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
-                        return handlePaymentUri(request.getUrl());
+                        return handlePaymentUri(request.getUrl(), view);
                     }
 
                     @Override
                     public boolean shouldOverrideUrlLoading(WebView view, String urlString) {
-                        return handlePaymentUri(Uri.parse(urlString));
+                        return handlePaymentUri(Uri.parse(urlString), view);
                     }
 
-                    private boolean handlePaymentUri(Uri uri) {
+                    private boolean handlePaymentUri(Uri uri, WebView view) {
                         if (uri == null) return false;
-                        String scheme = uri.getScheme();
-                        if (scheme == null) return false;
-                        scheme = scheme.toLowerCase();
+                        String uriStr = uri.toString();
 
                         // 1. Payment callback completed
-                        if (uri.toString().contains("/wallet/razorpay/callback") || uri.toString().contains("payment_success=true")) {
-                            Log.i(TAG, "Payment callback detected in in-app browser: " + uri);
-                            JSObject data = new JSObject();
-                            data.put("url", uri.toString());
-                            notifyListeners("inAppBrowserPaymentCompleted", data);
-                            return false;
+                        if (isPaymentCompleteUrl(uriStr)) {
+                            Log.i(TAG, "Payment callback detected in in-app browser: " + uriStr);
+                            if (view != null) {
+                                try {
+                                    view.stopLoading();
+                                } catch (Exception ignored) {}
+                            }
+                            handlePaymentCompletedUrl(uri);
+                            return true;
                         }
 
                         // 2. Intercept UPI Intents to launch GPay, PhonePe, Paytm, BHIM, etc.
-                        if (scheme.equals("upi") ||
-                            scheme.equals("tez") ||
-                            scheme.equals("phonepe") ||
-                            scheme.equals("paytmmp") ||
-                            (scheme.startsWith("intent") && uri.toString().contains("scheme=upi"))) {
-                            try {
-                                Intent intent;
-                                if (scheme.startsWith("intent")) {
-                                    intent = Intent.parseUri(uri.toString(), Intent.URI_INTENT_SCHEME);
-                                } else {
-                                    intent = new Intent(Intent.ACTION_VIEW, uri);
+                        String scheme = uri.getScheme();
+                        if (scheme != null) {
+                            scheme = scheme.toLowerCase();
+                            if (scheme.equals("upi") ||
+                                scheme.equals("tez") ||
+                                scheme.equals("phonepe") ||
+                                scheme.equals("paytmmp") ||
+                                (scheme.startsWith("intent") && uriStr.contains("scheme=upi"))) {
+                                try {
+                                    Intent intent;
+                                    if (scheme.startsWith("intent")) {
+                                        intent = Intent.parseUri(uriStr, Intent.URI_INTENT_SCHEME);
+                                    } else {
+                                        intent = new Intent(Intent.ACTION_VIEW, uri);
+                                    }
+                                    intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                                    activity.startActivity(intent);
+                                    return true;
+                                } catch (Exception e) {
+                                    Log.e(TAG, "Error launching UPI app from in-app browser: " + uriStr, e);
+                                    return true;
                                 }
-                                intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-                                activity.startActivity(intent);
-                                return true;
-                            } catch (Exception e) {
-                                Log.e(TAG, "Error launching UPI app from in-app browser: " + uri, e);
-                                return true;
                             }
                         }
 

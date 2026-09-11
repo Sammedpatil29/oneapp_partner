@@ -5,10 +5,6 @@ import { Component, OnInit } from '@angular/core';
   templateUrl: './custom-splash.component.html',
   styleUrls: ['./custom-splash.component.scss'],
 })
-export class CustomSplashComponent  implements OnInit {
-
+export class CustomSplashComponent {
   constructor() { }
-
-  ngOnInit() {}
-
 }

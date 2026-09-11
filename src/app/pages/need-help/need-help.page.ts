@@ -45,7 +45,7 @@ import { Router } from '@angular/router';
     FormsModule
   ]
 })
-export class NeedHelpPage implements OnInit {
+export class NeedHelpPage {
   isSosTriggered: boolean = false;
   openFaqIndex: number | null = null;
 
@@ -88,7 +88,6 @@ export class NeedHelpPage implements OnInit {
     });
   }
 
-  ngOnInit() {}
 
   async triggerEmergencySos() {
     const alert = await this.alertCtrl.create({

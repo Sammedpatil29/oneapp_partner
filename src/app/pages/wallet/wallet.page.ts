@@ -140,18 +140,42 @@ export class WalletPage implements OnInit, OnDestroy {
     if (Capacitor.isNativePlatform()) {
       try {
         this.inAppBrowserCloseListener = await this.captainNative.onInAppBrowserClosed(() => {
-          console.log('📱 In-app browser closed by user');
+          console.log('📱 In-app browser closed event');
+          this.isProcessingPayment = false;
+          this.showPayModal = false;
+          this.fetchWallet();
           if (this.pendingOrderId && !this.isPaymentDetected) {
             const amount = Number(localStorage.getItem('pending_commission_amount') || this.payAmount);
             this.checkStatusFromBackend(this.pendingOrderId, amount);
           }
         });
 
-        this.inAppBrowserPaymentListener = await this.captainNative.onInAppBrowserPaymentCompleted((data) => {
-          console.log('💳 Payment completed event from in-app browser:', data?.url);
-          if (this.pendingOrderId) {
-            const amount = Number(localStorage.getItem('pending_commission_amount') || this.payAmount);
-            this.checkStatusFromBackend(this.pendingOrderId, amount);
+        this.inAppBrowserPaymentListener = await this.captainNative.onInAppBrowserPaymentCompleted((data: any) => {
+          console.log('💳 Payment completed event from in-app browser:', data);
+          const orderId = data?.razorpay_order_id || this.pendingOrderId || localStorage.getItem('pending_commission_order_id');
+          const paymentId = data?.razorpay_payment_id;
+          const amount = Number(localStorage.getItem('pending_commission_amount') || this.payAmount);
+
+          if (paymentId && orderId) {
+            this.captainService.verifyRazorpayPayment({
+              amount,
+              razorpay_order_id: orderId,
+              razorpay_payment_id: paymentId,
+              razorpay_signature: data?.razorpay_signature || 'inapp_signature'
+            }).subscribe({
+              next: (res: any) => {
+                if (res?.success) {
+                  this.handleSuccess(res, amount);
+                } else {
+                  this.checkStatusFromBackend(orderId, amount, paymentId);
+                }
+              },
+              error: () => {
+                this.checkStatusFromBackend(orderId, amount, paymentId);
+              }
+            });
+          } else if (orderId) {
+            this.checkStatusFromBackend(orderId, amount);
           }
         });
       } catch (e) {
@@ -372,18 +396,20 @@ export class WalletPage implements OnInit, OnDestroy {
     }
   }
 
-  checkStatusFromBackend(internalOrderId: string, amount: number) {
-    this.captainService.checkRazorpayOrderStatus(internalOrderId).subscribe({
+  checkStatusFromBackend(internalOrderId: string, amount: number, paymentId?: string) {
+    this.captainService.checkRazorpayOrderStatus(internalOrderId, paymentId).subscribe({
       next: (res: any) => {
         if (res && res.success && (res.paid || res.status === 'paid')) {
           this.handleSuccess(res, amount);
         } else if (res && res.status === 'failed') {
           this.stopPolling();
           this.isProcessingPayment = false;
+          this.showPayModal = false;
           this.captainNative.closeInAppBrowser();
           localStorage.removeItem('pending_commission_order_id');
           localStorage.removeItem('pending_commission_amount');
           this.presentToast('Payment failed.', 'danger');
+          this.fetchWallet();
         }
       },
       error: (err) => console.log('Order status poll error:', err)

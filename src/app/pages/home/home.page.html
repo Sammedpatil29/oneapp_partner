@@ -14,8 +14,8 @@
   [confirmText]="alertModal.confirmText"
   [cancelText]="alertModal.cancelText"
   [showCancel]="alertModal.showCancel"
-  (confirm)="handleAlertConfirm()"
-  (cancel)="closeAlertModal()">
+  (confirmed)="handleAlertConfirm()"
+  (cancelled)="closeAlertModal()">
 </app-alert-modal>
 
 <ion-header class="captain-header" [translucent]="false">
