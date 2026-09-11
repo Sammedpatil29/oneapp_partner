@@ -26,11 +26,28 @@ import {
   powerOutline, locationOutline, flagOutline, callOutline, 
   chatbubbleEllipsesOutline, navigateCircleOutline, shieldOutline,
   checkmarkCircleOutline, flashOutline, star, alertCircleOutline,
-  qrCodeOutline, checkmarkDoneCircleOutline, refreshOutline,
-  chevronForwardOutline, giftOutline, cashOutline, shieldCheckmarkOutline,
+  qrCodeOutline, checkmarkDoneCircleOutline, refreshOutline, locateOutline,
+  chevronForwardOutline, chevronBackOutline, giftOutline, cashOutline, shieldCheckmarkOutline,
   closeOutline, timeOutline, carOutline, arrowForwardOutline } from 'ionicons/icons';
 
 declare var google: any;
+
+export interface IncomingRideOffer {
+  rideId: string | number;
+  customerName: string;
+  customerPhone: string;
+  serviceType: string;
+  origin: string;
+  destination: string;
+  fare: number;
+  distance: string | number;
+  duration: string | number;
+  raw: any;
+  receivedAt: number;
+  expiresAt: number;
+  countdown: number;
+  progress: number;
+}
 
 export interface ActiveRide {
   id: string | number;
@@ -94,12 +111,51 @@ export class HomePage implements OnInit, OnDestroy {
   otpError: boolean = false;
   paymentSuccess: boolean = false;
 
-  // Incoming Ride Offer State
-  incomingRide: any = null;
+  // Incoming Ride Offers Queue (Multi-Order Support)
+  incomingRides: IncomingRideOffer[] = [];
+  selectedOfferIndex: number = 0;
   incomingTimer: any = null;
-  incomingCountdown: number = 15;
-  incomingProgress: number = 100;
   audioInterval: any = null;
+
+  get currentIncomingRide(): IncomingRideOffer | null {
+    if (!this.incomingRides || this.incomingRides.length === 0) return null;
+    const index = Math.min(this.selectedOfferIndex, this.incomingRides.length - 1);
+    return this.incomingRides[Math.max(0, index)] || null;
+  }
+
+  // Backward compatibility getters
+  get incomingRide(): IncomingRideOffer | null {
+    return this.currentIncomingRide;
+  }
+
+  get incomingCountdown(): number {
+    return this.currentIncomingRide?.countdown ?? 15;
+  }
+
+  get incomingProgress(): number {
+    return this.currentIncomingRide?.progress ?? 100;
+  }
+
+  selectOffer(index: number) {
+    if (index >= 0 && index < this.incomingRides.length) {
+      this.selectedOfferIndex = index;
+      this.captainNative.setIncomingRequest(this.currentIncomingRide);
+    }
+  }
+
+  nextOffer() {
+    if (this.incomingRides.length > 1) {
+      this.selectedOfferIndex = (this.selectedOfferIndex + 1) % this.incomingRides.length;
+      this.captainNative.setIncomingRequest(this.currentIncomingRide);
+    }
+  }
+
+  prevOffer() {
+    if (this.incomingRides.length > 1) {
+      this.selectedOfferIndex = (this.selectedOfferIndex - 1 + this.incomingRides.length) % this.incomingRides.length;
+      this.captainNative.setIncomingRequest(this.currentIncomingRide);
+    }
+  }
 
   // Today's Live Performance
   todayStats = {
@@ -135,10 +191,10 @@ export class HomePage implements OnInit, OnDestroy {
   constructor() {
     addIcons({
       shieldCheckmarkOutline, shieldOutline, flashOutline, powerOutline, 
-      alertCircleOutline, checkmarkCircleOutline, chevronForwardOutline, 
+      alertCircleOutline, checkmarkCircleOutline, chevronForwardOutline, chevronBackOutline,
       giftOutline, locationOutline, star, callOutline, chatbubbleEllipsesOutline, 
       navigateCircleOutline, checkmarkDoneCircleOutline, flagOutline, cashOutline, 
-      qrCodeOutline, refreshOutline, closeOutline, timeOutline, carOutline, arrowForwardOutline
+      qrCodeOutline, refreshOutline, locateOutline, closeOutline, timeOutline, carOutline, arrowForwardOutline
     });
 
     this.networkService.isOnline$.subscribe(online => {
@@ -221,6 +277,24 @@ export class HomePage implements OnInit, OnDestroy {
 
     // 4. Listen for customer cancellation
     this.socketService.onRideUpdate((msg: any) => {
+      // Check if an incoming offer in queue was cancelled by customer
+      if (msg && msg.status === 'cancelled') {
+        const cancelledIndex = this.incomingRides.findIndex(r => r.rideId == msg.id || r.rideId == msg.rideId);
+        if (cancelledIndex >= 0) {
+          const removed = this.incomingRides.splice(cancelledIndex, 1)[0];
+          console.log(`ℹ️ [Partner] Incoming ride offer ${removed.rideId} was cancelled by user.`);
+          if (this.selectedOfferIndex >= this.incomingRides.length) {
+            this.selectedOfferIndex = Math.max(0, this.incomingRides.length - 1);
+          }
+          if (this.incomingRides.length === 0) {
+            this.stopIncomingChime();
+            this.captainNative.setIncomingRequest(null);
+          } else {
+            this.captainNative.setIncomingRequest(this.currentIncomingRide);
+          }
+        }
+      }
+
       if (msg && this.activeRide && msg.id == this.activeRide.id) {
         if (msg.status === 'cancelled') {
           this.dialogService.showAlert(
@@ -521,31 +595,7 @@ export class HomePage implements OnInit, OnDestroy {
 
     this.mapRetryCount = 0;
     const latLng = new google.maps.LatLng(this.lat, this.lng);
-    this.map = new google.maps.Map(mapEl, {
-      center: latLng,
-      zoom: 16,
-      disableDefaultUI: true,
-      mapTypeControl: false,
-      styles: [
-        { featureType: 'poi', stylers: [{ visibility: 'off' }] },
-        { featureType: 'transit', stylers: [{ visibility: 'off' }] },
-        { featureType: 'road', elementType: 'labels', stylers: [{ visibility: 'simplified' }] }
-      ]
-    });
 
-    this.marker = new google.maps.Marker({
-      position: latLng,
-      map: this.map,
-      title: 'Captain Location',
-      icon: {
-        path: google.maps.SymbolPath.CIRCLE,
-        scale: 9,
-        fillColor: '#02298a',
-        fillOpacity: 1,
-        strokeColor: '#ffffff',
-        strokeWeight: 3
-      }
-    });
     if (this.map) {
       try {
         google.maps.event.trigger(this.map, 'resize');
@@ -580,7 +630,7 @@ export class HomePage implements OnInit, OnDestroy {
         icon: {
           path: google.maps.SymbolPath.CIRCLE,
           scale: 9,
-          fillColor: '#02298a',
+          fillColor: '#a000e2',
           fillOpacity: 1,
           strokeColor: '#ffffff',
           strokeWeight: 3
@@ -591,15 +641,92 @@ export class HomePage implements OnInit, OnDestroy {
     }
   }
 
+  async reloadMap() {
+    this.mapRetryCount = 0;
+    try {
+      const loc = await this.locationService.getCurrentLocation();
+      if (loc && loc.lat && loc.lng) {
+        this.lat = loc.lat;
+        this.lng = loc.lng;
+      }
+    } catch (e) {}
+
+    const mapEl = document.getElementById('map');
+    if (mapEl && typeof google !== 'undefined' && google.maps) {
+      const latLng = new google.maps.LatLng(this.lat, this.lng);
+      try {
+        this.map = new google.maps.Map(mapEl, {
+          center: latLng,
+          zoom: 16,
+          disableDefaultUI: true,
+          mapTypeControl: false,
+          zoomControl: false,
+          streetViewControl: false,
+          fullscreenControl: false,
+          styles: [
+            { featureType: 'poi', stylers: [{ visibility: 'off' }] },
+            { featureType: 'transit', stylers: [{ visibility: 'off' }] },
+            { featureType: 'road', elementType: 'labels', stylers: [{ visibility: 'simplified' }] }
+          ]
+        });
+
+        this.marker = new google.maps.Marker({
+          position: latLng,
+          map: this.map,
+          title: 'Captain Location',
+          icon: {
+            path: google.maps.SymbolPath.CIRCLE,
+            scale: 9,
+            fillColor: '#a000e2',
+            fillOpacity: 1,
+            strokeColor: '#ffffff',
+            strokeWeight: 3
+          }
+        });
+      } catch (err) {
+        console.warn('Map reload error:', err);
+      }
+    } else {
+      this.loadMap();
+    }
+  }
+
+  async recenterLocation() {
+    try {
+      const loc = await this.locationService.getCurrentLocation();
+      if (loc && loc.lat && loc.lng) {
+        this.lat = loc.lat;
+        this.lng = loc.lng;
+      }
+    } catch (e) {}
+
+    if (this.map && typeof google !== 'undefined') {
+      const latLng = new google.maps.LatLng(this.lat, this.lng);
+      this.map.panTo(latLng);
+      this.map.setZoom(17);
+      if (this.marker) {
+        this.marker.setPosition(latLng);
+      }
+    } else {
+      this.loadMap();
+    }
+  }
+
   handleIncomingRideOffer(data: any) {
     if (this.activeRide) return; // already on a trip
+
+    const rideId = data.rideId || data.id;
+    if (!rideId) return;
 
     const originName = data.trip_details?.origin?.name || data.trip_details?.pickup?.address || data.origin?.name || 'Pickup Location';
     const dropName = data.trip_details?.drop?.name || data.trip_details?.drop?.address || data.destination?.name || 'Drop Destination';
     const fare = Number(data.fare || data.service_details?.price || data.trip_details?.fare || 0);
 
-    this.incomingRide = {
-      rideId: data.rideId || data.id,
+    const now = Date.now();
+    const existingIndex = this.incomingRides.findIndex(r => r.rideId == rideId);
+
+    const offer: IncomingRideOffer = {
+      rideId: rideId,
       customerName: data.customerName || data.user_details?.name || 'Customer',
       customerPhone: data.customerPhone || data.user_details?.phone || '',
       serviceType: (data.service_details?.type || data.vehicleType || 'Bike Taxi').toUpperCase(),
@@ -608,39 +735,85 @@ export class HomePage implements OnInit, OnDestroy {
       fare: fare,
       distance: data.trip_details?.distance || data.distance || '3.2',
       duration: data.trip_details?.duration || data.duration || '12',
-      raw: data
+      raw: data,
+      receivedAt: existingIndex >= 0 ? this.incomingRides[existingIndex].receivedAt : now,
+      expiresAt: existingIndex >= 0 ? this.incomingRides[existingIndex].expiresAt : now + 15000,
+      countdown: existingIndex >= 0 ? this.incomingRides[existingIndex].countdown : 15,
+      progress: existingIndex >= 0 ? this.incomingRides[existingIndex].progress : 100
     };
 
+    if (existingIndex >= 0) {
+      this.incomingRides[existingIndex] = offer;
+    } else {
+      this.incomingRides.push(offer);
+      // Focus on the new offer so rider immediately sees the latest
+      this.selectedOfferIndex = this.incomingRides.length - 1;
+    }
+
     // Bring app to foreground if minimized + launch system floating bubble
-    this.captainNative.setIncomingRequest(this.incomingRide);
+    this.captainNative.setIncomingRequest(this.currentIncomingRide);
     this.captainNative.showNativeSystemOverlay();
 
     // Start attention audio chime
     this.startIncomingChime();
 
-    // Start 15s countdown
-    this.incomingCountdown = 15;
-    this.incomingProgress = 100;
-    if (this.incomingTimer) clearInterval(this.incomingTimer);
+    // Start unified timer loop
+    this.startMultiOfferTimer();
+  }
+
+  startMultiOfferTimer() {
+    if (this.incomingTimer) return;
 
     this.incomingTimer = setInterval(() => {
-      this.incomingCountdown--;
-      this.incomingProgress = Math.max(0, (this.incomingCountdown / 15) * 100);
+      const now = Date.now();
+      const expiredOffers: IncomingRideOffer[] = [];
 
-      if (this.incomingCountdown <= 0) {
-        this.declineIncomingRide(false); // auto-timeout advances to next driver
+      for (let i = this.incomingRides.length - 1; i >= 0; i--) {
+        const offer = this.incomingRides[i];
+        const remainingMs = offer.expiresAt - now;
+        if (remainingMs <= 0) {
+          expiredOffers.push(offer);
+          this.incomingRides.splice(i, 1);
+        } else {
+          offer.countdown = Math.ceil(remainingMs / 1000);
+          offer.progress = Math.max(0, Math.min(100, (remainingMs / 15000) * 100));
+        }
       }
-    }, 1000);
+
+      // Automatically inform server of expired offers so next driver receives them
+      for (const exp of expiredOffers) {
+        console.log(`⏰ [Partner] Offer ${exp.rideId} timed out in queue.`);
+        this.socketService.rejectRide(exp.rideId, this.riderId);
+      }
+
+      // Clamp selectedOfferIndex
+      if (this.selectedOfferIndex >= this.incomingRides.length) {
+        this.selectedOfferIndex = Math.max(0, this.incomingRides.length - 1);
+      }
+
+      // If all offers expired
+      if (this.incomingRides.length === 0) {
+        this.stopIncomingChime();
+        this.captainNative.setIncomingRequest(null);
+        if (this.incomingTimer) {
+          clearInterval(this.incomingTimer);
+          this.incomingTimer = null;
+        }
+      } else {
+        this.captainNative.setIncomingRequest(this.currentIncomingRide);
+      }
+    }, 500);
   }
 
   startIncomingChime() {
     this.captainNative.playIncomingRideTone();
     if (this.audioInterval) clearInterval(this.audioInterval);
     this.audioInterval = setInterval(() => {
-      if (this.incomingRide) {
+      if (this.incomingRides.length > 0) {
         this.captainNative.playIncomingRideTone();
       } else {
         clearInterval(this.audioInterval);
+        this.audioInterval = null;
       }
     }, 3200);
   }
@@ -656,36 +829,60 @@ export class HomePage implements OnInit, OnDestroy {
     }
   }
 
-  acceptIncomingRide() {
-    if (!this.incomingRide) return;
-    const rideId = this.incomingRide.rideId;
-    const rawData = this.incomingRide.raw;
+  acceptIncomingRide(offerToAccept?: IncomingRideOffer) {
+    const offer = offerToAccept || this.currentIncomingRide;
+    if (!offer) return;
+
+    const acceptedRideId = offer.rideId;
+    const rawData = offer.raw;
+
+    // Reject other pending offers so dispatch can assign them to other drivers immediately
+    for (const other of this.incomingRides) {
+      if (other.rideId !== acceptedRideId) {
+        this.socketService.rejectRide(other.rideId, this.riderId);
+      }
+    }
+
     this.stopIncomingChime();
-    this.incomingRide = null;
+    this.incomingRides = [];
     this.captainNative.setIncomingRequest(null);
 
     // Emit accept to server
-    this.socketService.acceptRide(rideId, this.riderId);
+    this.socketService.acceptRide(acceptedRideId, this.riderId);
 
     // Start active trip flow immediately
     this.startTripFlow(rawData);
   }
 
-  declineIncomingRide(userExplicit: boolean = true) {
-    if (!this.incomingRide) return;
-    const rideId = this.incomingRide.rideId;
-    this.stopIncomingChime();
-    this.incomingRide = null;
-    this.captainNative.setIncomingRequest(null);
+  declineIncomingRide(userExplicit: boolean = true, offerToDecline?: IncomingRideOffer) {
+    const offer = offerToDecline || this.currentIncomingRide;
+    if (!offer) return;
+
+    const rideId = offer.rideId;
 
     if (userExplicit) {
       this.socketService.rejectRide(rideId, this.riderId);
+    }
+
+    // Remove declined offer from queue
+    this.incomingRides = this.incomingRides.filter(r => r.rideId !== rideId);
+
+    // Clamp index
+    if (this.selectedOfferIndex >= this.incomingRides.length) {
+      this.selectedOfferIndex = Math.max(0, this.incomingRides.length - 1);
+    }
+
+    if (this.incomingRides.length === 0) {
+      this.stopIncomingChime();
+      this.captainNative.setIncomingRequest(null);
+    } else {
+      this.captainNative.setIncomingRequest(this.currentIncomingRide);
     }
   }
 
   startTripFlow(data: any) {
     this.stopIncomingChime();
-    this.incomingRide = null;
+    this.incomingRides = [];
     this.status = true;
     this.activeRide = {
       id: data.rideId || data.id || 'RD-' + Math.floor(1000 + Math.random() * 9000),
@@ -722,7 +919,7 @@ export class HomePage implements OnInit, OnDestroy {
   resumeActiveTrip(data: any) {
     if (!data) return;
     this.stopIncomingChime();
-    this.incomingRide = null;
+    this.incomingRides = [];
     this.captainNative.setIncomingRequest(null);
 
     const originName = (typeof data.origin === 'object' ? (data.origin?.name || data.origin?.address) : data.origin)

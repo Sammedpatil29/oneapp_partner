@@ -556,6 +556,40 @@
     min-height: 100%;
     background: #e2e8f0;
   }
+
+  .map-floating-controls {
+    position: absolute;
+    top: 86px;
+    right: 14px;
+    z-index: 90;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+
+    .map-action-btn {
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
+      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.14);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      color: var(--app-theme-color, #a000e2);
+      transition: transform 0.15s ease, background-color 0.15s ease, box-shadow 0.15s ease;
+
+      ion-icon {
+        font-size: 22px;
+      }
+
+      &:active {
+        transform: scale(0.92);
+        background: #f5f3ff;
+      }
+    }
+  }
 }
 
 .radar-searching-panel {
@@ -585,7 +619,8 @@
     .radar-circle {
       position: absolute;
       border-radius: 50%;
-      border: 2px solid #02298a;
+      border: 2px solid var(--app-theme-color, #a000e2);
+      background: rgba(160, 0, 226, 0.06);
       opacity: 0;
       animation: radarRipple 2.2s cubic-bezier(0.25, 0.46, 0.45, 0.94) infinite;
 
@@ -595,9 +630,10 @@
     }
 
     .radar-center-icon {
-      width: 36px;
-      height: 36px;
-      background: #02298a;
+      width: 38px;
+      height: 38px;
+      background: var(--app-theme-color, #a000e2);
+      box-shadow: 0 0 16px rgba(160, 0, 226, 0.4);
       border-radius: 50%;
       display: flex;
       align-items: center;
@@ -1046,6 +1082,141 @@
     }
   }
 
+  .multi-offer-banner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: linear-gradient(135deg, #1e1b4b, #312e81);
+    margin: -16px -20px 10px -20px;
+    padding: 10px 16px 8px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+
+    .multi-offer-left {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+
+      .multi-fire {
+        font-size: 14px;
+        animation: blink 1s infinite alternate;
+      }
+
+      .multi-count {
+        font-size: 11px;
+        font-weight: 900;
+        letter-spacing: 0.6px;
+        color: #fbbf24;
+      }
+    }
+
+    .multi-offer-nav {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+
+      .nav-arrow-btn {
+        width: 26px;
+        height: 26px;
+        border-radius: 50%;
+        background: rgba(255, 255, 255, 0.2);
+        border: none;
+        color: #ffffff;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        padding: 0;
+
+        ion-icon {
+          font-size: 15px;
+        }
+
+        &:active {
+          background: rgba(255, 255, 255, 0.35);
+        }
+      }
+
+      .offer-counter {
+        font-size: 11px;
+        font-weight: 800;
+        color: #ffffff;
+        padding: 0 4px;
+      }
+    }
+  }
+
+  .offer-chips-scroll {
+    display: flex;
+    gap: 8px;
+    overflow-x: auto;
+    padding-bottom: 6px;
+    margin-bottom: 8px;
+    scrollbar-width: none;
+
+    &::-webkit-scrollbar {
+      display: none;
+    }
+
+    .offer-chip {
+      flex: 0 0 auto;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 5px 10px;
+      border-radius: 12px;
+      background: #f8fafc;
+      border: 1.5px solid #e2e8f0;
+      cursor: pointer;
+      transition: all 0.2s ease;
+
+      .chip-num {
+        font-size: 11px;
+        font-weight: 800;
+        color: #64748b;
+      }
+
+      .chip-fare {
+        font-size: 13px;
+        font-weight: 900;
+        color: #0f172a;
+      }
+
+      .chip-timer {
+        font-size: 10px;
+        font-weight: 800;
+        padding: 2px 6px;
+        border-radius: 6px;
+        background: #e2e8f0;
+        color: #475569;
+
+        &.urgent {
+          background: #ef4444;
+          color: #ffffff;
+          animation: blink 0.8s infinite;
+        }
+      }
+
+      &.active {
+        background: #f5f3ff;
+        border-color: #a000e2;
+        box-shadow: 0 2px 8px rgba(160, 0, 226, 0.2);
+
+        .chip-num {
+          color: #a000e2;
+        }
+
+        .chip-fare {
+          color: #a000e2;
+        }
+
+        .chip-timer:not(.urgent) {
+          background: #a000e2;
+          color: #ffffff;
+        }
+      }
+    }
+  }
+
   .incoming-header {
     display: flex;
     align-items: center;
@@ -1090,6 +1261,13 @@
       border: 1px solid #fee2e2;
 
       ion-icon { font-size: 15px; }
+
+      &.urgent {
+        background: #ef4444;
+        color: #ffffff;
+        border-color: #ef4444;
+        animation: blink 0.8s infinite;
+      }
     }
   }
 

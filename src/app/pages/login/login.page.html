@@ -92,6 +92,22 @@
           </div>
         </div>
 
+        <!-- Optional Referral Code -->
+        <div class="input-group-modern mb-3">
+          <label class="input-label mb-1">Referral Code (Optional)</label>
+          <div class="input-container">
+            <ion-icon name="gift-outline" class="input-icon-left text-warning"></ion-icon>
+            <input
+              type="text"
+              class="custom-input flex-grow-1 text-uppercase fw-semibold"
+              placeholder="e.g. CAPTAIN1234"
+              [(ngModel)]="referralCode" />
+          </div>
+          <p class="small text-muted mt-1 mb-0" style="font-size: 11px;">
+            Referred by a fellow Captain? Enter their referral ID to earn ₹150 bonuses.
+          </p>
+        </div>
+
         <button
           type="button"
           class="btn-primary-action w-100 mb-2"

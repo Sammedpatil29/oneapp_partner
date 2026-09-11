@@ -132,9 +132,9 @@ export class CaptainService {
     });
   }
 
-  withdrawEarnings(amount: number, upiId?: string): Observable<any> {
+  withdrawEarnings(amount: number, upiId: string): Observable<any> {
     const id = this.getRiderId();
-    return this.http.post(`${this.apiUrl}/api/rider/wallet/pay-commission`, { id, amount });
+    return this.http.post(`${this.apiUrl}/api/rider/wallet/withdraw`, { id, amount, upi_id: upiId });
   }
 
   // 4. Referrals

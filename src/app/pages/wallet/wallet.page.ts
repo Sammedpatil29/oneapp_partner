@@ -11,6 +11,7 @@ import {
   IonIcon,
   IonList,
   IonModal,
+  IonSpinner,
   ToastController,
   AlertController
 } from '@ionic/angular/standalone';
@@ -23,7 +24,8 @@ import {
   cashOutline,
   cardOutline,
   checkmarkCircleOutline,
-  arrowDownCircleOutline
+  arrowDownCircleOutline,
+  arrowUpCircleOutline
 } from 'ionicons/icons';
 import { CaptainService } from 'src/app/services/captain.service';
 import { Router } from '@angular/router';
@@ -54,6 +56,7 @@ import { environment } from 'src/environments/environment';
     IonIcon,
     IonList,
     IonModal,
+    IonSpinner,
     CommonModule,
     FormsModule,
     LoaderComponent,
@@ -95,6 +98,11 @@ export class WalletPage implements OnInit, OnDestroy {
   payAmount: number = 0;
   isProcessingPayment: boolean = false;
 
+  showWithdrawModal: boolean = false;
+  withdrawAmount: number = 50;
+  withdrawUpiId: string = '';
+  isSubmittingWithdrawal: boolean = false;
+
   pendingOrderId: string | null = null;
   private pollingInterval: any = null;
   private isPaymentDetected: boolean = false;
@@ -109,7 +117,17 @@ export class WalletPage implements OnInit, OnDestroy {
   public networkService = inject(NetworkService);
 
   constructor() {
-    addIcons({arrowBackOutline,walletOutline,cardOutline,cashOutline,addCircleOutline,removeCircleOutline,checkmarkCircleOutline,arrowDownCircleOutline});
+    addIcons({
+      arrowBackOutline,
+      walletOutline,
+      cardOutline,
+      cashOutline,
+      addCircleOutline,
+      removeCircleOutline,
+      checkmarkCircleOutline,
+      arrowDownCircleOutline,
+      arrowUpCircleOutline
+    });
 
     this.networkService.isOnline$.subscribe(online => {
       this.isOffline = !online;
@@ -462,6 +480,90 @@ export class WalletPage implements OnInit, OnDestroy {
       position: 'bottom'
     });
     await toast.present();
+  }
+
+  // --- Payout / Withdrawal Flow ---
+
+  openWithdrawModal() {
+    const bal = Number(this.wallet?.balance?.wallet_balance || 0);
+    this.withdrawAmount = Math.max(50, bal);
+    this.withdrawUpiId = '';
+    this.showWithdrawModal = true;
+  }
+
+  closeWithdrawModal() {
+    this.showWithdrawModal = false;
+  }
+
+  submitWithdrawal() {
+    const bal = Number(this.wallet?.balance?.wallet_balance || 0);
+    const amount = Number(this.withdrawAmount);
+    const upi = String(this.withdrawUpiId || '').trim();
+
+    if (!upi || !upi.includes('@')) {
+      this.alertModal = {
+        isOpen: true,
+        type: 'warning',
+        title: 'Invalid UPI ID',
+        message: 'Please enter a valid UPI ID (e.g. yourname@okhdfcbank or 9876543210@upi).',
+        confirmText: 'OK',
+        showCancel: false
+      };
+      return;
+    }
+
+    if (isNaN(amount) || amount < 50) {
+      this.alertModal = {
+        isOpen: true,
+        type: 'warning',
+        title: 'Minimum ₹50 Required',
+        message: 'The minimum withdrawal amount is ₹50.',
+        confirmText: 'OK',
+        showCancel: false
+      };
+      return;
+    }
+
+    if (amount > bal) {
+      this.alertModal = {
+        isOpen: true,
+        type: 'warning',
+        title: 'Insufficient Balance',
+        message: `Requested amount (₹${amount}) exceeds available wallet balance (₹${bal}).`,
+        confirmText: 'OK',
+        showCancel: false
+      };
+      return;
+    }
+
+    this.isSubmittingWithdrawal = true;
+    this.captainService.withdrawEarnings(amount, upi).subscribe({
+      next: (res) => {
+        this.isSubmittingWithdrawal = false;
+        this.showWithdrawModal = false;
+        this.fetchWallet();
+        this.alertModal = {
+          isOpen: true,
+          type: 'success',
+          title: 'Payout Request Submitted',
+          message: `Your withdrawal request of ₹${amount} to ${upi} has been submitted successfully (Status: Submitted). It will be reviewed and transferred shortly.`,
+          confirmText: 'Done',
+          showCancel: false
+        };
+      },
+      error: (err) => {
+        this.isSubmittingWithdrawal = false;
+        const msg = err?.error?.message || 'Failed to submit withdrawal request. Please check and try again.';
+        this.alertModal = {
+          isOpen: true,
+          type: 'error',
+          title: 'Withdrawal Failed',
+          message: msg,
+          confirmText: 'OK',
+          showCancel: false
+        };
+      }
+    });
   }
 
   goBack() {

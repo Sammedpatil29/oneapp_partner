@@ -57,7 +57,6 @@
               {{ (riderProfile?.name || 'C').charAt(0).toUpperCase() }}
             </div>
           }
-          <span class="captain-badge-dot"></span>
         </div>
       </div>
     </div>
@@ -148,18 +147,8 @@
             <ion-icon name="gift-outline"></ion-icon>
           </div>
           <div>
-            <h4>{{ activeIncentive?.title || 'Daily Milestone Bonus' }}</h4>
-            <p>
-              @if (activeIncentive) {
-                @if (activeIncentive.is_completed) {
-                  🎉 Goal reached! ₹{{ activeIncentive.reward_amount }} credited to wallet.
-                } @else {
-                  Complete {{ activeIncentive.target_rides - activeIncentive.completed_rides }} more rides to unlock ₹{{ activeIncentive.reward_amount }}!
-                }
-              } @else {
-                Earn extra daily target rewards on completed orders.
-              }
-            </p>
+            <h4>No Incentive Offers</h4>
+            <p>No active daily incentive offers available right now.</p>
           </div>
         </div>
         <ion-icon name="chevron-forward-outline" class="arrow-right"></ion-icon>
@@ -181,36 +170,82 @@
     <!-- Map Background -->
     <div class="map-container">
       <div id="map"></div>
+
+      <!-- Floating Map Action Controls (Reload & Recenter) -->
+      <div class="map-floating-controls">
+        <button class="map-action-btn" (click)="reloadMap()" title="Reload Map" aria-label="Reload Map">
+          <ion-icon name="refresh-outline"></ion-icon>
+        </button>
+        <button class="map-action-btn" (click)="recenterLocation()" title="My Location" aria-label="My Location">
+          <ion-icon name="locate-outline"></ion-icon>
+        </button>
+      </div>
     </div>
 
     <!-- ================= 1. INCOMING RIDE REQUEST BOTTOM SHEET ================= -->
-    @if (incomingRide) {
+    @if (currentIncomingRide) {
       <div class="incoming-ride-sheet">
         <!-- Countdown Progress Bar -->
         <div class="incoming-timer-bar">
-          <div class="timer-progress" [style.width.%]="incomingProgress"></div>
+          <div class="timer-progress" [style.width.%]="currentIncomingRide.progress"></div>
         </div>
+
+        <!-- MULTI-OFFER SWITCHER BAR (shown when multiple ride offers are queued) -->
+        @if (incomingRides.length > 1) {
+          <div class="multi-offer-banner">
+            <div class="multi-offer-left">
+              <span class="multi-fire">🔥</span>
+              <span class="multi-count">{{ incomingRides.length }} ORDERS AVAILABLE</span>
+            </div>
+            <div class="multi-offer-nav">
+              <button class="nav-arrow-btn" (click)="prevOffer()" type="button" aria-label="Previous Offer">
+                <ion-icon name="chevron-back-outline"></ion-icon>
+              </button>
+              <span class="offer-counter">{{ selectedOfferIndex + 1 }} / {{ incomingRides.length }}</span>
+              <button class="nav-arrow-btn" (click)="nextOffer()" type="button" aria-label="Next Offer">
+                <ion-icon name="chevron-forward-outline"></ion-icon>
+              </button>
+            </div>
+          </div>
+
+          <!-- Quick switcher pills/chips -->
+          <div class="offer-chips-scroll">
+            @for (offer of incomingRides; track offer.rideId; let idx = $index) {
+              <div 
+                class="offer-chip" 
+                [class.active]="idx === selectedOfferIndex" 
+                (click)="selectOffer(idx)"
+              >
+                <span class="chip-num">#{{ idx + 1 }}</span>
+                <span class="chip-fare">₹{{ offer.fare }}</span>
+                <span class="chip-timer" [class.urgent]="offer.countdown <= 5">{{ offer.countdown }}s</span>
+              </div>
+            }
+          </div>
+        }
 
         <div class="incoming-header">
           <div class="d-flex align-items-center gap-2">
             <span class="pulse-beacon"></span>
-            <span class="incoming-badge">NEW RIDE OFFER</span>
-            <span class="service-tag">{{ incomingRide.serviceType }}</span>
+            <span class="incoming-badge">
+              {{ incomingRides.length > 1 ? ('ORDER #' + (selectedOfferIndex + 1) + ' OF ' + incomingRides.length) : 'NEW RIDE OFFER' }}
+            </span>
+            <span class="service-tag">{{ currentIncomingRide.serviceType }}</span>
           </div>
-          <div class="timer-pill">
+          <div class="timer-pill" [class.urgent]="currentIncomingRide.countdown <= 5">
             <ion-icon name="time-outline"></ion-icon>
-            <span>{{ incomingCountdown }}s</span>
+            <span>{{ currentIncomingRide.countdown }}s</span>
           </div>
         </div>
 
         <!-- Big Fare & Distance Highlights -->
         <div class="incoming-fare-row">
           <div class="fare-large">
-            <span class="currency">₹</span>{{ incomingRide.fare }}
+            <span class="currency">₹</span>{{ currentIncomingRide.fare }}
           </div>
           <div class="trip-metrics-chips">
-            <span class="metric-chip">📍 {{ incomingRide.distance }} km</span>
-            <span class="metric-chip">⏱️ {{ incomingRide.duration }} mins</span>
+            <span class="metric-chip">📍 {{ currentIncomingRide.distance }} km</span>
+            <span class="metric-chip">⏱️ {{ currentIncomingRide.duration }} mins</span>
           </div>
         </div>
 
@@ -220,7 +255,7 @@
             <div class="point-dot green"></div>
             <div class="point-text">
               <span class="point-label">PICKUP</span>
-              <p class="point-address">{{ incomingRide.origin }}</p>
+              <p class="point-address">{{ currentIncomingRide.origin }}</p>
             </div>
           </div>
           <div class="route-connector"></div>
@@ -228,7 +263,7 @@
             <div class="point-dot red"></div>
             <div class="point-text">
               <span class="point-label">DROP OFF</span>
-              <p class="point-address">{{ incomingRide.destination }}</p>
+              <p class="point-address">{{ currentIncomingRide.destination }}</p>
             </div>
           </div>
         </div>
@@ -236,10 +271,10 @@
         <!-- Customer Summary -->
         <div class="incoming-customer-bar">
           <div class="cust-initial">
-            {{ incomingRide.customerName?.charAt(0) || 'C' }}
+            {{ currentIncomingRide.customerName?.charAt(0) || 'C' }}
           </div>
           <div class="cust-meta">
-            <span class="cust-title">{{ incomingRide.customerName }}</span>
+            <span class="cust-title">{{ currentIncomingRide.customerName }}</span>
             <span class="cust-sub">Cash on Drop &bull; Standard Fare</span>
           </div>
         </div>
@@ -248,11 +283,11 @@
         <div class="incoming-actions">
           <button class="btn-decline" (click)="declineIncomingRide(true)">
             <ion-icon name="close-outline"></ion-icon>
-            DECLINE
+            {{ incomingRides.length > 1 ? 'PASS THIS' : 'DECLINE' }}
           </button>
           <button class="btn-accept" (click)="acceptIncomingRide()">
             <ion-icon name="checkmark-circle-outline"></ion-icon>
-            ACCEPT RIDE
+            ACCEPT RIDE ₹{{ currentIncomingRide.fare }}
           </button>
         </div>
       </div>

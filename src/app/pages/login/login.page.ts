@@ -19,7 +19,8 @@ import {
   arrowForwardOutline,
   logoWhatsapp,
   keypadOutline,
-  createOutline
+  createOutline,
+  giftOutline
 } from 'ionicons/icons';
 import { AuthService } from 'src/app/services/auth.service';
 import { AppDialogService } from 'src/app/services/app-dialog.service';
@@ -51,6 +52,7 @@ export class LoginPage implements OnInit, OnDestroy {
 
   email: string = '';
   otpCode: string = '';
+  referralCode: string = '';
   isLoading: boolean = false;
   emailOtpSent: boolean = false;
   otpTimer: number = 0;
@@ -66,12 +68,17 @@ export class LoginPage implements OnInit, OnDestroy {
       arrowForwardOutline,
       logoWhatsapp,
       keypadOutline,
-      createOutline
+      createOutline,
+      giftOutline
     });
   }
 
   async ngOnInit() {
     this.returnUrl = this.route.snapshot.queryParams['returnUrl'] || '/layout/home';
+    const refParam = this.route.snapshot.queryParams['ref'] || this.route.snapshot.queryParams['referral_code'] || '';
+    if (refParam) {
+      this.referralCode = String(refParam).trim().toUpperCase();
+    }
     try {
       await this.captainNative.requestEssentialPermissions();
     } catch (e) {
@@ -161,7 +168,8 @@ export class LoginPage implements OnInit, OnDestroy {
     }
 
     this.isLoading = true;
-    this.authService.verifyEmailOtp(cleanEmail, cleanOtp).subscribe({
+    const cleanRef = this.referralCode ? this.referralCode.trim().toUpperCase() : undefined;
+    this.authService.verifyEmailOtp(cleanEmail, cleanOtp, cleanRef).subscribe({
       next: (res) => {
         this.isLoading = false;
 

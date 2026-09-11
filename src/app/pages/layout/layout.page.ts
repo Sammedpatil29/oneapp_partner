@@ -21,6 +21,7 @@ import {
 import { filter } from 'rxjs/operators';
 import { PermissionsHubComponent } from 'src/app/components/permissions-hub/permissions-hub.component';
 import { CaptainNativeService } from 'src/app/services/captain-native.service';
+import { OtaService, OtaBannerState } from 'src/app/services/ota.service';
 
 @Component({
   selector: 'app-layout',
@@ -39,12 +40,14 @@ import { CaptainNativeService } from 'src/app/services/captain-native.service';
 })
 export class LayoutPage implements OnInit {
   private captainNative = inject(CaptainNativeService);
+  private otaService = inject(OtaService);
 
   riderId: any;
   rideRequests: any[] = [];
   isLoading: boolean = false;
   currentRoute: string = '/layout/home';
   showPermissionsHub: boolean = false;
+  otaBanner: OtaBannerState = { show: false, message: '', type: 'applied' };
 
   constructor(
     private socketService: SocketService,
@@ -68,6 +71,10 @@ export class LayoutPage implements OnInit {
   ngOnInit() {
     this.riderId = localStorage.getItem('riderId');
     this.currentRoute = this.router.url;
+
+    this.otaService.bannerState$.subscribe(state => {
+      this.otaBanner = state;
+    });
 
     this.router.events.pipe(
       filter(event => event instanceof NavigationEnd)

@@ -78,7 +78,7 @@ export class AuthService {
     );
   }
 
-  verifyEmailOtp(email: string, otp: string): Observable<{
+  verifyEmailOtp(email: string, otp: string, referral_code?: string): Observable<{
     success: boolean;
     isNewUser: boolean;
     email?: string;
@@ -97,7 +97,11 @@ export class AuthService {
     };
     rider?: any;
   }> {
-    return this.http.post<any>(`${this.apiUrl}/api/rider/verify-otp`, { email, otp }).pipe(
+    const payload: any = { email, otp };
+    if (referral_code) {
+      payload.referral_code = referral_code;
+    }
+    return this.http.post<any>(`${this.apiUrl}/api/rider/verify-otp`, payload).pipe(
       tap((res) => {
         if (res?.success && res?.tokenData?.token) {
           this.setSession(res.tokenData);

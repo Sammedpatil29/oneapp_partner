@@ -18,13 +18,23 @@
     <app-api-error (retry)="fetchWallet()"></app-api-error>
   } @else {
     <div class="container px-3 py-2">
-      <!-- WALLET BALANCE HERO CARD (COMMISSION TO PAY) -->
+      <!-- WALLET BALANCE HERO CARD -->
       <div class="wallet-hero-card p-4 rounded-4 shadow-sm mb-3">
         <div class="d-flex justify-content-between align-items-start">
           <div>
-            <small class="text-white-50 text-uppercase fw-semibold">Platform Commission to Pay</small>
-            <h1 class="balance-display text-white my-1 display-5 fw-bolder">₹{{ wallet?.balance?.commission_due || 0 }}</h1>
-            <small class="text-white-50">Cash rides fee payable to platform</small>
+            @if ((wallet?.balance?.wallet_balance || 0) < 0) {
+              <small class="text-white-50 text-uppercase fw-semibold">Platform Commission Due</small>
+              <h1 class="balance-display text-white my-1 display-5 fw-bolder">
+                ₹{{ wallet?.balance?.commission_due || (-(wallet?.balance?.wallet_balance || 0)) }}
+              </h1>
+              <small class="text-white-50">Settle your due balance to keep receiving orders</small>
+            } @else {
+              <small class="text-white-50 text-uppercase fw-semibold">Available Wallet Balance</small>
+              <h1 class="balance-display text-white my-1 display-5 fw-bolder">
+                ₹{{ wallet?.balance?.wallet_balance || 0 }}
+              </h1>
+              <small class="text-white-50">Referral rewards &amp; incentive earnings</small>
+            }
           </div>
           <div class="wallet-icon-box bg-white-10 rounded-circle p-2">
             <ion-icon name="wallet-outline" class="text-white fs-3"></ion-icon>
@@ -32,12 +42,28 @@
         </div>
 
         <div class="d-flex gap-2 mt-4">
-          <button class="btn btn-warning flex-grow-1 fw-bold py-2 rounded-pill shadow-sm d-flex align-items-center justify-content-center gap-1" 
-                  [disabled]="(wallet?.balance?.commission_due || 0) <= 0" 
-                  (click)="openPayNow()">
-            <ion-icon name="card-outline" class="fs-5"></ion-icon>
-            {{ (wallet?.balance?.commission_due || 0) <= 0 ? 'No Commission Due' : 'Pay Now' }}
-          </button>
+          @if ((wallet?.balance?.wallet_balance || 0) < 0) {
+            <!-- Due Balance: Show Pay Due -->
+            <button class="btn btn-warning flex-grow-1 fw-bold py-2 rounded-pill shadow-sm d-flex align-items-center justify-content-center gap-1" 
+                    (click)="openPayNow()">
+              <ion-icon name="card-outline" class="fs-5"></ion-icon>
+              Pay Due: ₹{{ wallet?.balance?.commission_due || (-(wallet?.balance?.wallet_balance || 0)) }}
+            </button>
+          } @else if ((wallet?.balance?.wallet_balance || 0) > 50) {
+            <!-- Positive Balance > 50: Show Withdraw -->
+            <button class="btn btn-success flex-grow-1 fw-bold py-2 rounded-pill shadow-sm d-flex align-items-center justify-content-center gap-1" 
+                    (click)="openWithdrawModal()">
+              <ion-icon name="arrow-up-circle-outline" class="fs-5"></ion-icon>
+              Withdraw: ₹{{ wallet?.balance?.wallet_balance }}
+            </button>
+          } @else {
+            <!-- Balance <= 50: Disabled state -->
+            <button class="btn btn-light flex-grow-1 fw-semibold py-2 rounded-pill shadow-sm d-flex align-items-center justify-content-center gap-1 text-muted" 
+                    disabled>
+              <ion-icon name="checkmark-circle-outline" class="fs-5 text-success"></ion-icon>
+              {{ (wallet?.balance?.wallet_balance || 0) === 0 ? 'Zero Balance • No Due' : 'Withdraw (Min ₹50 Required)' }}
+            </button>
+          }
         </div>
       </div>
 
@@ -57,14 +83,14 @@
         </div>
       </div>
 
-      <!-- CASH RIDES ONLY POLICY CARD (Replaces UPI Account Card) -->
+      <!-- CASH RIDES POLICY CARD -->
       <div class="bg-white p-3 rounded-3 border mb-3 shadow-xs">
         <div class="d-flex align-items-center gap-2 mb-1">
           <ion-icon name="cash-outline" color="success" class="fs-4"></ion-icon>
-          <h6 class="fw-bold text-dark mb-0">Cash Only Rides</h6>
+          <h6 class="fw-bold text-dark mb-0">Cash Rides &amp; Referral Rewards</h6>
         </div>
         <p class="text-muted small mb-0">
-          You collect 100% of ride fares in cash directly from customers. Pay your platform commission regularly to avoid dispatch limits.
+          You collect 100% of ride fares in cash. Referral bonuses (₹150 for 10 rides in 15 days) are credited directly to your wallet and can be withdrawn to your UPI ID once balance exceeds ₹50.
         </p>
       </div>
 
@@ -76,7 +102,7 @@
           <app-no-data
             icon="wallet-outline"
             title="No Transactions Yet"
-            description="Your ride commissions and payments will appear here.">
+            description="Your commissions, payments, referral rewards, and withdrawals will appear here.">
           </app-no-data>
         } @else {
           <ion-list class="transaction-list bg-transparent ion-no-padding">
@@ -90,10 +116,20 @@
                   </ion-icon>
                   <div>
                     <h6 class="fw-bold text-dark mb-0">
-                      {{ txn.type === 'CREDIT' ? ('Commission Paid: ₹' + txn.amount) : txn.title }}
+                      {{ txn.title }}
                     </h6>
                     <div class="d-flex align-items-center flex-wrap gap-1 mt-1">
                       <small class="text-muted">{{ txn.dateLabel }} • {{ txn.time }}</small>
+                      @if (txn.status && txn.status !== 'SUCCESS') {
+                        <span class="badge" 
+                              [class.bg-warning-subtle]="txn.status === 'PENDING'" 
+                              [class.text-warning]="txn.status === 'PENDING'" 
+                              [class.bg-danger-subtle]="txn.status === 'FAILED'" 
+                              [class.text-danger]="txn.status === 'FAILED'" 
+                              style="font-size: 10px;">
+                          {{ txn.status === 'PENDING' ? 'Submitted' : txn.status }}
+                        </span>
+                      }
                       @if (txn.commission_type) {
                         <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-2 py-0.5 rounded-pill" style="font-size: 10px;">
                           {{ txn.commission_type === 'percentage' ? (txn.commission_value + '% rate') : ('₹' + txn.commission_value + ' fixed') }}
@@ -110,10 +146,10 @@
 
                 <div class="text-end">
                   <span class="fw-bold fs-5" [class.text-success]="txn.type === 'CREDIT'" [class.text-danger]="txn.type === 'DEBIT'">
-                    {{ txn.type === 'CREDIT' ? '-' : '+' }}₹{{ txn.amount }}
+                    {{ txn.type === 'CREDIT' ? '+' : '-' }}₹{{ txn.amount }}
                   </span>
                   <small class="d-block fw-semibold" [class.text-success]="txn.type === 'CREDIT'" [class.text-danger]="txn.type === 'DEBIT'" style="font-size: 11px;">
-                    {{ txn.type === 'CREDIT' ? 'Commission Paid' : 'Commission Added' }}
+                    {{ txn.type === 'CREDIT' ? 'Credit' : 'Debit' }}
                   </small>
                 </div>
               </div>
@@ -180,6 +216,68 @@
           <p class="text-center text-muted mb-0" style="font-size: 11px;">
             Supports UPI (Google Pay, PhonePe, Paytm, BHIM), Cards, NetBanking &amp; QR
           </p>
+        </div>
+      </ng-template>
+    </ion-modal>
+
+    <!-- WITHDRAW PAYOUT MODAL WITH UPI ID -->
+    <ion-modal [isOpen]="showWithdrawModal" (didDismiss)="closeWithdrawModal()" [initialBreakpoint]="0.75" [breakpoints]="[0, 0.75, 1.0]">
+      <ng-template>
+        <div class="p-4 bg-white h-100 overflow-y-auto">
+          <div class="d-flex justify-content-between align-items-center mb-1">
+            <h4 class="fw-bolder text-dark mb-0">Withdraw Earnings</h4>
+            <button class="btn btn-sm btn-light rounded-circle" (click)="closeWithdrawModal()">✕</button>
+          </div>
+          <p class="text-muted small mb-3">Request a direct bank payout via your UPI ID (Min ₹50).</p>
+
+          <!-- Available Balance Callout -->
+          <div class="bg-success-subtle p-3 rounded-3 border border-success-subtle mb-3 d-flex justify-content-between align-items-center">
+            <span class="text-success fw-semibold small">Available to Withdraw:</span>
+            <strong class="text-success fs-5">₹{{ wallet?.balance?.wallet_balance || 0 }}</strong>
+          </div>
+
+          <!-- Amount Input -->
+          <div class="mb-3">
+            <label class="form-label small fw-bold text-secondary mb-1">Withdrawal Amount (₹)</label>
+            <div class="input-group">
+              <span class="input-group-text fw-bold fs-5">₹</span>
+              <input type="number" 
+                     class="form-control form-control-lg fw-bold" 
+                     [(ngModel)]="withdrawAmount" 
+                     min="50" 
+                     [max]="wallet?.balance?.wallet_balance || 0">
+            </div>
+            <div class="d-flex justify-content-between align-items-center mt-1">
+              <small class="text-muted">Min: ₹50</small>
+              @if (withdrawAmount > (wallet?.balance?.wallet_balance || 0)) {
+                <small class="text-danger fw-semibold">Exceeds available balance</small>
+              }
+            </div>
+          </div>
+
+          <!-- UPI ID Input -->
+          <div class="mb-4">
+            <label class="form-label small fw-bold text-secondary mb-1">Your UPI ID (VPA)</label>
+            <input type="text" 
+                   class="form-control form-control-lg" 
+                   placeholder="e.g. yourname@okhdfcbank" 
+                   [(ngModel)]="withdrawUpiId">
+            <small class="text-muted mt-1 d-block" style="font-size: 11px;">
+              Supports Google Pay, PhonePe, Paytm, BHIM or bank UPI handle.
+            </small>
+          </div>
+
+          <button class="btn btn-primary w-100 py-3 rounded-pill fw-bold fs-6 shadow-sm d-flex align-items-center justify-content-center gap-2 mb-2" 
+                  (click)="submitWithdrawal()" 
+                  [disabled]="isSubmittingWithdrawal || !withdrawAmount || withdrawAmount < 50 || withdrawAmount > (wallet?.balance?.wallet_balance || 0) || !withdrawUpiId || !withdrawUpiId.includes('@')">
+            @if (isSubmittingWithdrawal) {
+              <ion-spinner name="crescent" class="spinner-small me-1"></ion-spinner>
+              <span>Submitting Request...</span>
+            } @else {
+              <ion-icon name="arrow-up-circle-outline" class="fs-5"></ion-icon>
+              <span>Submit Withdrawal Request</span>
+            }
+          </button>
         </div>
       </ng-template>
     </ion-modal>
