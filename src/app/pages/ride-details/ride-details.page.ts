@@ -78,7 +78,30 @@ export class RideDetailsPage implements OnInit, OnDestroy {
   isActionLoading: boolean = false;
 
   constructor() {
-    addIcons({arrowBackOutline,copyOutline,cashOutline,star,callOutline,chatbubbleEllipsesOutline,navigateCircleOutline,speedometerOutline,timeOutline,walletOutline,shieldCheckmarkOutline,alertCircleOutline,checkmarkDoneCircleOutline,checkmarkCircleOutline,flagOutline,helpCircleOutline,'arrowBackOutline':arrowBackOutline,'callOutline':callOutline,'chatbubbleEllipsesOutline':chatbubbleEllipsesOutline,'navigateCircleOutline':navigateCircleOutline,'navigateOutline':navigateOutline,'locationOutline':locationOutline,'flagOutline':flagOutline,'checkmarkCircleOutline':checkmarkCircleOutline,'checkmarkDoneCircleOutline':checkmarkDoneCircleOutline,'cashOutline':cashOutline,'walletOutline':walletOutline,'shieldCheckmarkOutline':shieldCheckmarkOutline,'timeOutline':timeOutline,'speedometerOutline':speedometerOutline,'copyOutline':copyOutline,'helpCircleOutline':helpCircleOutline,'alertCircleOutline':alertCircleOutline,'refreshOutline':refreshOutline,'carOutline':carOutline,'bicycleOutline':bicycleOutline,'scanOutline':scanOutline});
+    addIcons({
+      arrowBackOutline,
+      callOutline,
+      chatbubbleEllipsesOutline,
+      navigateCircleOutline,
+      navigateOutline,
+      locationOutline,
+      flagOutline,
+      checkmarkCircleOutline,
+      checkmarkDoneCircleOutline,
+      star,
+      cashOutline,
+      walletOutline,
+      shieldCheckmarkOutline,
+      timeOutline,
+      speedometerOutline,
+      copyOutline,
+      helpCircleOutline,
+      alertCircleOutline,
+      refreshOutline,
+      carOutline,
+      bicycleOutline,
+      scanOutline
+    });
   }
 
   ngOnInit() {
