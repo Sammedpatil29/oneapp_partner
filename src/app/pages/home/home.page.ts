@@ -29,7 +29,7 @@ import {
   checkmarkCircleOutline, flashOutline, star, alertCircleOutline,
   qrCodeOutline, checkmarkDoneCircleOutline, refreshOutline, locateOutline,
   chevronForwardOutline, chevronBackOutline, giftOutline, cashOutline, shieldCheckmarkOutline,
-  closeOutline, timeOutline, carOutline, arrowForwardOutline, scanOutline } from 'ionicons/icons';
+  closeOutline, timeOutline, carOutline, arrowForwardOutline, scanOutline, moonOutline, businessOutline } from 'ionicons/icons';
 
 declare var google: any;
 
@@ -101,6 +101,9 @@ export class HomePage implements OnInit, OnDestroy {
   nearestServiceArea: { id?: string; cityName: string; distanceKm: number } | null = null;
   currentServiceArea: any = null;
   serviceAreaPolygonOverlay: any = null;
+  isAreaClosed: boolean = false;
+  areaClosureMessage: string = '';
+  closedAreaCity: string = '';
 
   // Permissions State
   showPermissionsHub: boolean = false;
@@ -184,13 +187,7 @@ export class HomePage implements OnInit, OnDestroy {
   public captainNative = inject(CaptainNativeService);
 
   constructor() {
-    addIcons({
-      shieldCheckmarkOutline, shieldOutline, flashOutline, powerOutline, 
-      alertCircleOutline, checkmarkCircleOutline, chevronForwardOutline, chevronBackOutline,
-      giftOutline, locationOutline, star, callOutline, chatbubbleEllipsesOutline, 
-      navigateCircleOutline, checkmarkDoneCircleOutline, flagOutline, cashOutline, 
-      qrCodeOutline, refreshOutline, locateOutline, closeOutline, timeOutline, carOutline, arrowForwardOutline, scanOutline
-    });
+    addIcons({shieldCheckmarkOutline,moonOutline,businessOutline,refreshOutline,locationOutline,navigateCircleOutline,powerOutline,flashOutline,alertCircleOutline,checkmarkCircleOutline,chevronForwardOutline,giftOutline,locateOutline,chevronBackOutline,timeOutline,closeOutline,scanOutline,star,callOutline,chatbubbleEllipsesOutline,checkmarkDoneCircleOutline,flagOutline,cashOutline,shieldOutline,qrCodeOutline,carOutline,arrowForwardOutline});
 
     this.networkService.isOnline$.subscribe(online => {
       this.isOffline = !online;
@@ -573,7 +570,18 @@ export class HomePage implements OnInit, OnDestroy {
         return;
       }
 
-      // 3. Guard: Validate Service Area Boundary
+      // 3. Guard: Validate Closed / Offline Service Area
+      if (this.isAreaClosed) {
+        this.status = false;
+        this.dialogService.showAlert(
+          'Services Currently Closed',
+          this.areaClosureMessage || `Services in ${this.closedAreaCity || 'this city'} are currently offline.`,
+          'warning'
+        );
+        return;
+      }
+
+      // 4. Guard: Validate Service Area Boundary
       if (this.isOutOfServiceArea) {
         this.status = false;
         const nearestInfo = this.nearestServiceArea
@@ -906,7 +914,31 @@ export class HomePage implements OnInit, OnDestroy {
       this.nearestServiceArea = null;
       this.currentServiceArea = foundArea;
       this.renderServiceAreaOnMap();
+
+      if (foundArea.isOffline) {
+        this.isAreaClosed = true;
+        this.areaClosureMessage = foundArea.offlineMessage || 'Services in this area are temporarily offline. Please check back later.';
+        this.closedAreaCity = foundArea.cityName;
+
+        // If captain was online and area went offline, automatically turn offline
+        if (this.status && !this.activeRide) {
+          this.status = false;
+          this.proceedDutyChange(false);
+          this.dialogService.showAlert(
+            'Services Temporarily Closed',
+            this.areaClosureMessage,
+            'warning'
+          );
+        }
+      } else {
+        this.isAreaClosed = false;
+        this.areaClosureMessage = '';
+        this.closedAreaCity = '';
+      }
     } else {
+      this.isAreaClosed = false;
+      this.areaClosureMessage = '';
+      this.closedAreaCity = '';
       this.isOutOfServiceArea = true;
       this.nearestServiceArea = this.findNearestArea(lat, lng);
       this.currentServiceArea = null;
@@ -986,11 +1018,17 @@ export class HomePage implements OnInit, OnDestroy {
       }
       await this.loadServiceAreas();
       this.evaluateGeoFence(this.lat, this.lng);
-      if (!this.isOutOfServiceArea) {
+      if (!this.isOutOfServiceArea && !this.isAreaClosed) {
         this.dialogService.showAlert(
-          'Inside Service Area',
-          'You are now inside the active service area. You can switch Online now.',
+          'Services Active',
+          'You are inside the active service area. You can switch Online now.',
           'success'
+        );
+      } else if (this.isAreaClosed) {
+        this.dialogService.showAlert(
+          'Services Currently Closed',
+          this.areaClosureMessage || `Services in ${this.closedAreaCity || 'this city'} are currently offline.`,
+          'warning'
         );
       }
     } finally {

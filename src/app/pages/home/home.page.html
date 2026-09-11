@@ -50,7 +50,7 @@
   </ion-toolbar>
 </ion-header>
 
-<ion-content class="cockpit-content">
+<ion-content class="cockpit-content" [class.is-offline]="!status">
   <!-- Top Floating Performance Bar -->
   <div class="floating-metrics-card">
     <div class="metric-col" (click)="gotoEarnings()">
@@ -79,8 +79,37 @@
       </div>
     </div>
   } @else if (!status) {
-    <div class="offline-hero-container" [class.out-of-area-mode]="isOutOfServiceArea">
-      @if (isOutOfServiceArea) {
+    <div class="offline-hero-container" [class.out-of-area-mode]="isOutOfServiceArea || isAreaClosed">
+      @if (isAreaClosed) {
+        <div class="offline-card out-of-area-card closed-area-card">
+          <div class="out-of-area-icon-pulse closed-icon-pulse">
+            <ion-icon name="moon-outline"></ion-icon>
+          </div>
+          <div class="out-of-area-pill closed-pill">
+            <span class="pill-dot closed-dot"></span>
+            <span>SERVICES CURRENTLY CLOSED</span>
+          </div>
+          <h2>We Are Currently Closed</h2>
+          <p class="out-of-area-desc">
+            {{ areaClosureMessage || 'Our services in this city are temporarily offline. We will resume operations soon.' }}
+          </p>
+
+          <div class="nearest-area-box">
+            <div class="nearest-title">
+              <ion-icon name="business-outline"></ion-icon>
+              <span>City Zone: <strong>{{ closedAreaCity || 'Current City' }}</strong></span>
+            </div>
+            <div class="nearest-instruction">
+              Fleet operations are temporarily paused in this city. You will be able to go online once services resume.
+            </div>
+          </div>
+
+          <button class="btn-check-area closed-btn" (click)="recheckLocationAndServiceArea()">
+            <ion-icon name="refresh-outline"></ion-icon>
+            RE-CHECK STATUS
+          </button>
+        </div>
+      } @else if (isOutOfServiceArea) {
         <div class="offline-card out-of-area-card">
           <div class="out-of-area-icon-pulse">
             <ion-icon name="location-outline"></ion-icon>
@@ -122,7 +151,7 @@
             <ion-icon name="power-outline"></ion-icon>
           </div>
           <h2>You are currently Offline</h2>
-          <p>Switch to Online duty to start receiving high-paying bike taxi & delivery orders in your area.</p>
+          <p>Switch to Online duty to start receiving high-paying bike taxi &amp; delivery orders in your area.</p>
 
           <button class="btn-go-online" (click)="status = true; changeStatus()">
             <ion-icon name="flash-outline"></ion-icon>
@@ -131,8 +160,8 @@
         </div>
       }
 
-      <!-- When inside service area, show Permissions, Incentives, and Referral cards -->
-      @if (!isOutOfServiceArea) {
+      <!-- When inside service area and service is NOT closed, show Permissions, Incentives, and Referral cards -->
+      @if (!isOutOfServiceArea && !isAreaClosed) {
         <!-- Driver Permissions Health Bar -->
         @if (!permissions.allGranted) {
           <div class="permission-health-banner warning" (click)="openPermissionsHub()">
@@ -182,13 +211,13 @@
         </div>
 
         <!-- Refer & Earn Teaser -->
-        <div class="referral-teaser" (click)="gotoReferrals()">
+        <!-- <div class="referral-teaser" (click)="gotoReferrals()">
           <div class="teaser-content">
             <h4>Refer Captain & Earn ₹500</h4>
             <p>Invite friends to join the driver fleet.</p>
           </div>
           <button class="btn-teaser">SHARE</button>
-        </div>
+        </div> -->
       }
     </div>
   }
