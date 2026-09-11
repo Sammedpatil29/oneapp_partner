@@ -6,17 +6,8 @@
   <app-no-network [isFullscreen]="true" (retry)="retryLoading()"></app-no-network>
 }
 
-<app-alert-modal
-  [isOpen]="alertModal.isOpen"
-  [type]="alertModal.type"
-  [title]="alertModal.title"
-  [message]="alertModal.message"
-  [confirmText]="alertModal.confirmText"
-  [cancelText]="alertModal.cancelText"
-  [showCancel]="alertModal.showCancel"
-  (confirmed)="handleAlertConfirm()"
-  (cancelled)="closeAlertModal()">
-</app-alert-modal>
+
+
 
 <ion-header class="captain-header" [translucent]="false">
   <ion-toolbar>
@@ -88,76 +79,117 @@
       </div>
     </div>
   } @else if (!status) {
-    <div class="offline-hero-container">
-      <div class="offline-card">
-        <div class="offline-icon-pulse">
-          <ion-icon name="power-outline"></ion-icon>
-        </div>
-        <h2>You are currently Offline</h2>
-        <p>Switch to Online duty to start receiving high-paying bike taxi & delivery orders in your area.</p>
-
-        <button class="btn-go-online" (click)="status = true; changeStatus()">
-          <ion-icon name="flash-outline"></ion-icon>
-          GO ONLINE NOW
-        </button>
-      </div>
-
-      <!-- Driver Permissions Health Bar -->
-      @if (!permissions.allGranted) {
-        <div class="permission-health-banner warning" (click)="openPermissionsHub()">
-          <div class="perm-banner-left">
-            <div class="perm-badge-icon warning">
-              <ion-icon name="alert-circle-outline"></ion-icon>
-            </div>
-            <div>
-              <h4>Permissions Required</h4>
-              <p>
-                @if (!permissions.location) { GPS Location }
-                @if (!permissions.location && !permissions.overlay) { &amp; }
-                @if (!permissions.overlay) { Draw Over Apps }
-                needed for ride alerts
-              </p>
-            </div>
+    <div class="offline-hero-container" [class.out-of-area-mode]="isOutOfServiceArea">
+      @if (isOutOfServiceArea) {
+        <div class="offline-card out-of-area-card">
+          <div class="out-of-area-icon-pulse">
+            <ion-icon name="location-outline"></ion-icon>
           </div>
-          <button class="btn-perm-grant">SETUP</button>
+          <div class="out-of-area-pill">
+            <span class="pill-dot"></span>
+            <span>OUT OF SERVICE AREA</span>
+          </div>
+          <h2>Outside Serviceable Zone</h2>
+          <p class="out-of-area-desc">You are currently outside our operating service boundaries. You cannot switch Online from here.</p>
+
+          @if (nearestServiceArea) {
+            <div class="nearest-area-box">
+              <div class="nearest-title">
+                <ion-icon name="navigate-circle-outline"></ion-icon>
+                <span>Nearest City Zone: <strong>{{ nearestServiceArea.cityName }}</strong></span>
+              </div>
+              <div class="nearest-distance-badge">
+                Approx. <strong>{{ nearestServiceArea.distanceKm }} km</strong> away
+              </div>
+              <div class="nearest-instruction">
+                Please travel inside <strong>{{ nearestServiceArea.cityName }}</strong> to go online and receive ride requests.
+              </div>
+            </div>
+          } @else {
+            <div class="nearest-instruction">
+              Please move inside the nearest active service area to switch online.
+            </div>
+          }
+
+          <button class="btn-check-area" (click)="recheckLocationAndServiceArea()">
+            <ion-icon name="refresh-outline"></ion-icon>
+            RE-CHECK LOCATION
+          </button>
         </div>
       } @else {
-        <div class="permission-health-banner success" (click)="openPermissionsHub()">
-          <div class="perm-banner-left">
-            <div class="perm-badge-icon success">
-              <ion-icon name="checkmark-circle-outline"></ion-icon>
+        <div class="offline-card">
+          <div class="offline-icon-pulse">
+            <ion-icon name="power-outline"></ion-icon>
+          </div>
+          <h2>You are currently Offline</h2>
+          <p>Switch to Online duty to start receiving high-paying bike taxi & delivery orders in your area.</p>
+
+          <button class="btn-go-online" (click)="status = true; changeStatus()">
+            <ion-icon name="flash-outline"></ion-icon>
+            GO ONLINE NOW
+          </button>
+        </div>
+      }
+
+      <!-- When inside service area, show Permissions, Incentives, and Referral cards -->
+      @if (!isOutOfServiceArea) {
+        <!-- Driver Permissions Health Bar -->
+        @if (!permissions.allGranted) {
+          <div class="permission-health-banner warning" (click)="openPermissionsHub()">
+            <div class="perm-banner-left">
+              <div class="perm-badge-icon warning">
+                <ion-icon name="alert-circle-outline"></ion-icon>
+              </div>
+              <div>
+                <h4>Permissions Required</h4>
+                <p>
+                  @if (!permissions.location) { GPS Location }
+                  @if (!permissions.location && !permissions.overlay) { &amp; }
+                  @if (!permissions.overlay) { Draw Over Apps }
+                  needed for ride alerts
+                </p>
+              </div>
+            </div>
+            <button class="btn-perm-grant">SETUP</button>
+          </div>
+        } @else {
+          <div class="permission-health-banner success" (click)="openPermissionsHub()">
+            <div class="perm-banner-left">
+              <div class="perm-badge-icon success">
+                <ion-icon name="checkmark-circle-outline"></ion-icon>
+              </div>
+              <div>
+                <h4>Captain System Ready</h4>
+                <p>GPS &amp; Background Overlay Active</p>
+              </div>
+            </div>
+            <ion-icon name="chevron-forward-outline" class="arrow-right"></ion-icon>
+          </div>
+        }
+
+        <!-- Daily Milestone Incentive Banner -->
+        <div class="incentive-banner" (click)="gotoEarnings()">
+          <div class="incentive-left">
+            <div class="incentive-icon">
+              <ion-icon name="gift-outline"></ion-icon>
             </div>
             <div>
-              <h4>Captain System Ready</h4>
-              <p>GPS &amp; Background Overlay Active</p>
+              <h4>No Incentive Offers</h4>
+              <p>No active daily incentive offers available right now.</p>
             </div>
           </div>
           <ion-icon name="chevron-forward-outline" class="arrow-right"></ion-icon>
         </div>
+
+        <!-- Refer & Earn Teaser -->
+        <div class="referral-teaser" (click)="gotoReferrals()">
+          <div class="teaser-content">
+            <h4>Refer Captain & Earn ₹500</h4>
+            <p>Invite friends to join the driver fleet.</p>
+          </div>
+          <button class="btn-teaser">SHARE</button>
+        </div>
       }
-
-      <!-- Daily Milestone Incentive Banner -->
-      <div class="incentive-banner" (click)="gotoEarnings()">
-        <div class="incentive-left">
-          <div class="incentive-icon">
-            <ion-icon name="gift-outline"></ion-icon>
-          </div>
-          <div>
-            <h4>No Incentive Offers</h4>
-            <p>No active daily incentive offers available right now.</p>
-          </div>
-        </div>
-        <ion-icon name="chevron-forward-outline" class="arrow-right"></ion-icon>
-      </div>
-
-      <!-- Refer & Earn Teaser -->
-      <div class="referral-teaser" (click)="gotoReferrals()">
-        <div class="teaser-content">
-          <h4>Refer Captain & Earn ₹500</h4>
-          <p>Invite friends to join the driver fleet.</p>
-        </div>
-        <button class="btn-teaser">SHARE</button>
-      </div>
     </div>
   }
 
@@ -452,7 +484,7 @@
             </div>
 
             @if (otpError) {
-              <p class="otp-error-msg">Incorrect OTP. Please ask customer or try ({{ activeRide.otp }})</p>
+              <p class="otp-error-msg">Incorrect OTP. Please ask customer for the 4-digit PIN.</p>
             }
 
             <button class="btn-primary-slide start" (click)="verifyOtp()">

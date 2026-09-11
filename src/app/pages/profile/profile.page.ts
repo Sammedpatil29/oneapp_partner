@@ -12,7 +12,6 @@ import {
   IonBadge,
   IonRefresher,
   IonRefresherContent,
-  AlertController
 } from '@ionic/angular/standalone';
 import { Router } from '@angular/router';
 import { NavController } from '@ionic/angular';
@@ -41,6 +40,7 @@ import { NoNetworkComponent } from 'src/app/components/no-network/no-network.com
 import { NoDataComponent } from 'src/app/components/no-data/no-data.component';
 import { ApiErrorComponent } from 'src/app/components/api-error/api-error.component';
 import { NetworkService } from 'src/app/services/network.service';
+import { AppDialogService } from 'src/app/services/app-dialog.service';
 import { environment } from 'src/environments/environment';
 
 @Component({
@@ -102,7 +102,7 @@ export class ProfilePage implements OnInit {
   private router = inject(Router);
   private navCtrl = inject(NavController);
   private captainService = inject(CaptainService);
-  private alertCtrl = inject(AlertController);
+  private dialogService = inject(AppDialogService);
   public networkService = inject(NetworkService);
   public captainNative = inject(CaptainNativeService);
 
@@ -238,23 +238,17 @@ export class ProfilePage implements OnInit {
   }
 
   async logout() {
-    const alert = await this.alertCtrl.create({
-      header: 'Log Out',
+    const confirmed = await this.dialogService.showDangerConfirm({
+      title: 'Log Out',
       message: 'Are you sure you want to log out of Pintu Captain?',
-      buttons: [
-        { text: 'Cancel', role: 'cancel' },
-        {
-          text: 'Log Out',
-          role: 'destructive',
-          handler: () => {
-            localStorage.removeItem('riderJwt');
-            localStorage.removeItem('riderId');
-            this.navCtrl.navigateRoot(['/login']);
-          }
-        }
-      ]
+      confirmText: 'Log Out',
+      cancelText: 'Stay'
     });
-    await alert.present();
+    if (confirmed) {
+      localStorage.removeItem('riderJwt');
+      localStorage.removeItem('riderId');
+      this.navCtrl.navigateRoot(['/login']);
+    }
   }
 
   goBack() {

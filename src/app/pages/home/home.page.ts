@@ -95,6 +95,12 @@ export class HomePage implements OnInit, OnDestroy {
   marker!: any;
   clickSound = new Audio('assets/sounds/notification-ping-372476.mp3');
   private locationWatchInterval: any;
+  private locationTeardownFn: (() => void) | null = null;
+  serviceAreas: any[] = [];
+  isOutOfServiceArea: boolean = false;
+  nearestServiceArea: { id?: string; cityName: string; distanceKm: number } | null = null;
+  currentServiceArea: any = null;
+  serviceAreaPolygonOverlay: any = null;
 
   // Permissions State
   showPermissionsHub: boolean = false;
@@ -168,18 +174,6 @@ export class HomePage implements OnInit, OnDestroy {
   isOffline: boolean = false;
   hasApiError: boolean = false;
 
-  // Reusable Alert Modal State
-  alertModal = {
-    isOpen: false,
-    type: 'info' as AlertType,
-    title: '',
-    message: '',
-    confirmText: 'OK',
-    cancelText: 'Cancel',
-    showCancel: false,
-    onConfirm: () => {}
-  };
-
   private socketService = inject(SocketService);
   private captainService = inject(CaptainService);
   private authService = inject(AuthService);
@@ -223,6 +217,13 @@ export class HomePage implements OnInit, OnDestroy {
     }
   }
 
+  ionViewDidEnter() {
+    if (this.status) {
+      this.mapRetryCount = 0;
+      setTimeout(() => this.loadMap(), 150);
+    }
+  }
+
   async ngOnInit() {
     this.riderId = this.authService.getRiderId() || localStorage.getItem('riderId');
     this.loadProfile();
@@ -249,6 +250,8 @@ export class HomePage implements OnInit, OnDestroy {
     this.loadProfile();
     this.loadTodayEarnings();
     this.checkOngoingActiveRide();
+    this.loadServiceAreas();
+    this.startWatchingLocation();
 
     // Safety timeout: dismiss syncing loader after max 1500ms so screen is never blocked
     setTimeout(() => {
@@ -343,6 +346,31 @@ export class HomePage implements OnInit, OnDestroy {
         'warning'
       );
     });
+
+    // 6. Listen for trip started confirmation from server
+    this.socketService.onRideStarted((msg: any) => {
+      console.log('🚀 [Partner] Ride started confirmation received:', msg);
+      if (this.activeRide && (msg?.ride?.id == this.activeRide.id || msg?.rideId == this.activeRide.id)) {
+        this.otpError = false;
+        this.activeRide.status = 'in_progress';
+        localStorage.setItem('pintu_active_ride', JSON.stringify(this.activeRide));
+        this.captainNative.setActiveRide(this.activeRide);
+        this.captainNative.updateNativeSystemOverlay();
+        this.enteredOtp = '';
+        this.dialogService.showToast('OTP Verified! Trip is now in progress.', 'success');
+      }
+    });
+
+    // 7. Listen for OTP verification error from server
+    this.socketService.onRideOtpError((msg: any) => {
+      console.warn('❌ [Partner] Ride OTP error from server:', msg);
+      this.otpError = true;
+      this.dialogService.showAlert(
+        'Incorrect OTP',
+        msg?.message || 'Incorrect 4-digit OTP. Please ask the customer for the correct PIN.',
+        'error'
+      );
+    });
   }
 
   async refreshPermissions() {
@@ -360,8 +388,13 @@ export class HomePage implements OnInit, OnDestroy {
 
   ngOnDestroy() {
     this.stopIncomingChime();
+    this.clearServiceAreaOnMap();
     if (this.locationWatchInterval) {
       clearInterval(this.locationWatchInterval);
+    }
+    if (this.locationTeardownFn) {
+      this.locationTeardownFn();
+      this.locationTeardownFn = null;
     }
   }
 
@@ -487,16 +520,6 @@ export class HomePage implements OnInit, OnDestroy {
     });
   }
 
-  closeAlertModal() {
-    this.alertModal.isOpen = false;
-  }
-
-  handleAlertConfirm() {
-    this.alertModal.isOpen = false;
-    if (this.alertModal.onConfirm) {
-      this.alertModal.onConfirm();
-    }
-  }
 
   async changeStatus() {
     if (this.status) {
@@ -537,19 +560,30 @@ export class HomePage implements OnInit, OnDestroy {
 
       if (!perms.overlay) {
         this.status = false;
-        this.alertModal = {
-          isOpen: true,
-          type: 'warning',
+        const granted = await this.dialogService.showConfirm({
           title: 'Overlay Permission Required',
           message: 'Draw Over Other Apps permission is required to go online so incoming trip alerts and the navigation cockpit can appear over maps.',
           confirmText: 'Enable Permission',
-          cancelText: 'Cancel',
-          showCancel: true,
-          onConfirm: async () => {
-            await this.captainNative.requestOverlayPermission();
-            await this.refreshPermissions();
-          }
-        };
+          cancelText: 'Cancel'
+        });
+        if (granted) {
+          await this.captainNative.requestOverlayPermission();
+          await this.refreshPermissions();
+        }
+        return;
+      }
+
+      // 3. Guard: Validate Service Area Boundary
+      if (this.isOutOfServiceArea) {
+        this.status = false;
+        const nearestInfo = this.nearestServiceArea
+          ? ` Nearest service area is ${this.nearestServiceArea.cityName} (~${this.nearestServiceArea.distanceKm} km away).`
+          : '';
+        this.dialogService.showAlert(
+          'Outside Serviceable Area',
+          `You cannot switch Online because you are currently outside our operating service zone.${nearestInfo} Please travel inside the service area to start receiving rides.`,
+          'warning'
+        );
         return;
       }
 
@@ -590,30 +624,67 @@ export class HomePage implements OnInit, OnDestroy {
     this.captainNative.setDutyStatus(online);
 
     if (online) {
+      this.mapRetryCount = 0;
       setTimeout(() => {
         this.loadMap();
       }, 300);
+    } else {
+      // Going offline: destroy old map, marker and polygon overlay
+      this.clearServiceAreaOnMap();
+      this.map = null;
+      this.marker = null;
+      this.mapRetryCount = 0;
     }
   }
 
-  loadMap() {
+  private ensureGoogleMapsLoaded(): Promise<boolean> {
+    return new Promise((resolve) => {
+      if (typeof google !== 'undefined' && google.maps && google.maps.Map) {
+        return resolve(true);
+      }
+
+      let script = document.querySelector('script[src*="maps.googleapis.com/maps/api/js"]') as HTMLScriptElement;
+      if (!script) {
+        script = document.createElement('script');
+        script.src = 'https://maps.googleapis.com/maps/api/js?key=AIzaSyA85HFedGjgP12MG_dvR-MVgooWTcJNIb0&libraries=marker,geometry,places,drawing&v=beta';
+        script.async = true;
+        script.defer = true;
+        document.head.appendChild(script);
+      }
+
+      let elapsed = 0;
+      const interval = setInterval(() => {
+        elapsed += 150;
+        if (typeof google !== 'undefined' && google.maps && google.maps.Map) {
+          clearInterval(interval);
+          resolve(true);
+        } else if (elapsed >= 10000) {
+          clearInterval(interval);
+          console.warn('Google Maps script load timed out.');
+          resolve(false);
+        }
+      }, 150);
+    });
+  }
+
+  async loadMap() {
     if (!this.status) return;
 
-    const mapEl = document.getElementById('map');
-    if (!mapEl || typeof google === 'undefined') return;
-    if (!mapEl) {
-      if (this.mapRetryCount < 15) {
+    const isGoogleReady = await this.ensureGoogleMapsLoaded();
+    if (!isGoogleReady) {
+      console.warn('Google Maps SDK not ready yet. Retrying...');
+      if (this.mapRetryCount < 10) {
         this.mapRetryCount++;
-        setTimeout(() => this.loadMap(), 300);
+        setTimeout(() => this.loadMap(), 500);
       }
       return;
     }
 
-    if (typeof google === 'undefined' || !google.maps || !google.maps.Map) {
-      console.warn('Google Maps SDK not ready yet. Retrying...');
+    const mapEl = document.getElementById('map');
+    if (!mapEl) {
       if (this.mapRetryCount < 20) {
         this.mapRetryCount++;
-        setTimeout(() => this.loadMap(), 500);
+        setTimeout(() => this.loadMap(), 300);
       }
       return;
     }
@@ -621,16 +692,23 @@ export class HomePage implements OnInit, OnDestroy {
     this.mapRetryCount = 0;
     const latLng = new google.maps.LatLng(this.lat, this.lng);
 
-    if (this.map) {
+    // If map already exists AND is attached to the current DOM element
+    if (this.map && this.map.getDiv() === mapEl && mapEl.hasChildNodes()) {
       try {
         google.maps.event.trigger(this.map, 'resize');
         this.map.setCenter(latLng);
         if (this.marker) {
           this.marker.setPosition(latLng);
         }
+        this.renderServiceAreaOnMap();
       } catch (e) {}
       return;
     }
+
+    // Clean up stale map reference and create fresh map attached to the current mapEl
+    this.clearServiceAreaOnMap();
+    this.map = null;
+    this.marker = null;
 
     try {
       this.map = new google.maps.Map(mapEl, {
@@ -661,6 +739,17 @@ export class HomePage implements OnInit, OnDestroy {
           strokeWeight: 3
         }
       });
+
+      // Render serviceable area border polygon immediately if rider is inside
+      this.renderServiceAreaOnMap();
+
+      setTimeout(() => {
+        if (this.map && typeof google !== 'undefined') {
+          google.maps.event.trigger(this.map, 'resize');
+          this.map.setCenter(latLng);
+          this.renderServiceAreaOnMap();
+        }
+      }, 150);
     } catch (mapInitErr) {
       console.error('Error initializing Google Maps:', mapInitErr);
     }
@@ -676,43 +765,236 @@ export class HomePage implements OnInit, OnDestroy {
       }
     } catch (e) {}
 
-    const mapEl = document.getElementById('map');
-    if (mapEl && typeof google !== 'undefined' && google.maps) {
-      const latLng = new google.maps.LatLng(this.lat, this.lng);
-      try {
-        this.map = new google.maps.Map(mapEl, {
-          center: latLng,
-          zoom: 16,
-          disableDefaultUI: true,
-          mapTypeControl: false,
-          zoomControl: false,
-          streetViewControl: false,
-          fullscreenControl: false,
-          styles: [
-            { featureType: 'poi', stylers: [{ visibility: 'off' }] },
-            { featureType: 'transit', stylers: [{ visibility: 'off' }] },
-            { featureType: 'road', elementType: 'labels', stylers: [{ visibility: 'simplified' }] }
-          ]
-        });
+    this.clearServiceAreaOnMap();
+    this.map = null;
+    this.marker = null;
+    this.loadMap();
+  }
 
-        this.marker = new google.maps.Marker({
-          position: latLng,
-          map: this.map,
-          title: 'Captain Location',
-          icon: {
-            path: google.maps.SymbolPath.CIRCLE,
-            scale: 9,
-            fillColor: '#a000e2',
-            fillOpacity: 1,
-            strokeColor: '#ffffff',
-            strokeWeight: 3
+  loadServiceAreas(): Promise<void> {
+    return new Promise((resolve) => {
+      this.captainService.getServiceAreas(true).subscribe({
+        next: (res: any) => {
+          if (res?.success && Array.isArray(res.data)) {
+            this.serviceAreas = res.data;
+            if (this.lat && this.lng) {
+              this.evaluateGeoFence(this.lat, this.lng);
+            }
           }
-        });
-      } catch (err) {
-        console.warn('Map reload error:', err);
+          resolve();
+        },
+        error: (err: any) => {
+          console.warn('Could not load service areas from API:', err?.message);
+          resolve();
+        }
+      });
+    });
+  }
+
+  async startWatchingLocation() {
+    if (this.locationTeardownFn) {
+      this.locationTeardownFn();
+      this.locationTeardownFn = null;
+    }
+
+    try {
+      this.locationTeardownFn = await this.locationService.watchLocation(
+        (coords) => {
+          this.lat = coords.lat;
+          this.lng = coords.lng;
+
+          // Smoothly update marker on map if active
+          if (this.map && this.marker && typeof google !== 'undefined' && google.maps) {
+            const pos = new google.maps.LatLng(this.lat, this.lng);
+            this.marker.setPosition(pos);
+          }
+
+          // Live location update to backend & customers via socket
+          const riderId = this.authService.getRiderId() || localStorage.getItem('riderId') || '';
+          if (riderId) {
+            this.socketService.sendLiveLocation(riderId, this.lat, this.lng, coords.heading || 0);
+          }
+
+          // Continually evaluate whether captain is inside any active service area
+          this.evaluateGeoFence(this.lat, this.lng);
+        },
+        (err) => {
+          console.warn('Location watch error:', err);
+        }
+      );
+    } catch (e) {
+      console.warn('Could not initialize location watch:', e);
+    }
+  }
+
+  private isPointInPolygon(point: { lat: number; lng: number }, polygon: { lat: number; lng: number }[]): boolean {
+    if (!polygon || polygon.length < 3) return false;
+    let inside = false;
+    for (let i = 0, j = polygon.length - 1; i < polygon.length; j = i++) {
+      const xi = polygon[i].lat, yi = polygon[i].lng;
+      const xj = polygon[j].lat, yj = polygon[j].lng;
+      const intersect = ((yi > point.lng) !== (yj > point.lng))
+        && (point.lat < (xj - xi) * (point.lng - yi) / (yj - yi) + xi);
+      if (intersect) inside = !inside;
+    }
+    return inside;
+  }
+
+  private calculateHaversineDistanceKm(lat1: number, lon1: number, lat2: number, lon2: number): number {
+    const R = 6371;
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLon = (lon2 - lon1) * Math.PI / 180;
+    const a =
+      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+      Math.sin(dLon / 2) * Math.sin(dLon / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    return R * c;
+  }
+
+  private findNearestArea(lat: number, lng: number): { id?: string; cityName: string; distanceKm: number } | null {
+    if (!this.serviceAreas || this.serviceAreas.length === 0) return null;
+    let minDistance = Infinity;
+    let nearest: any = null;
+
+    for (const area of this.serviceAreas) {
+      let areaMinDist = Infinity;
+      if (area.polygon && Array.isArray(area.polygon) && area.polygon.length > 0) {
+        for (const vertex of area.polygon) {
+          const d = this.calculateHaversineDistanceKm(lat, lng, vertex.lat, vertex.lng);
+          if (d < areaMinDist) areaMinDist = d;
+        }
       }
+      if (area.center && typeof area.center.lat === 'number') {
+        const d = this.calculateHaversineDistanceKm(lat, lng, area.center.lat, area.center.lng);
+        if (d < areaMinDist) areaMinDist = d;
+      }
+      if (areaMinDist < minDistance) {
+        minDistance = areaMinDist;
+        nearest = area;
+      }
+    }
+
+    if (!nearest) return null;
+    return {
+      id: nearest.id,
+      cityName: nearest.cityName,
+      distanceKm: Math.round(minDistance * 10) / 10
+    };
+  }
+
+  evaluateGeoFence(lat: number, lng: number) {
+    if (!this.serviceAreas || this.serviceAreas.length === 0) {
+      this.isOutOfServiceArea = false;
+      return;
+    }
+
+    let insideAny = false;
+    let foundArea: any = null;
+    for (const area of this.serviceAreas) {
+      if (area.isActive !== false && area.polygon && area.polygon.length >= 3) {
+        if (this.isPointInPolygon({ lat, lng }, area.polygon)) {
+          insideAny = true;
+          foundArea = area;
+          break;
+        }
+      }
+    }
+
+    if (insideAny) {
+      this.isOutOfServiceArea = false;
+      this.nearestServiceArea = null;
+      this.currentServiceArea = foundArea;
+      this.renderServiceAreaOnMap();
     } else {
-      this.loadMap();
+      this.isOutOfServiceArea = true;
+      this.nearestServiceArea = this.findNearestArea(lat, lng);
+      this.currentServiceArea = null;
+      this.clearServiceAreaOnMap();
+
+      // If captain was online and just went outside service area, automatically turn offline
+      if (this.status && !this.activeRide) {
+        this.status = false;
+        this.proceedDutyChange(false);
+        this.dialogService.showAlert(
+          'Outside Serviceable Area',
+          `You have moved outside the service zone. We have switched you offline. Nearest service area: ${this.nearestServiceArea?.cityName || 'City'} (~${this.nearestServiceArea?.distanceKm || 0} km). Please travel back inside to go online.`,
+          'warning'
+        );
+      }
+    }
+  }
+
+  renderServiceAreaOnMap() {
+    if (!this.map || typeof google === 'undefined' || !google.maps) return;
+
+    if (!this.currentServiceArea || !this.currentServiceArea.polygon || this.currentServiceArea.polygon.length < 3) {
+      this.clearServiceAreaOnMap();
+      return;
+    }
+
+    const coords = this.currentServiceArea.polygon.map((p: any) => ({
+      lat: Number(p.lat),
+      lng: Number(p.lng)
+    }));
+
+    // If overlay already exists, update its path and style smoothly
+    if (this.serviceAreaPolygonOverlay) {
+      try {
+        this.serviceAreaPolygonOverlay.setPaths(coords);
+        this.serviceAreaPolygonOverlay.setOptions({
+          strokeColor: this.currentServiceArea.strokeColor || '#a000e2',
+          fillColor: this.currentServiceArea.areaColor || '#a000e2',
+        });
+        return;
+      } catch (e) {
+        this.clearServiceAreaOnMap();
+      }
+    }
+
+    this.serviceAreaPolygonOverlay = new google.maps.Polygon({
+      paths: coords,
+      strokeColor: this.currentServiceArea.strokeColor || '#a000e2',
+      strokeOpacity: 0.85,
+      strokeWeight: 2.5,
+      fillColor: this.currentServiceArea.areaColor || '#a000e2',
+      fillOpacity: 0.08,
+      clickable: false,
+      editable: false,
+      zIndex: 1
+    });
+
+    this.serviceAreaPolygonOverlay.setMap(this.map);
+  }
+
+  clearServiceAreaOnMap() {
+    if (this.serviceAreaPolygonOverlay) {
+      try {
+        this.serviceAreaPolygonOverlay.setMap(null);
+      } catch (e) {}
+      this.serviceAreaPolygonOverlay = null;
+    }
+  }
+
+  async recheckLocationAndServiceArea() {
+    this.isLoading = true;
+    try {
+      const loc = await this.locationService.getCurrentLocation();
+      if (loc && loc.lat && loc.lng) {
+        this.lat = loc.lat;
+        this.lng = loc.lng;
+      }
+      await this.loadServiceAreas();
+      this.evaluateGeoFence(this.lat, this.lng);
+      if (!this.isOutOfServiceArea) {
+        this.dialogService.showAlert(
+          'Inside Service Area',
+          'You are now inside the active service area. You can switch Online now.',
+          'success'
+        );
+      }
+    } finally {
+      this.isLoading = false;
     }
   }
 
@@ -1002,17 +1284,32 @@ export class HomePage implements OnInit, OnDestroy {
 
   verifyOtp() {
     if (!this.activeRide) return;
-    if (this.enteredOtp === this.activeRide.otp || this.enteredOtp === '1234' || this.enteredOtp.length === 4) {
-      this.otpError = false;
-      this.activeRide.status = 'in_progress';
-      localStorage.setItem('pintu_active_ride', JSON.stringify(this.activeRide));
-      this.captainNative.setActiveRide(this.activeRide);
-      this.captainNative.updateNativeSystemOverlay();
-      this.socketService.verifyRideOtp(this.activeRide.id, this.enteredOtp);
-      this.enteredOtp = '';
-    } else {
+    const cleanEntered = this.enteredOtp ? String(this.enteredOtp).trim() : '';
+
+    if (!cleanEntered || cleanEntered.length !== 4 || !/^\d{4}$/.test(cleanEntered)) {
       this.otpError = true;
+      this.dialogService.showAlert(
+        'Invalid PIN Format',
+        'Please enter the valid 4-digit start PIN provided by the customer.',
+        'warning'
+      );
+      return;
     }
+
+    const expectedOtp = this.activeRide.otp ? String(this.activeRide.otp).trim() : '';
+    if (expectedOtp && cleanEntered !== expectedOtp) {
+      this.otpError = true;
+      this.dialogService.showAlert(
+        'Incorrect OTP',
+        'The OTP entered does not match the customer PIN. Please ask the customer to check the PIN on their screen.',
+        'error'
+      );
+      return;
+    }
+
+    // Emit to server to verify against the database record
+    this.otpError = false;
+    this.socketService.verifyRideOtp(this.activeRide.id, cleanEntered);
   }
 
   completeTrip() {

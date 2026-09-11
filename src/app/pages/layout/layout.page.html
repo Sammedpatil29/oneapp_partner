@@ -4,6 +4,22 @@
       <ion-router-outlet></ion-router-outlet>
     </div>
 
+    <!-- ─── GLOBAL ALERT MODAL (driven by AppDialogService) ─── -->
+    @if (dialogState$ | async; as dlg) {
+      <app-alert-modal
+        [isOpen]="dlg.isOpen"
+        [type]="dlg.type"
+        [title]="dlg.title"
+        [message]="dlg.message"
+        [confirmText]="dlg.confirmText"
+        [cancelText]="dlg.cancelText"
+        [showCancel]="dlg.showCancel"
+        (confirmed)="onDialogConfirm()"
+        (cancelled)="onDialogCancel()">
+      </app-alert-modal>
+    }
+
+
     <!-- Zepto-Style One-Line Update Banner directly above bottom navbar with no gap -->
     @if (otaBanner?.show) {
       <div class="ota-bottom-banner" [class]="otaBanner.type">

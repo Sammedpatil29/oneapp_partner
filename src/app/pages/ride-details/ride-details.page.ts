@@ -106,6 +106,36 @@ export class RideDetailsPage implements OnInit, OnDestroy {
 
   ngOnInit() {
     this.initRideData();
+
+    this.socketService.onRideStarted(async (msg: any) => {
+      if (this.rideDetails && (msg?.ride?.id == this.rideDetails.id || msg?.rideId == this.rideDetails.id)) {
+        this.otpError = false;
+        this.rideDetails.status = 'in_progress';
+        localStorage.setItem('pintu_active_ride', JSON.stringify(this.rideDetails));
+        this.captainNative.setActiveRide(this.rideDetails);
+        this.captainNative.updateNativeSystemOverlay();
+        this.enteredOtp = '';
+
+        const toast = await this.toastCtrl.create({
+          message: 'OTP Verified! Trip is now in progress.',
+          duration: 2500,
+          position: 'top',
+          color: 'success'
+        });
+        await toast.present();
+      }
+    });
+
+    this.socketService.onRideOtpError(async (msg: any) => {
+      this.otpError = true;
+      const toast = await this.toastCtrl.create({
+        message: msg?.message || 'Incorrect 4-digit OTP. Please ask customer to re-check.',
+        duration: 3000,
+        position: 'top',
+        color: 'danger'
+      });
+      await toast.present();
+    });
   }
 
   ngOnDestroy() {
@@ -274,32 +304,39 @@ export class RideDetailsPage implements OnInit, OnDestroy {
 
   async verifyOtp() {
     if (!this.rideDetails) return;
-    const requiredOtp = this.rideDetails.otp ? String(this.rideDetails.otp).trim() : '';
-    const cleanEntered = this.enteredOtp ? this.enteredOtp.trim() : '';
+    const cleanEntered = this.enteredOtp ? String(this.enteredOtp).trim() : '';
 
-    if (cleanEntered === requiredOtp || cleanEntered === '1234' || cleanEntered.length === 4) {
-      this.otpError = false;
-      this.isActionLoading = true;
-      try {
-        this.rideDetails.status = 'in_progress';
-        localStorage.setItem('pintu_active_ride', JSON.stringify(this.rideDetails));
-        this.captainNative.setActiveRide(this.rideDetails);
-        this.captainNative.updateNativeSystemOverlay();
-        this.socketService.verifyRideOtp(this.rideDetails.id, cleanEntered);
-        this.enteredOtp = '';
-
-        const toast = await this.toastCtrl.create({
-          message: 'OTP Verified! Trip is now in progress.',
-          duration: 2500,
-          position: 'top',
-          color: 'success'
-        });
-        await toast.present();
-      } finally {
-        this.isActionLoading = false;
-      }
-    } else {
+    if (!cleanEntered || cleanEntered.length !== 4 || !/^\d{4}$/.test(cleanEntered)) {
       this.otpError = true;
+      const toast = await this.toastCtrl.create({
+        message: 'Please enter a valid 4-digit numeric start PIN.',
+        duration: 2500,
+        position: 'top',
+        color: 'warning'
+      });
+      await toast.present();
+      return;
+    }
+
+    const requiredOtp = this.rideDetails.otp ? String(this.rideDetails.otp).trim() : '';
+    if (requiredOtp && cleanEntered !== requiredOtp) {
+      this.otpError = true;
+      const toast = await this.toastCtrl.create({
+        message: 'Incorrect OTP. Please ask customer to check their PIN.',
+        duration: 2500,
+        position: 'top',
+        color: 'danger'
+      });
+      await toast.present();
+      return;
+    }
+
+    this.otpError = false;
+    this.isActionLoading = true;
+    try {
+      this.socketService.verifyRideOtp(this.rideDetails.id, cleanEntered);
+    } finally {
+      this.isActionLoading = false;
     }
   }
 

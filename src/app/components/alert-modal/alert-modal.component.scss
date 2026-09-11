@@ -5,78 +5,61 @@
   right: 0;
   bottom: 0;
   background: rgba(15, 23, 42, 0.6);
-  backdrop-filter: blur(5px);
-  -webkit-backdrop-filter: blur(5px);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 20px;
+  padding: 24px 20px;
   z-index: 10000;
-  animation: fadeIn 0.2s ease-out;
+  animation: fadeIn 0.18s ease-out;
 }
 
 .alert-modal-card {
   position: relative;
   background: #ffffff;
   border-radius: 24px;
-  padding: 28px 22px 20px;
+  padding: 32px 24px 24px;
   width: 100%;
   max-width: 340px;
   text-align: center;
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 24px 48px rgba(0, 0, 0, 0.18);
   animation: scaleUp 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
   border: 1px solid #f1f5f9;
 }
 
-.btn-close-modal {
-  position: absolute;
-  top: 14px;
-  right: 14px;
-  background: #f1f5f9;
-  border: none;
-  border-radius: 50%;
-  width: 30px;
-  height: 30px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: #64748b;
-  font-size: 18px;
-  cursor: pointer;
-}
-
 .alert-icon-wrap {
-  width: 64px;
-  height: 64px;
+  width: 68px;
+  height: 68px;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 32px;
-  margin: 0 auto 16px;
+  font-size: 34px;
+  margin: 0 auto 18px;
 
   &.success {
     background: #ecfdf5;
     color: #10b981;
-    box-shadow: 0 0 0 6px rgba(16, 185, 129, 0.12);
+    box-shadow: 0 0 0 8px rgba(16, 185, 129, 0.10);
   }
 
   &.error {
     background: #fef2f2;
     color: #ef4444;
-    box-shadow: 0 0 0 6px rgba(239, 68, 68, 0.12);
+    box-shadow: 0 0 0 8px rgba(239, 68, 68, 0.10);
   }
 
   &.warning {
     background: #fffbeb;
     color: #f59e0b;
-    box-shadow: 0 0 0 6px rgba(245, 158, 11, 0.12);
+    box-shadow: 0 0 0 8px rgba(245, 158, 11, 0.10);
   }
 
   &.confirm, &.info {
     background: #fbf0ff;
     color: var(--app-theme-color, #a000e2);
-    box-shadow: 0 0 0 6px rgba(160, 0, 226, 0.15);
+    box-shadow: 0 0 0 8px rgba(160, 0, 226, 0.10);
   }
 }
 
@@ -84,33 +67,55 @@
   font-size: 18px;
   font-weight: 800;
   color: #0f172a;
-  margin: 0 0 6px;
+  margin: 0 0 8px;
+  line-height: 1.3;
 }
 
 .alert-msg {
-  font-size: 13px;
+  font-size: 13.5px;
   color: #64748b;
-  line-height: 1.5;
-  margin: 0 0 20px;
+  line-height: 1.55;
+  margin: 0 0 22px;
 }
+
+// ─── Button container ────────────────────────────────────────────────────────
 
 .alert-actions {
   display: flex;
   gap: 10px;
-  justify-content: center;
+
+  // Two-button layout: side by side (default)
+  &:not(.single) {
+    flex-direction: row;
+
+    button {
+      flex: 1;
+    }
+  }
+
+  // Single-button layout: centred, generous width
+  &.single {
+    flex-direction: column;
+    align-items: center;
+
+    button {
+      width: 80%;
+    }
+  }
 
   button {
-    flex: 1;
-    padding: 12px;
-    border-radius: 12px;
+    padding: 13px 16px;
+    border-radius: 14px;
     font-size: 14px;
-    font-weight: 750;
+    font-weight: 700;
     border: none;
     cursor: pointer;
-    transition: transform 0.15s ease;
+    letter-spacing: 0.2px;
+    transition: transform 0.15s ease, opacity 0.15s ease;
 
     &:active {
       transform: scale(0.97);
+      opacity: 0.9;
     }
   }
 
@@ -122,7 +127,7 @@
   .btn-confirm {
     background: var(--app-theme-color, #a000e2);
     color: #ffffff;
-    box-shadow: 0 4px 14px rgba(160, 0, 226, 0.35);
+    box-shadow: 0 4px 14px rgba(160, 0, 226, 0.30);
 
     &.success {
       background: #10b981;
@@ -137,6 +142,12 @@
     &.warning {
       background: #f59e0b;
       box-shadow: 0 4px 12px rgba(245, 158, 11, 0.25);
+      color: #ffffff;
+    }
+
+    &.confirm {
+      background: var(--app-theme-color, #a000e2);
+      box-shadow: 0 4px 14px rgba(160, 0, 226, 0.30);
     }
   }
 }
@@ -150,4 +161,3 @@
   from { transform: scale(0.85); opacity: 0; }
   to { transform: scale(1); opacity: 1; }
 }
-

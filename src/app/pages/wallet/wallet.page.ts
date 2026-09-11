@@ -15,7 +15,6 @@ import {
   IonRefresher,
   IonRefresherContent,
   ToastController,
-  AlertController
 } from '@ionic/angular/standalone';
 import { addIcons } from 'ionicons';
 import {
@@ -38,10 +37,11 @@ import { LoaderComponent } from 'src/app/components/loader/loader.component';
 import { NoNetworkComponent } from 'src/app/components/no-network/no-network.component';
 import { NoDataComponent } from 'src/app/components/no-data/no-data.component';
 import { ApiErrorComponent } from 'src/app/components/api-error/api-error.component';
-import { AlertModalComponent, AlertType } from 'src/app/components/alert-modal/alert-modal.component';
+import { AppDialogService } from 'src/app/services/app-dialog.service';
 import { NetworkService } from 'src/app/services/network.service';
 import { CaptainNativeService } from 'src/app/services/captain-native.service';
 import { environment } from 'src/environments/environment';
+
 
 @Component({
   selector: 'app-wallet',
@@ -67,7 +67,6 @@ import { environment } from 'src/environments/environment';
     NoNetworkComponent,
     NoDataComponent,
     ApiErrorComponent,
-    AlertModalComponent
   ]
 })
 export class WalletPage implements OnInit, OnDestroy {
@@ -75,14 +74,6 @@ export class WalletPage implements OnInit, OnDestroy {
   isOffline: boolean = false;
   hasApiError: boolean = false;
 
-  alertModal = {
-    isOpen: false,
-    type: 'info' as AlertType,
-    title: '',
-    message: '',
-    confirmText: 'OK',
-    showCancel: false
-  };
 
   wallet: any = {
     balance: {
@@ -116,7 +107,7 @@ export class WalletPage implements OnInit, OnDestroy {
   private captainService = inject(CaptainService);
   private captainNative = inject(CaptainNativeService);
   private toastCtrl = inject(ToastController);
-  private alertCtrl = inject(AlertController);
+  private dialogService = inject(AppDialogService);
   private router = inject(Router);
   public networkService = inject(NetworkService);
 
@@ -485,12 +476,12 @@ export class WalletPage implements OnInit, OnDestroy {
       status: 'SUCCESS'
     });
 
-    const alert = await this.alertCtrl.create({
-      header: 'Payment Successful!',
-      message: `₹${amount} has been settled towards your platform commission.`,
-      buttons: ['OK']
-    });
-    await alert.present();
+    this.dialogService.showAlert(
+      'Payment Successful!',
+      `₹${amount} has been settled towards your platform commission.`,
+      'success',
+      'Done'
+    );
     this.fetchWallet();
   }
 
@@ -523,38 +514,32 @@ export class WalletPage implements OnInit, OnDestroy {
     const upi = String(this.withdrawUpiId || '').trim();
 
     if (!upi || !upi.includes('@')) {
-      this.alertModal = {
-        isOpen: true,
-        type: 'warning',
-        title: 'Invalid UPI ID',
-        message: 'Please enter a valid UPI ID (e.g. yourname@okhdfcbank or 9876543210@upi).',
-        confirmText: 'OK',
-        showCancel: false
-      };
+      this.dialogService.showAlert(
+        'Invalid UPI ID',
+        'Please enter a valid UPI ID (e.g. yourname@okhdfcbank or 9876543210@upi).',
+        'warning',
+        'Got it'
+      );
       return;
     }
 
     if (isNaN(amount) || amount < 50) {
-      this.alertModal = {
-        isOpen: true,
-        type: 'warning',
-        title: 'Minimum ₹50 Required',
-        message: 'The minimum withdrawal amount is ₹50.',
-        confirmText: 'OK',
-        showCancel: false
-      };
+      this.dialogService.showAlert(
+        'Minimum ₹50 Required',
+        'The minimum withdrawal amount is ₹50.',
+        'warning',
+        'OK'
+      );
       return;
     }
 
     if (amount > bal) {
-      this.alertModal = {
-        isOpen: true,
-        type: 'warning',
-        title: 'Insufficient Balance',
-        message: `Requested amount (₹${amount}) exceeds available wallet balance (₹${bal}).`,
-        confirmText: 'OK',
-        showCancel: false
-      };
+      this.dialogService.showAlert(
+        'Insufficient Balance',
+        `Requested amount (₹${amount}) exceeds available wallet balance (₹${bal}).`,
+        'warning',
+        'OK'
+      );
       return;
     }
 
@@ -564,26 +549,17 @@ export class WalletPage implements OnInit, OnDestroy {
         this.isSubmittingWithdrawal = false;
         this.showWithdrawModal = false;
         this.fetchWallet();
-        this.alertModal = {
-          isOpen: true,
-          type: 'success',
-          title: 'Payout Request Submitted',
-          message: `Your withdrawal request of ₹${amount} to ${upi} has been submitted successfully (Status: Submitted). It will be reviewed and transferred shortly.`,
-          confirmText: 'Done',
-          showCancel: false
-        };
+        this.dialogService.showAlert(
+          'Payout Request Submitted',
+          `Your withdrawal request of ₹${amount} to ${upi} has been submitted successfully. It will be reviewed and transferred shortly.`,
+          'success',
+          'Done'
+        );
       },
       error: (err) => {
         this.isSubmittingWithdrawal = false;
         const msg = err?.error?.message || 'Failed to submit withdrawal request. Please check and try again.';
-        this.alertModal = {
-          isOpen: true,
-          type: 'error',
-          title: 'Withdrawal Failed',
-          message: msg,
-          confirmText: 'OK',
-          showCancel: false
-        };
+        this.dialogService.showAlert('Withdrawal Failed', msg, 'error', 'OK');
       }
     });
   }

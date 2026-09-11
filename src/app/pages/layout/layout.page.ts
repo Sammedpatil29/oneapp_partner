@@ -1,5 +1,5 @@
 import { Component, OnInit, inject } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { CommonModule, AsyncPipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterModule, NavigationEnd } from '@angular/router';
 import { IonApp, IonRouterOutlet, IonIcon } from '@ionic/angular/standalone';
@@ -22,6 +22,8 @@ import { filter } from 'rxjs/operators';
 import { PermissionsHubComponent } from 'src/app/components/permissions-hub/permissions-hub.component';
 import { CaptainNativeService } from 'src/app/services/captain-native.service';
 import { OtaService, OtaBannerState } from 'src/app/services/ota.service';
+import { AlertModalComponent } from 'src/app/components/alert-modal/alert-modal.component';
+import { AppDialogService } from 'src/app/services/app-dialog.service';
 
 @Component({
   selector: 'app-layout',
@@ -35,12 +37,15 @@ import { OtaService, OtaBannerState } from 'src/app/services/ota.service';
     FormsModule, 
     IonIcon, 
     RouterModule,
-    PermissionsHubComponent
+    PermissionsHubComponent,
+    AlertModalComponent,
+    AsyncPipe
   ]
 })
 export class LayoutPage implements OnInit {
   private captainNative = inject(CaptainNativeService);
   private otaService = inject(OtaService);
+  private dialogService = inject(AppDialogService);
 
   riderId: any;
   rideRequests: any[] = [];
@@ -48,6 +53,12 @@ export class LayoutPage implements OnInit {
   currentRoute: string = '/layout/home';
   showPermissionsHub: boolean = false;
   otaBanner: OtaBannerState = { show: false, message: '', type: 'applied' };
+
+  // Global modal state stream — drives the <app-alert-modal> in layout.page.html
+  readonly dialogState$ = this.dialogService.state$;
+
+  onDialogConfirm() { this.dialogService.confirm(); }
+  onDialogCancel()  { this.dialogService.cancel(); }
 
   constructor(
     private socketService: SocketService,

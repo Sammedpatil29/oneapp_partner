@@ -193,5 +193,15 @@ export class CaptainService {
     const id = this.getRiderId();
     return this.http.get(`${this.apiUrl}/api/rider/active-ride/${id}`);
   }
+
+  // 12. Service Areas & Geo-Fencing
+  getServiceAreas(activeOnly: boolean = true): Observable<any> {
+    const query = activeOnly ? '?active=true' : '';
+    return this.http.get(`${this.apiUrl}/api/service-areas${query}`);
+  }
+
+  checkServiceArea(lat: number, lng: number): Observable<any> {
+    return this.http.post(`${this.apiUrl}/api/service-areas/check`, { lat, lng });
+  }
 }
 
