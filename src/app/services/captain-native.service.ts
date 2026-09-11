@@ -20,6 +20,10 @@ export interface CaptainNativePluginInterface {
   updateSystemOverlay(options: { earnings?: string; status?: string }): Promise<{ success: boolean }>;
   getInstalledUpiApps(): Promise<{ apps: UpiAppInfo[]; total: number }>;
   launchUpiIntent(options: { url: string; packageName?: string }): Promise<{ success: boolean }>;
+  openInBrowser(options: { url: string }): Promise<{ success: boolean }>;
+  openInAppBrowser(options: { url: string }): Promise<{ success: boolean }>;
+  closeInAppBrowser(): Promise<{ success: boolean }>;
+  addListener(eventName: string, listenerFunc: (...args: any[]) => void): Promise<any>;
 }
 
 export interface UpiAppInfo {
@@ -503,6 +507,64 @@ export class CaptainNativeService {
       console.error('Error launching UPI intent via CaptainNative:', e);
       return false;
     }
+  }
+
+  /**
+   * Opens payment checkout or payment link in external browser (preferring Chrome)
+   * to guarantee 100% native UPI app intent discovery without WebView restrictions.
+   */
+  async openInBrowser(url: string): Promise<boolean> {
+    if (!this.isNative) {
+      window.open(url, '_blank');
+      return true;
+    }
+    try {
+      const res = await CaptainNative.openInBrowser({ url });
+      return !!res?.success;
+    } catch (e) {
+      console.error('Error opening URL in browser via CaptainNative:', e);
+      window.open(url, '_system');
+      return true;
+    }
+  }
+
+  /**
+   * Opens the Razorpay payment checkout inside an In-App Browser modal Dialog.
+   * Keeps the user completely inside the app while guaranteeing native UPI apps
+   * (Google Pay, PhonePe, Paytm, BHIM) and QR codes are displayed and functional.
+   */
+  async openInAppBrowser(url: string): Promise<boolean> {
+    if (!this.isNative) {
+      window.open(url, '_blank');
+      return true;
+    }
+    try {
+      const res = await CaptainNative.openInAppBrowser({ url });
+      return !!res?.success;
+    } catch (e) {
+      console.error('Error opening In-App Browser via CaptainNative:', e);
+      return false;
+    }
+  }
+
+  async closeInAppBrowser(): Promise<boolean> {
+    if (!this.isNative) return true;
+    try {
+      const res = await CaptainNative.closeInAppBrowser();
+      return !!res?.success;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  onInAppBrowserClosed(callback: () => void): Promise<any> {
+    if (!this.isNative) return Promise.resolve();
+    return CaptainNative.addListener('inAppBrowserClosed', callback);
+  }
+
+  onInAppBrowserPaymentCompleted(callback: (data: { url: string }) => void): Promise<any> {
+    if (!this.isNative) return Promise.resolve();
+    return CaptainNative.addListener('inAppBrowserPaymentCompleted', callback);
   }
 }
 

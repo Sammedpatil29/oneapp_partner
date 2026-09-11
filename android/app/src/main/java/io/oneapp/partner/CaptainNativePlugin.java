@@ -1,16 +1,27 @@
 package io.oneapp.partner;
 
 import android.app.Activity;
+import android.app.Dialog;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.content.pm.ResolveInfo;
+import android.graphics.Color;
+import android.graphics.Typeface;
 import android.net.Uri;
 import android.os.Build;
 import android.os.PowerManager;
 import android.provider.Settings;
 import android.util.Log;
+import android.view.Gravity;
+import android.view.Window;
 import android.view.WindowManager;
+import android.webkit.WebResourceRequest;
+import android.webkit.WebSettings;
+import android.webkit.WebView;
+import android.webkit.WebViewClient;
+import android.widget.LinearLayout;
+import android.widget.TextView;
 
 import com.getcapacitor.JSArray;
 import com.getcapacitor.JSObject;
@@ -331,6 +342,225 @@ public class CaptainNativePlugin extends Plugin {
             Log.e(TAG, "Error launching UPI application", e);
             call.reject("Failed to launch UPI application: " + e.getMessage());
         }
+    }
+
+    @PluginMethod
+    public void openInBrowser(PluginCall call) {
+        String url = call.getString("url");
+        if (url == null || url.isEmpty()) {
+            call.reject("Missing URL parameter");
+            return;
+        }
+
+        try {
+            Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse(url));
+            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            // Prefer Google Chrome if available so full UPI intent support is guaranteed
+            intent.setPackage("com.android.chrome");
+            getContext().startActivity(intent);
+            JSObject ret = new JSObject();
+            ret.put("success", true);
+            call.resolve(ret);
+        } catch (Exception e) {
+            // Fallback to default browser
+            try {
+                Intent fallback = new Intent(Intent.ACTION_VIEW, Uri.parse(url));
+                fallback.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                getContext().startActivity(fallback);
+                JSObject ret = new JSObject();
+                ret.put("success", true);
+                call.resolve(ret);
+            } catch (Exception ex) {
+                Log.e(TAG, "Error opening URL in browser: " + url, ex);
+                call.reject("Failed to open browser: " + ex.getMessage());
+            }
+        }
+    }
+
+    private Dialog inAppBrowserDialog = null;
+
+    private int dpToPx(Context context, int dp) {
+        return (int) (dp * context.getResources().getDisplayMetrics().density + 0.5f);
+    }
+
+    @PluginMethod
+    public void openInAppBrowser(PluginCall call) {
+        String url = call.getString("url");
+        if (url == null || url.isEmpty()) {
+            call.reject("Missing URL parameter");
+            return;
+        }
+
+        Activity activity = getActivity();
+        if (activity == null) {
+            call.reject("Activity is null");
+            return;
+        }
+
+        activity.runOnUiThread(() -> {
+            try {
+                if (inAppBrowserDialog != null && inAppBrowserDialog.isShowing()) {
+                    inAppBrowserDialog.dismiss();
+                    inAppBrowserDialog = null;
+                }
+
+                inAppBrowserDialog = new Dialog(activity, android.R.style.Theme_DeviceDefault_Light_NoActionBar_Fullscreen);
+                inAppBrowserDialog.requestWindowFeature(Window.FEATURE_NO_TITLE);
+
+                // Root vertical layout
+                LinearLayout root = new LinearLayout(activity);
+                root.setOrientation(LinearLayout.VERTICAL);
+                root.setLayoutParams(new LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.MATCH_PARENT,
+                    LinearLayout.LayoutParams.MATCH_PARENT
+                ));
+                root.setBackgroundColor(Color.WHITE);
+
+                // Header toolbar
+                LinearLayout toolbar = new LinearLayout(activity);
+                toolbar.setOrientation(LinearLayout.HORIZONTAL);
+                toolbar.setLayoutParams(new LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.MATCH_PARENT,
+                    dpToPx(activity, 56)
+                ));
+                toolbar.setBackgroundColor(Color.parseColor("#a000e2"));
+                toolbar.setGravity(Gravity.CENTER_VERTICAL);
+                toolbar.setPadding(dpToPx(activity, 16), 0, dpToPx(activity, 16), 0);
+
+                // Title
+                TextView title = new TextView(activity);
+                title.setText("Platform Commission Payment");
+                title.setTextColor(Color.WHITE);
+                title.setTextSize(16);
+                title.setTypeface(Typeface.DEFAULT_BOLD);
+                LinearLayout.LayoutParams titleParams = new LinearLayout.LayoutParams(
+                    0, LinearLayout.LayoutParams.WRAP_CONTENT, 1.0f
+                );
+                title.setLayoutParams(titleParams);
+                toolbar.addView(title);
+
+                // Close button (X)
+                TextView closeBtn = new TextView(activity);
+                closeBtn.setText("✕");
+                closeBtn.setTextColor(Color.WHITE);
+                closeBtn.setTextSize(22);
+                closeBtn.setPadding(dpToPx(activity, 12), dpToPx(activity, 8), dpToPx(activity, 8), dpToPx(activity, 8));
+                closeBtn.setOnClickListener(v -> {
+                    if (inAppBrowserDialog != null && inAppBrowserDialog.isShowing()) {
+                        inAppBrowserDialog.dismiss();
+                    }
+                    notifyListeners("inAppBrowserClosed", new JSObject());
+                });
+                toolbar.addView(closeBtn);
+
+                root.addView(toolbar);
+
+                // WebView
+                WebView webView = new WebView(activity);
+                webView.setLayoutParams(new LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.MATCH_PARENT,
+                    LinearLayout.LayoutParams.MATCH_PARENT
+                ));
+
+                WebSettings settings = webView.getSettings();
+                settings.setJavaScriptEnabled(true);
+                settings.setDomStorageEnabled(true);
+                settings.setDatabaseEnabled(true);
+                settings.setSupportMultipleWindows(false);
+                settings.setJavaScriptCanOpenWindowsAutomatically(true);
+
+                // Sanitize User-Agent to standard Mobile Chrome
+                String defaultUa = settings.getUserAgentString();
+                if (defaultUa != null) {
+                    String cleanUa = defaultUa.replace("; wv", "").replace("Version/4.0 ", "");
+                    settings.setUserAgentString(cleanUa);
+                }
+
+                webView.setWebViewClient(new WebViewClient() {
+                    @Override
+                    public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
+                        return handlePaymentUri(request.getUrl());
+                    }
+
+                    @Override
+                    public boolean shouldOverrideUrlLoading(WebView view, String urlString) {
+                        return handlePaymentUri(Uri.parse(urlString));
+                    }
+
+                    private boolean handlePaymentUri(Uri uri) {
+                        if (uri == null) return false;
+                        String scheme = uri.getScheme();
+                        if (scheme == null) return false;
+                        scheme = scheme.toLowerCase();
+
+                        // 1. Payment callback completed
+                        if (uri.toString().contains("/wallet/razorpay/callback") || uri.toString().contains("payment_success=true")) {
+                            Log.i(TAG, "Payment callback detected in in-app browser: " + uri);
+                            JSObject data = new JSObject();
+                            data.put("url", uri.toString());
+                            notifyListeners("inAppBrowserPaymentCompleted", data);
+                            return false;
+                        }
+
+                        // 2. Intercept UPI Intents to launch GPay, PhonePe, Paytm, BHIM, etc.
+                        if (scheme.equals("upi") ||
+                            scheme.equals("tez") ||
+                            scheme.equals("phonepe") ||
+                            scheme.equals("paytmmp") ||
+                            (scheme.startsWith("intent") && uri.toString().contains("scheme=upi"))) {
+                            try {
+                                Intent intent;
+                                if (scheme.startsWith("intent")) {
+                                    intent = Intent.parseUri(uri.toString(), Intent.URI_INTENT_SCHEME);
+                                } else {
+                                    intent = new Intent(Intent.ACTION_VIEW, uri);
+                                }
+                                intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                                activity.startActivity(intent);
+                                return true;
+                            } catch (Exception e) {
+                                Log.e(TAG, "Error launching UPI app from in-app browser: " + uri, e);
+                                return true;
+                            }
+                        }
+
+                        return false;
+                    }
+                });
+
+                webView.loadUrl(url);
+                root.addView(webView);
+
+                inAppBrowserDialog.setContentView(root);
+                inAppBrowserDialog.setOnDismissListener(dialog -> {
+                    notifyListeners("inAppBrowserClosed", new JSObject());
+                });
+                inAppBrowserDialog.show();
+
+                JSObject ret = new JSObject();
+                ret.put("success", true);
+                call.resolve(ret);
+            } catch (Exception e) {
+                Log.e(TAG, "Failed to open in-app browser dialog", e);
+                call.reject("Failed to open in-app browser: " + e.getMessage());
+            }
+        });
+    }
+
+    @PluginMethod
+    public void closeInAppBrowser(PluginCall call) {
+        Activity activity = getActivity();
+        if (activity != null) {
+            activity.runOnUiThread(() -> {
+                if (inAppBrowserDialog != null && inAppBrowserDialog.isShowing()) {
+                    inAppBrowserDialog.dismiss();
+                    inAppBrowserDialog = null;
+                }
+            });
+        }
+        JSObject ret = new JSObject();
+        ret.put("success", true);
+        call.resolve(ret);
     }
 }
 

@@ -19,6 +19,25 @@ public class MainActivity extends BridgeActivity {
         checkAndPurgeStaleCachesOnUpdate();
         registerPlugin(CaptainNativePlugin.class);
         super.onCreate(savedInstanceState);
+        configureWebViewForPayments();
+    }
+
+    private void configureWebViewForPayments() {
+        try {
+            if (this.bridge != null && this.bridge.getWebView() != null) {
+                android.webkit.WebSettings settings = this.bridge.getWebView().getSettings();
+                String defaultUa = settings.getUserAgentString();
+                // Strip "Version/4.0 " and "; wv" from user agent so payment SDKs (like Razorpay)
+                // recognize this as standard mobile Chrome and display UPI app options
+                if (defaultUa != null) {
+                    String cleanUa = defaultUa.replace("; wv", "").replace("Version/4.0 ", "");
+                    settings.setUserAgentString(cleanUa);
+                    Log.i(TAG, "Configured WebView User-Agent for payments: " + cleanUa);
+                }
+            }
+        } catch (Exception e) {
+            Log.w(TAG, "Error configuring WebView User-Agent:", e);
+        }
     }
 
     private void checkAndPurgeStaleCachesOnUpdate() {

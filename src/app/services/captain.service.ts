@@ -123,6 +123,14 @@ export class CaptainService {
     });
   }
 
+  checkRazorpayOrderStatus(orderId: string): Observable<any> {
+    const id = this.getRiderId();
+    return this.http.post(`${this.apiUrl}/api/rider/wallet/razorpay/check-status`, {
+      id,
+      order_id: orderId
+    });
+  }
+
   withdrawEarnings(amount: number, upiId?: string): Observable<any> {
     const id = this.getRiderId();
     return this.http.post(`${this.apiUrl}/api/rider/wallet/pay-commission`, { id, amount });

@@ -1,4 +1,4 @@
-import { Component, OnInit, inject } from '@angular/core';
+import { Component, OnInit, OnDestroy, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import {
@@ -23,9 +23,12 @@ import {
   cashOutline,
   cardOutline,
   checkmarkCircleOutline,
-  arrowDownCircleOutline, phonePortraitOutline } from 'ionicons/icons';
+  arrowDownCircleOutline
+} from 'ionicons/icons';
 import { CaptainService } from 'src/app/services/captain.service';
 import { Router } from '@angular/router';
+import { Capacitor } from '@capacitor/core';
+import { App } from '@capacitor/app';
 
 import { LoaderComponent } from 'src/app/components/loader/loader.component';
 import { NoNetworkComponent } from 'src/app/components/no-network/no-network.component';
@@ -33,7 +36,7 @@ import { NoDataComponent } from 'src/app/components/no-data/no-data.component';
 import { ApiErrorComponent } from 'src/app/components/api-error/api-error.component';
 import { AlertModalComponent, AlertType } from 'src/app/components/alert-modal/alert-modal.component';
 import { NetworkService } from 'src/app/services/network.service';
-import { CaptainNativeService, UpiAppInfo } from 'src/app/services/captain-native.service';
+import { CaptainNativeService } from 'src/app/services/captain-native.service';
 import { environment } from 'src/environments/environment';
 
 @Component({
@@ -60,7 +63,7 @@ import { environment } from 'src/environments/environment';
     AlertModalComponent
   ]
 })
-export class WalletPage implements OnInit {
+export class WalletPage implements OnInit, OnDestroy {
   isLoading: boolean = false;
   isOffline: boolean = false;
   hasApiError: boolean = false;
@@ -92,8 +95,11 @@ export class WalletPage implements OnInit {
   payAmount: number = 0;
   isProcessingPayment: boolean = false;
 
-  installedUpiApps: UpiAppInfo[] = [];
-  selectedUpiApp: string | null = null;
+  pendingOrderId: string | null = null;
+  private pollingInterval: any = null;
+  private isPaymentDetected: boolean = false;
+  private inAppBrowserCloseListener: any = null;
+  private inAppBrowserPaymentListener: any = null;
 
   private captainService = inject(CaptainService);
   private captainNative = inject(CaptainNativeService);
@@ -103,7 +109,7 @@ export class WalletPage implements OnInit {
   public networkService = inject(NetworkService);
 
   constructor() {
-    addIcons({arrowBackOutline,walletOutline,cardOutline,cashOutline,phonePortraitOutline,addCircleOutline,removeCircleOutline,checkmarkCircleOutline,arrowDownCircleOutline});
+    addIcons({arrowBackOutline,walletOutline,cardOutline,cashOutline,addCircleOutline,removeCircleOutline,checkmarkCircleOutline,arrowDownCircleOutline});
 
     this.networkService.isOnline$.subscribe(online => {
       this.isOffline = !online;
@@ -115,21 +121,53 @@ export class WalletPage implements OnInit {
 
   ngOnInit() {
     this.fetchWallet();
-    this.loadInstalledUpiApps();
+    this.checkPendingOrder();
+    this.setupInAppBrowserListeners();
   }
 
-  async loadInstalledUpiApps() {
-    try {
-      this.installedUpiApps = await this.captainNative.getInstalledUpiApps();
-    } catch (e) {
-      console.warn('Could not query UPI apps on device:', e);
-      this.installedUpiApps = [];
+  ngOnDestroy() {
+    this.stopPolling();
+    this.captainNative.closeInAppBrowser();
+    if (this.inAppBrowserCloseListener?.remove) {
+      this.inAppBrowserCloseListener.remove();
+    }
+    if (this.inAppBrowserPaymentListener?.remove) {
+      this.inAppBrowserPaymentListener.remove();
     }
   }
 
-  payWithApp(packageName: string) {
-    this.selectedUpiApp = packageName;
-    this.processPayment(packageName);
+  async setupInAppBrowserListeners() {
+    if (Capacitor.isNativePlatform()) {
+      try {
+        this.inAppBrowserCloseListener = await this.captainNative.onInAppBrowserClosed(() => {
+          console.log('📱 In-app browser closed by user');
+          if (this.pendingOrderId && !this.isPaymentDetected) {
+            const amount = Number(localStorage.getItem('pending_commission_amount') || this.payAmount);
+            this.checkStatusFromBackend(this.pendingOrderId, amount);
+          }
+        });
+
+        this.inAppBrowserPaymentListener = await this.captainNative.onInAppBrowserPaymentCompleted((data) => {
+          console.log('💳 Payment completed event from in-app browser:', data?.url);
+          if (this.pendingOrderId) {
+            const amount = Number(localStorage.getItem('pending_commission_amount') || this.payAmount);
+            this.checkStatusFromBackend(this.pendingOrderId, amount);
+          }
+        });
+      } catch (e) {
+        console.warn('Could not setup in-app browser listeners:', e);
+      }
+    }
+  }
+
+  async checkPendingOrder() {
+    const value = localStorage.getItem('pending_commission_order_id');
+    const amount = Number(localStorage.getItem('pending_commission_amount') || 0);
+    if (value && amount > 0) {
+      this.pendingOrderId = value;
+      console.log('🔄 Checking pending commission order on resume/launch:', this.pendingOrderId);
+      this.startPolling(this.pendingOrderId, amount);
+    }
   }
 
   fetchWallet() {
@@ -174,10 +212,13 @@ export class WalletPage implements OnInit {
   }
 
   closePayNow() {
+    this.stopPolling();
+    this.captainNative.closeInAppBrowser();
+    this.isProcessingPayment = false;
     this.showPayModal = false;
   }
 
-  // Load Razorpay standard checkout SDK dynamically
+  // Load Razorpay standard checkout SDK dynamically (for browser/web environments)
   private loadRazorpayScript(): Promise<boolean> {
     return new Promise((resolve) => {
       if ((window as any).Razorpay) {
@@ -191,30 +232,44 @@ export class WalletPage implements OnInit {
     });
   }
 
-  async processPayment(targetAppPackage?: string) {
+  async processPayment() {
     if (!this.payAmount || this.payAmount <= 0) {
-      const toast = await this.toastCtrl.create({
-        message: 'Please enter a valid payment amount',
-        duration: 2000,
-        color: 'danger'
-      });
-      await toast.present();
+      await this.presentToast('Please enter a valid payment amount', 'danger');
       return;
     }
 
     this.isProcessingPayment = true;
+    this.isPaymentDetected = false;
+    const amountToPay = this.payAmount;
 
-    this.captainService.createRazorpayOrder(this.payAmount).subscribe({
+    this.captainService.createRazorpayOrder(amountToPay).subscribe({
       next: async (orderRes: any) => {
+        const orderId = orderRes.order_id;
+        this.pendingOrderId = orderId;
+        localStorage.setItem('pending_commission_order_id', orderId);
+        localStorage.setItem('pending_commission_amount', String(amountToPay));
+
+        const hostedUrl = orderRes.hosted_checkout_url || orderRes.payment_link;
+
+        // IN-APP BROWSER on native Android APK:
+        // Opens directly inside the app so the user NEVER leaves the app!
+        if (Capacitor.isNativePlatform() && hostedUrl) {
+          console.log('📱 Opening Razorpay In-App Browser modal Dialog:', hostedUrl);
+          await this.captainNative.openInAppBrowser(hostedUrl);
+          this.startPolling(orderId, amountToPay);
+          return;
+        }
+
+        // In web / desktop / fallback: open standard Razorpay checkout
         const loaded = await this.loadRazorpayScript();
         if (!loaded) {
+          if (hostedUrl) {
+            window.open(hostedUrl, '_blank');
+            this.startPolling(orderId, amountToPay);
+            return;
+          }
           this.isProcessingPayment = false;
-          const toast = await this.toastCtrl.create({
-            message: 'Could not load payment gateway. Please check your network connection.',
-            duration: 3000,
-            color: 'danger'
-          });
-          await toast.present();
+          await this.presentToast('Could not load payment gateway. Please check your network connection.', 'danger');
           return;
         }
 
@@ -224,17 +279,14 @@ export class WalletPage implements OnInit {
           currency: orderRes.currency || 'INR',
           name: 'Pintu Captain',
           description: 'Platform Commission Settlement',
-          order_id: orderRes.order_id,
+          order_id: orderId,
           config: {
             display: {
               blocks: {
                 upi: {
                   name: 'Pay via UPI (Google Pay, PhonePe, Paytm, BHIM)',
                   instruments: [
-                    {
-                      method: 'upi',
-                      flows: ['intent', 'qr']
-                    }
+                    { method: 'upi', flows: ['intent', 'qr'] }
                   ]
                 },
                 other: {
@@ -247,9 +299,7 @@ export class WalletPage implements OnInit {
                 }
               },
               sequence: ['block.upi', 'block.other'],
-              preferences: {
-                show_default_blocks: true
-              }
+              preferences: { show_default_blocks: true }
             }
           },
           method: {
@@ -258,115 +308,134 @@ export class WalletPage implements OnInit {
             netbanking: true,
             wallet: true
           },
-          upi: {
-            flow: 'intent'
-          },
+          upi: { flow: 'intent' },
           handler: (response: any) => {
-            this.verifyAndCompletePayment({
-              amount: this.payAmount,
-              razorpay_order_id: response.razorpay_order_id || orderRes.order_id,
-              razorpay_payment_id: response.razorpay_payment_id,
-              razorpay_signature: response.razorpay_signature
-            });
+            this.handleSuccess({
+              payment_id: response.razorpay_payment_id
+            }, amountToPay);
           },
           modal: {
             ondismiss: () => {
               this.isProcessingPayment = false;
-              this.selectedUpiApp = null;
               console.log('Razorpay modal closed by user');
+              if (this.pendingOrderId && !this.isPaymentDetected) {
+                this.checkStatusFromBackend(this.pendingOrderId, amountToPay);
+              }
             }
           },
           prefill: {
             name: localStorage.getItem('riderName') || 'Captain',
             contact: localStorage.getItem('riderPhone') || ''
           },
-          theme: {
-            color: '#a000e2'
-          }
+          theme: { color: '#a000e2' }
         };
-
-        if (targetAppPackage) {
-          options.upi = {
-            flow: 'intent',
-            app: targetAppPackage
-          };
-        }
 
         const rzp = new (window as any).Razorpay(options);
         rzp.on('payment.failed', async (failRes: any) => {
           this.isProcessingPayment = false;
-          this.selectedUpiApp = null;
-          const toast = await this.toastCtrl.create({
-            message: failRes?.error?.description || 'Payment was unsuccessful.',
-            duration: 3000,
-            color: 'danger'
-          });
-          await toast.present();
+          this.stopPolling();
+          await this.presentToast(failRes?.error?.description || 'Payment was unsuccessful.', 'danger');
         });
 
         rzp.open();
+        this.startPolling(orderId, amountToPay);
       },
       error: async (err: any) => {
         this.isProcessingPayment = false;
-        this.selectedUpiApp = null;
-        const toast = await this.toastCtrl.create({
-          message: err?.error?.message || 'Failed to initialize payment order. Please try again.',
-          duration: 3000,
-          color: 'danger'
-        });
-        await toast.present();
+        await this.presentToast(err?.error?.message || 'Failed to initialize payment order. Please try again.', 'danger');
       }
     });
   }
 
-  private verifyAndCompletePayment(payload: {
-    amount: number;
-    razorpay_order_id: string;
-    razorpay_payment_id: string;
-    razorpay_signature?: string;
-  }) {
-    this.isProcessingPayment = true;
-    this.captainService.verifyRazorpayPayment(payload).subscribe({
-      next: async (res) => {
+  // --- Payment Polling & Status Verification Logic (matching OneApp cart page) ---
+
+  startPolling(internalOrderId: string, amount: number) {
+    console.log('Started polling for order:', internalOrderId);
+    this.stopPolling();
+    this.pollingInterval = setInterval(() => {
+      this.checkStatusFromBackend(internalOrderId, amount);
+    }, 3000);
+
+    // Timeout polling after 120 seconds if not detected
+    setTimeout(() => {
+      if (!this.isPaymentDetected) {
+        this.stopPolling();
         this.isProcessingPayment = false;
-        this.showPayModal = false;
-        const paid = payload.amount;
-
-        if (res?.commission_due !== undefined) {
-          this.wallet.balance.commission_due = res.commission_due;
-        } else {
-          this.wallet.balance.commission_due = Math.max(0, (Number(this.wallet.balance?.commission_due) || 0) - paid);
-        }
-
-        // Add to recent transactions ledger
-        this.wallet.transactions.unshift({
-          txnId: payload.razorpay_payment_id || `TXN${Date.now()}`,
-          title: `Platform Commission Paid (Razorpay)`,
-          amount: paid,
-          type: 'CREDIT',
-          category: 'commission_payment',
-          dateLabel: 'Just now',
-          time: 'Now',
-          status: 'SUCCESS'
-        });
-
-        const alert = await this.alertCtrl.create({
-          header: 'Payment Successful! ✅',
-          message: res?.message || `₹${paid} has been settled towards your platform commission.`,
-          buttons: ['OK']
-        });
-        await alert.present();
-      },
-      error: async (err) => {
-        this.isProcessingPayment = false;
-        const toast = await this.toastCtrl.create({
-          message: err?.error?.message || 'Payment verification failed. Please contact support.',
-          duration: 3000,
-          color: 'danger'
-        });
-        await toast.present();
       }
+    }, 120000);
+  }
+
+  stopPolling() {
+    if (this.pollingInterval) {
+      clearInterval(this.pollingInterval);
+      this.pollingInterval = null;
+    }
+  }
+
+  checkStatusFromBackend(internalOrderId: string, amount: number) {
+    this.captainService.checkRazorpayOrderStatus(internalOrderId).subscribe({
+      next: (res: any) => {
+        if (res && res.success && (res.paid || res.status === 'paid')) {
+          this.handleSuccess(res, amount);
+        } else if (res && res.status === 'failed') {
+          this.stopPolling();
+          this.isProcessingPayment = false;
+          this.captainNative.closeInAppBrowser();
+          localStorage.removeItem('pending_commission_order_id');
+          localStorage.removeItem('pending_commission_amount');
+          this.presentToast('Payment failed.', 'danger');
+        }
+      },
+      error: (err) => console.log('Order status poll error:', err)
     });
+  }
+
+  async handleSuccess(res: any, amount: number) {
+    this.isPaymentDetected = true;
+    this.stopPolling();
+    this.isProcessingPayment = false;
+    this.showPayModal = false;
+    localStorage.removeItem('pending_commission_order_id');
+    localStorage.removeItem('pending_commission_amount');
+
+    // Close in-app browser dialog
+    await this.captainNative.closeInAppBrowser();
+
+    if (res?.commission_due !== undefined) {
+      this.wallet.balance.commission_due = res.commission_due;
+    } else {
+      this.wallet.balance.commission_due = Math.max(0, (Number(this.wallet.balance?.commission_due) || 0) - amount);
+    }
+
+    // Add to recent transactions ledger
+    this.wallet.transactions.unshift({
+      txnId: res.payment_id || `TXN${Date.now()}`,
+      title: `Platform Commission Paid (Razorpay)`,
+      amount: amount,
+      type: 'CREDIT',
+      category: 'commission_payment',
+      dateLabel: 'Just now',
+      time: 'Now',
+      status: 'SUCCESS'
+    });
+
+    const alert = await this.alertCtrl.create({
+      header: 'Payment Successful! ✅',
+      message: `₹${amount} has been settled towards your platform commission.`,
+      buttons: ['OK']
+    });
+    await alert.present();
+    this.fetchWallet();
+  }
+
+  async presentToast(msg: string, color: string = 'primary') {
+    const toast = await this.toastCtrl.create({
+      message: msg,
+      duration: 2500,
+      color: color,
+      position: 'bottom'
+    });
+    await toast.present();
   }
 
   goBack() {
