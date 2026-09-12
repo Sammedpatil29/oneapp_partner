@@ -13,7 +13,6 @@ import {
   IonSegmentButton,
   IonLabel,
   IonModal,
-  IonBadge,
   IonRefresher,
   IonRefresherContent
 } from '@ionic/angular/standalone';
@@ -56,7 +55,6 @@ import { NetworkService } from 'src/app/services/network.service';
     IonSegmentButton,
     IonLabel,
     IonModal,
-    IonBadge,
     IonRefresher,
     IonRefresherContent,
     CommonModule,

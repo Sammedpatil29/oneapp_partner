@@ -9,7 +9,6 @@ import {
   IonButtons,
   IonButton,
   IonIcon,
-  IonBadge,
   IonSpinner
 } from '@ionic/angular/standalone';
 import { NavController, ToastController } from '@ionic/angular';
@@ -52,7 +51,6 @@ import { environment } from 'src/environments/environment';
     IonButtons,
     IonButton,
     IonIcon,
-    IonBadge,
     IonSpinner
   ]
 })

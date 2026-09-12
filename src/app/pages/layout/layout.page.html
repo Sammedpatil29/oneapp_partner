@@ -21,7 +21,7 @@
 
 
     <!-- Zepto-Style One-Line Update Banner directly above bottom navbar with no gap -->
-    @if (otaBanner?.show) {
+    @if (otaBanner.show) {
       <div class="ota-bottom-banner" [class]="otaBanner.type">
         <div class="ota-banner-content">
           @if (otaBanner.type === 'downloading') {
@@ -87,7 +87,7 @@
       </button>
     </nav>
   </div>
-  @if ((rideRequests?.length || 0) > 0) {
+  @if ((rideRequests.length || 0) > 0) {
     <div class="ride-requests-overlay">
       @for(item of rideRequests; track item.rideId || item.id) {
     <div class="modern-ride-card">

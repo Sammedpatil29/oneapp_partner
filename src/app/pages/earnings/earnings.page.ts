@@ -9,8 +9,6 @@ import {
   IonButtons,
   IonButton,
   IonIcon,
-  IonCard,
-  IonCardContent,
   IonSegment,
   IonSegmentButton,
   IonLabel,
@@ -32,7 +30,6 @@ import { Router } from '@angular/router';
 
 import { LoaderComponent } from 'src/app/components/loader/loader.component';
 import { NoNetworkComponent } from 'src/app/components/no-network/no-network.component';
-import { NoDataComponent } from 'src/app/components/no-data/no-data.component';
 import { ApiErrorComponent } from 'src/app/components/api-error/api-error.component';
 import { NetworkService } from 'src/app/services/network.service';
 
@@ -49,8 +46,6 @@ import { NetworkService } from 'src/app/services/network.service';
     IonButtons,
     IonButton,
     IonIcon,
-    IonCard,
-    IonCardContent,
     IonSegment,
     IonSegmentButton,
     IonLabel,
@@ -59,7 +54,6 @@ import { NetworkService } from 'src/app/services/network.service';
     FormsModule,
     LoaderComponent,
     NoNetworkComponent,
-    NoDataComponent,
     ApiErrorComponent
   ]
 })

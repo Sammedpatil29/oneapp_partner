@@ -26,15 +26,15 @@
       <div class="history-summary mb-3">
         <div class="summary-item">
           <small class="text-muted d-block">Total Rides</small>
-          <h4 class="fw-bold text-dark mb-0">{{ summary?.totalRides || rides.length }}</h4>
+          <h4 class="fw-bold text-dark mb-0">{{ summary.totalRides || rides.length }}</h4>
         </div>
         <div class="summary-item border-start border-end">
           <small class="text-muted d-block">Total Earnings</small>
-          <h4 class="fw-bold text-success mb-0">₹{{ summary?.totalEarnings || 0 }}</h4>
+          <h4 class="fw-bold text-success mb-0">₹{{ summary.totalEarnings || 0 }}</h4>
         </div>
         <div class="summary-item">
           <small class="text-muted d-block">Rating</small>
-          <h4 class="fw-bold text-warning mb-0">{{ summary?.rating ?? 0 }} ⭐</h4>
+          <h4 class="fw-bold text-warning mb-0">{{ summary.rating ?? 0 }} ⭐</h4>
         </div>
       </div>
 

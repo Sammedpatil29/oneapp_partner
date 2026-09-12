@@ -3,9 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { firstValueFrom } from 'rxjs';
 import { 
-  IonContent, IonHeader, IonTitle, IonToolbar, IonToggle, IonIcon, 
-  IonCard, IonCardHeader, IonCardTitle, IonCardContent, IonButton, 
-  IonAlert, IonBadge 
+  IonContent, IonHeader, IonToolbar, IonToggle, IonIcon 
 } from '@ionic/angular/standalone';
 import { SocketService } from 'src/app/services/socket';
 import { CaptainService } from 'src/app/services/captain.service';
@@ -72,10 +70,9 @@ export interface ActiveRide {
   styleUrls: ['./home.page.scss'],
   standalone: true,
   imports: [
-    IonButton, IonCard, IonAlert, IonCardHeader, IonCardTitle, IonCardContent, 
-    IonToggle, IonIcon, IonContent, IonHeader, IonTitle, IonToolbar, 
-    IonBadge, CommonModule, FormsModule, 
-    LoaderComponent, NoNetworkComponent, NoDataComponent, ApiErrorComponent, AlertModalComponent,
+    IonToggle, IonIcon, IonContent, IonHeader, IonToolbar, 
+    CommonModule, FormsModule, 
+    LoaderComponent, NoNetworkComponent,
     PermissionsHubComponent
   ]
 })

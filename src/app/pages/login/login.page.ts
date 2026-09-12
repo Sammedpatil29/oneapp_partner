@@ -3,10 +3,6 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import {
   IonContent,
-  IonHeader,
-  IonTitle,
-  IonToolbar,
-  IonButton,
   IonIcon,
   IonSpinner
 } from '@ionic/angular/standalone';
@@ -35,10 +31,6 @@ import { CaptainNativeService } from 'src/app/services/captain-native.service';
     CommonModule,
     FormsModule,
     IonContent,
-    IonHeader,
-    IonTitle,
-    IonToolbar,
-    IonButton,
     IonIcon,
     IonSpinner
   ]

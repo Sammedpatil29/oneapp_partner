@@ -9,7 +9,6 @@ import {
   IonButtons,
   IonButton,
   IonIcon,
-  IonBadge,
   IonRefresher,
   IonRefresherContent,
 } from '@ionic/angular/standalone';
@@ -56,14 +55,12 @@ import { environment } from 'src/environments/environment';
     IonButtons,
     IonButton,
     IonIcon,
-    IonBadge,
     IonRefresher,
     IonRefresherContent,
     CommonModule,
     FormsModule,
     LoaderComponent,
     NoNetworkComponent,
-    NoDataComponent,
     ApiErrorComponent
   ]
 })

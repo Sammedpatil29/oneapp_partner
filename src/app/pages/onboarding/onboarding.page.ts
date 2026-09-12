@@ -9,8 +9,7 @@ import {
   IonButton,
   IonButtons,
   IonIcon,
-  IonSpinner,
-  IonBadge
+  IonSpinner
 } from '@ionic/angular/standalone';
 import { Router, ActivatedRoute } from '@angular/router';
 import { addIcons } from 'ionicons';
@@ -78,8 +77,7 @@ export interface DocumentItem {
     IonButton,
     IonButtons,
     IonIcon,
-    IonSpinner,
-    IonBadge
+    IonSpinner
   ]
 })
 export class OnboardingPage implements OnInit {
