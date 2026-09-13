@@ -28,7 +28,19 @@ export const noAuthGuard: CanActivateFn = (route, state) => {
   const router = inject(Router);
 
   if (authService.hasToken()) {
-    router.navigate(['/layout/home']);
+    try {
+      const stored = localStorage.getItem('riderInfo');
+      const rider = stored ? JSON.parse(stored) : null;
+      if (rider?.is_verified) {
+        router.navigate(['/layout/home']);
+      } else if (rider?.has_submitted_docs || rider?.kyc_docs) {
+        router.navigate(['/onboarding'], { queryParams: { step: '4' } });
+      } else {
+        router.navigate(['/onboarding'], { queryParams: { step: '1' } });
+      }
+    } catch {
+      router.navigate(['/layout/home']);
+    }
     return false;
   }
 

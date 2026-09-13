@@ -9,10 +9,9 @@ import {
   IonButtons,
   IonButton,
   IonIcon,
-  IonCard,
-  IonCardContent,
-  IonBadge,
   IonProgressBar,
+  IonRefresher,
+  IonRefresherContent,
   ToastController
 } from '@ionic/angular/standalone';
 import { addIcons } from 'ionicons';
@@ -47,10 +46,9 @@ import { NetworkService } from 'src/app/services/network.service';
     IonButtons,
     IonButton,
     IonIcon,
-    IonCard,
-    IonCardContent,
-    IonBadge,
     IonProgressBar,
+    IonRefresher,
+    IonRefresherContent,
     CommonModule,
     FormsModule,
     LoaderComponent,
@@ -65,13 +63,13 @@ export class ReferralsPage implements OnInit {
   hasApiError: boolean = false;
 
   referralData: any = {
-    referral_code: 'CAPTAIN8492',
-    referral_link: 'https://pintu.democompany.in.net/join?ref=CAPTAIN8492',
-    reward_per_referral: 500,
-    reward_condition: 'Earn ₹500 when your friend joins & completes 10 rides within 14 days.',
-    total_referred: 8,
-    successful_referrals: 5,
-    total_rewards_earned: 2500,
+    referral_code: 'CAPTAIN',
+    referral_link: '',
+    reward_per_referral: 150,
+    reward_condition: 'Earn ₹150 when your friend joins with your code & completes 10 rides within 15 days.',
+    total_referred: 0,
+    successful_referrals: 0,
+    total_rewards_earned: 0,
     friends_list: []
   };
 
@@ -118,6 +116,20 @@ export class ReferralsPage implements OnInit {
       error: () => {
         this.isLoading = false;
         this.hasApiError = false;
+      }
+    });
+  }
+
+  handleRefresh(event: any) {
+    this.captainService.getReferrals().subscribe({
+      next: (res) => {
+        if (res?.data) {
+          this.referralData = res.data;
+        }
+        event.target.complete();
+      },
+      error: () => {
+        event.target.complete();
       }
     });
   }

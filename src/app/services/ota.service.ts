@@ -1,12 +1,18 @@
 import { Injectable, NgZone, inject } from '@angular/core';
 import { Capacitor } from '@capacitor/core';
-import { AlertController, ToastController } from '@ionic/angular/standalone';
+import { BehaviorSubject } from 'rxjs';
 import { OtaKit } from '@otakit/capacitor-updater';
 
 const OTA_UPDATE_FLAG = 'pintu_partner_ota_just_updated';
 const OTA_UPDATE_VERSION_KEY = 'pintu_partner_ota_new_version';
 
-export const CURRENT_APP_VERSION = '0.0.9';
+export const CURRENT_APP_VERSION = '0.0.16';
+
+export interface OtaBannerState {
+  show: boolean;
+  message: string;
+  type: 'downloading' | 'applied';
+}
 
 function isNewerVersion(remote: string, current: string): boolean {
   if (!remote || !current) return false;
@@ -24,21 +30,55 @@ function isNewerVersion(remote: string, current: string): boolean {
   providedIn: 'root'
 })
 export class OtaService {
-  private alertCtrl = inject(AlertController);
-  private toastCtrl = inject(ToastController);
   private ngZone = inject(NgZone);
 
   private isApplyingUpdate = false;
+  private bannerTimer: any = null;
+
+  public bannerState$ = new BehaviorSubject<OtaBannerState>({
+    show: false,
+    message: '',
+    type: 'applied'
+  });
+
+  /**
+   * Triggers a single-line horizontal banner that auto-dismisses after durationMs.
+   */
+  showBanner(message: string, type: 'downloading' | 'applied', durationMs: number = 4000) {
+    this.ngZone.run(() => {
+      if (this.bannerTimer) {
+        clearTimeout(this.bannerTimer);
+        this.bannerTimer = null;
+      }
+      this.bannerState$.next({ show: true, message, type });
+
+      if (durationMs > 0) {
+        this.bannerTimer = setTimeout(() => {
+          this.ngZone.run(() => {
+            this.hideBanner();
+          });
+        }, durationMs);
+      }
+    });
+  }
+
+  hideBanner() {
+    if (this.bannerTimer) {
+      clearTimeout(this.bannerTimer);
+      this.bannerTimer = null;
+    }
+    const current = this.bannerState$.value;
+    this.bannerState$.next({ ...current, show: false });
+  }
 
   /**
    * Initializes OtaKit on native device, confirms current bundle,
-   * and displays the update completion alert if just updated.
+   * and displays the update completion banner if just updated.
    */
   async initialize() {
     if (!Capacitor.isNativePlatform()) {
       console.log('ℹ️ [OtaKit] Running in browser, skipping native OTA checks.');
-      // Check simulation flag on web
-      this.checkAndShowPostUpdateAlert();
+      this.checkAndShowPostUpdateBanner();
       return;
     }
 
@@ -51,41 +91,26 @@ export class OtaService {
     }
 
     // 2. Check if the app was just relaunched after an OTA update
-    this.checkAndShowPostUpdateAlert();
+    this.checkAndShowPostUpdateBanner();
 
     // 3. Setup silent background OTA checks & auto-relaunch
     this.setupOtaUpdates();
   }
 
   /**
-   * Shows a confirmation alert if the app just relaunched from an OTA update
+   * Shows a non-intrusive single-line banner if the app just relaunched from an OTA update
    */
-  private async checkAndShowPostUpdateAlert() {
+  private checkAndShowPostUpdateBanner() {
     const justUpdated = localStorage.getItem(OTA_UPDATE_FLAG);
     if (justUpdated === 'true') {
       const version = localStorage.getItem(OTA_UPDATE_VERSION_KEY) || '';
       localStorage.removeItem(OTA_UPDATE_FLAG);
       localStorage.removeItem(OTA_UPDATE_VERSION_KEY);
 
-      setTimeout(async () => {
-        try {
-          const alert = await this.alertCtrl.create({
-            header: '🎉 Update Completed!',
-            subHeader: version ? `Version v${version}` : 'Latest Version Installed',
-            message: 'Pintu Partner has been successfully updated. All new features and optimizations are now active.',
-            buttons: [
-              {
-                text: 'Awesome, Let\'s Ride',
-                role: 'confirm'
-              }
-            ],
-            backdropDismiss: false
-          });
-          await alert.present();
-        } catch (err) {
-          console.warn('Could not present post-update alert:', err);
-        }
-      }, 1200);
+      setTimeout(() => {
+        const msg = version ? `New update applied (v${version})` : 'New update applied';
+        this.showBanner(msg, 'applied', 4000);
+      }, 600);
     }
   }
 
@@ -122,6 +147,8 @@ export class OtaService {
         const remoteVersion = check.latest?.version || '';
         if (isNewerVersion(remoteVersion, CURRENT_APP_VERSION)) {
           console.log('🚀 [Partner OtaKit] Newer update available:', remoteVersion, '(Current:', CURRENT_APP_VERSION, ')');
+          // Show single-line background download banner
+          this.showBanner('Downloading new update in background...', 'downloading', 4000);
           await OtaKit.download();
         } else {
           console.log(`ℹ️ [Partner OtaKit] Remote manifest version (${remoteVersion}) is <= current APK version (${CURRENT_APP_VERSION}). Skipping download.`);
@@ -142,41 +169,28 @@ export class OtaService {
   }
 
   /**
-   * Automatically relaunches the app and marks the post-update alert flag
+   * Automatically applies the staged update and marks the post-update banner flag
    */
   private async relaunchAndApplyUpdate(version: string) {
     if (this.isApplyingUpdate) return;
     this.isApplyingUpdate = true;
 
     try {
-      // Set flag so next startup shows the update completed alert
       localStorage.setItem(OTA_UPDATE_FLAG, 'true');
       if (version) {
         localStorage.setItem(OTA_UPDATE_VERSION_KEY, version);
       }
 
-      console.log('🔄 [Partner OtaKit] Relaunching app with new bundle...');
-
-      try {
-        const toast = await this.toastCtrl.create({
-          message: 'Update downloaded! Restarting Pintu Partner...',
-          duration: 1500,
-          position: 'top',
-          color: 'success'
-        });
-        await toast.present();
-      } catch (tErr) {
-        // continue
-      }
+      console.log('🔄 [Partner OtaKit] Applying new bundle...');
 
       setTimeout(async () => {
         try {
           await OtaKit.apply();
         } catch (applyErr) {
           console.error('[Partner OtaKit] Failed to apply update bundle:', applyErr);
-          window.location.reload();
+          this.checkAndShowPostUpdateBanner();
         }
-      }, 1000);
+      }, 500);
     } catch (e) {
       console.error('[Partner OtaKit] Error in relaunch flow:', e);
       this.isApplyingUpdate = false;

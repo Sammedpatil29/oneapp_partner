@@ -6,52 +6,51 @@
   <app-no-network [isFullscreen]="true" (retry)="retryLoading()"></app-no-network>
 }
 
-<app-alert-modal
-  [isOpen]="alertModal.isOpen"
-  [type]="alertModal.type"
-  [title]="alertModal.title"
-  [message]="alertModal.message"
-  [confirmText]="alertModal.confirmText"
-  [cancelText]="alertModal.cancelText"
-  [showCancel]="alertModal.showCancel"
-  (confirm)="handleAlertConfirm()"
-  (cancel)="closeAlertModal()">
-</app-alert-modal>
+
+
 
 <ion-header class="captain-header" [translucent]="false">
   <ion-toolbar>
     <div class="header-inner">
       <!-- Left: Online/Offline Duty Switch -->
-      <div class="duty-pill" [class.online]="status">
-        <span class="duty-indicator"></span>
-        <span class="duty-text">{{ status ? 'ONLINE' : 'OFFLINE' }}</span>
-        <ion-toggle color="success" [(ngModel)]="status" (ionChange)="changeStatus()"></ion-toggle>
-      </div>
+      @if (isSyncingStatus) {
+        <div class="duty-sync-pill">
+          <span class="sync-dot"></span>
+          <span class="sync-text">Syncing...</span>
+        </div>
+      } @else {
+        <div class="duty-pill" [class.online]="status && !activeRide" [class.onride]="activeRide">
+          <span class="duty-indicator"></span>
+          <span class="duty-text">{{ activeRide ? 'ON RIDE' : (status ? 'ONLINE' : 'OFFLINE') }}</span>
+          <ion-toggle color="success" [(ngModel)]="status" (ionChange)="changeStatus()" [disabled]="!!activeRide"></ion-toggle>
+        </div>
+      }
 
-      <!-- Right: Permissions, SOS, Notifications, Profile Shortcuts -->
+      <!-- Right: Permissions, SOS, Profile Shortcuts -->
       <div class="header-actions">
         <button class="icon-btn perm-btn" (click)="openPermissionsHub()" title="Device Permissions">
           <ion-icon name="shield-checkmark-outline"></ion-icon>
         </button>
 
         <button class="icon-btn sos-btn" (click)="triggerEmergencySos()" title="Emergency SOS">
-          <ion-icon name="shield-outline"></ion-icon>
+          <ion-icon src="assets/icon/siren.svg"></ion-icon>
         </button>
 
-        <button class="icon-btn notif-btn" (click)="gotoNotifications()" title="Notifications">
-          <ion-icon name="flash-outline"></ion-icon>
-        </button>
-
-        <div class="captain-avatar-btn" (click)="openProfile()">
-          <img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80" alt="Profile" />
-          <span class="captain-badge-dot"></span>
+        <div class="captain-avatar-btn" (click)="openProfile()" title="Captain Profile">
+          @if (getCaptainSelfie()) {
+            <img [src]="getCaptainSelfie()" (error)="onAvatarError()" alt="Captain Selfie" />
+          } @else {
+            <div class="avatar-initial">
+              {{ (riderProfile?.name || 'C').charAt(0).toUpperCase() }}
+            </div>
+          }
         </div>
       </div>
     </div>
   </ion-toolbar>
 </ion-header>
 
-<ion-content class="cockpit-content">
+<ion-content class="cockpit-content" [class.is-offline]="!status">
   <!-- Top Floating Performance Bar -->
   <div class="floating-metrics-card">
     <div class="metric-col" (click)="gotoEarnings()">
@@ -66,82 +65,160 @@
     <div class="metric-divider"></div>
     <div class="metric-col" (click)="gotoWallet()">
       <span class="metric-label">RATING</span>
-      <span class="metric-val text-warning">⭐ 4.88</span>
+      <span class="metric-val text-warning">⭐ {{ riderRating }}</span>
     </div>
   </div>
 
-  <!-- ================= OFFLINE STATE ================= -->
-  @if (!status) {
-    <div class="offline-hero-container">
-      <div class="offline-card">
-        <div class="offline-icon-pulse">
-          <ion-icon name="power-outline"></ion-icon>
-        </div>
-        <h2>You are currently Offline</h2>
-        <p>Switch to Online duty to start receiving high-paying bike taxi & delivery orders in your area.</p>
-
-        <button class="btn-go-online" (click)="status = true; changeStatus()">
-          <ion-icon name="flash-outline"></ion-icon>
-          GO ONLINE NOW
-        </button>
+  <!-- ================= SYNCING STATE ================= -->
+  @if (isSyncingStatus) {
+    <div class="syncing-hero-container">
+      <div class="syncing-card">
+        <div class="syncing-spinner-ring"></div>
+        <h3>Connecting to Dispatch...</h3>
+        <p>Syncing live duty status &amp; GPS location</p>
       </div>
+    </div>
+  } @else if (!status) {
+    <div class="offline-hero-container" [class.out-of-area-mode]="isOutOfServiceArea || isAreaClosed">
+      @if (isAreaClosed) {
+        <div class="offline-card out-of-area-card closed-area-card">
+          <div class="out-of-area-icon-pulse closed-icon-pulse">
+            <ion-icon name="moon-outline"></ion-icon>
+          </div>
+          <div class="out-of-area-pill closed-pill">
+            <span class="pill-dot closed-dot"></span>
+            <span>SERVICES CURRENTLY CLOSED</span>
+          </div>
+          <h2>We Are Currently Closed</h2>
+          <p class="out-of-area-desc">
+            {{ areaClosureMessage || 'Our services in this city are temporarily offline. We will resume operations soon.' }}
+          </p>
 
-      <!-- Driver Permissions Health Bar -->
-      @if (!permissions.allGranted) {
-        <div class="permission-health-banner warning" (click)="openPermissionsHub()">
-          <div class="perm-banner-left">
-            <div class="perm-badge-icon warning">
-              <ion-icon name="alert-circle-outline"></ion-icon>
+          <div class="nearest-area-box">
+            <div class="nearest-title">
+              <ion-icon name="business-outline"></ion-icon>
+              <span>City Zone: <strong>{{ closedAreaCity || 'Current City' }}</strong></span>
             </div>
-            <div>
-              <h4>Permissions Required</h4>
-              <p>
-                @if (!permissions.location) { GPS Location }
-                @if (!permissions.location && !permissions.overlay) { &amp; }
-                @if (!permissions.overlay) { Draw Over Apps }
-                needed for ride alerts
-              </p>
+            <div class="nearest-instruction">
+              Fleet operations are temporarily paused in this city. You will be able to go online once services resume.
             </div>
           </div>
-          <button class="btn-perm-grant">SETUP</button>
+
+          <button class="btn-check-area closed-btn" (click)="recheckLocationAndServiceArea()">
+            <ion-icon name="refresh-outline"></ion-icon>
+            RE-CHECK STATUS
+          </button>
+        </div>
+      } @else if (isOutOfServiceArea) {
+        <div class="offline-card out-of-area-card">
+          <div class="out-of-area-icon-pulse">
+            <ion-icon name="location-outline"></ion-icon>
+          </div>
+          <div class="out-of-area-pill">
+            <span class="pill-dot"></span>
+            <span>OUT OF SERVICE AREA</span>
+          </div>
+          <h2>Outside Serviceable Zone</h2>
+          <p class="out-of-area-desc">You are currently outside our operating service boundaries. You cannot switch Online from here.</p>
+
+          @if (nearestServiceArea) {
+            <div class="nearest-area-box">
+              <div class="nearest-title">
+                <ion-icon name="navigate-circle-outline"></ion-icon>
+                <span>Nearest City Zone: <strong>{{ nearestServiceArea.cityName }}</strong></span>
+              </div>
+              <div class="nearest-distance-badge">
+                Approx. <strong>{{ nearestServiceArea.distanceKm }} km</strong> away
+              </div>
+              <div class="nearest-instruction">
+                Please travel inside <strong>{{ nearestServiceArea.cityName }}</strong> to go online and receive ride requests.
+              </div>
+            </div>
+          } @else {
+            <div class="nearest-instruction">
+              Please move inside the nearest active service area to switch online.
+            </div>
+          }
+
+          <button class="btn-check-area" (click)="recheckLocationAndServiceArea()">
+            <ion-icon name="refresh-outline"></ion-icon>
+            RE-CHECK LOCATION
+          </button>
         </div>
       } @else {
-        <div class="permission-health-banner success" (click)="openPermissionsHub()">
-          <div class="perm-banner-left">
-            <div class="perm-badge-icon success">
-              <ion-icon name="checkmark-circle-outline"></ion-icon>
+        <div class="offline-card">
+          <div class="offline-icon-pulse">
+            <ion-icon name="power-outline"></ion-icon>
+          </div>
+          <h2>You are currently Offline</h2>
+          <p>Switch to Online duty to start receiving high-paying bike taxi &amp; delivery orders in your area.</p>
+
+          <button class="btn-go-online" (click)="status = true; changeStatus()">
+            <ion-icon name="flash-outline"></ion-icon>
+            GO ONLINE NOW
+          </button>
+        </div>
+      }
+
+      <!-- When inside service area and service is NOT closed, show Permissions, Incentives, and Referral cards -->
+      @if (!isOutOfServiceArea && !isAreaClosed) {
+        <!-- Driver Permissions Health Bar -->
+        @if (!permissions.allGranted) {
+          <div class="permission-health-banner warning" (click)="openPermissionsHub()">
+            <div class="perm-banner-left">
+              <div class="perm-badge-icon warning">
+                <ion-icon name="alert-circle-outline"></ion-icon>
+              </div>
+              <div>
+                <h4>Permissions Required</h4>
+                <p>
+                  @if (!permissions.location) { GPS Location }
+                  @if (!permissions.location && !permissions.overlay) { &amp; }
+                  @if (!permissions.overlay) { Draw Over Apps }
+                  needed for ride alerts
+                </p>
+              </div>
+            </div>
+            <button class="btn-perm-grant">SETUP</button>
+          </div>
+        } @else {
+          <div class="permission-health-banner success" (click)="openPermissionsHub()">
+            <div class="perm-banner-left">
+              <div class="perm-badge-icon success">
+                <ion-icon name="checkmark-circle-outline"></ion-icon>
+              </div>
+              <div>
+                <h4>Captain System Ready</h4>
+                <p>GPS &amp; Background Overlay Active</p>
+              </div>
+            </div>
+            <ion-icon name="chevron-forward-outline" class="arrow-right"></ion-icon>
+          </div>
+        }
+
+        <!-- Daily Milestone Incentive Banner -->
+        <div class="incentive-banner" (click)="gotoEarnings()">
+          <div class="incentive-left">
+            <div class="incentive-icon">
+              <ion-icon name="gift-outline"></ion-icon>
             </div>
             <div>
-              <h4>Captain System Ready</h4>
-              <p>GPS &amp; Background Overlay Active</p>
+              <h4>No Incentive Offers</h4>
+              <p>No active daily incentive offers available right now.</p>
             </div>
           </div>
           <ion-icon name="chevron-forward-outline" class="arrow-right"></ion-icon>
         </div>
+
+        <!-- Refer & Earn Teaser -->
+        <!-- <div class="referral-teaser" (click)="gotoReferrals()">
+          <div class="teaser-content">
+            <h4>Refer Captain & Earn ₹500</h4>
+            <p>Invite friends to join the driver fleet.</p>
+          </div>
+          <button class="btn-teaser">SHARE</button>
+        </div> -->
       }
-
-      <!-- Daily Milestone Incentive Banner -->
-      <div class="incentive-banner" (click)="gotoEarnings()">
-        <div class="incentive-left">
-          <div class="incentive-icon">
-            <ion-icon name="gift-outline"></ion-icon>
-          </div>
-          <div>
-            <h4>Daily Milestone Bonus</h4>
-            <p>Complete 8 more rides to unlock ₹350 bonus!</p>
-          </div>
-        </div>
-        <ion-icon name="chevron-forward-outline" class="arrow-right"></ion-icon>
-      </div>
-
-      <!-- Refer & Earn Teaser -->
-      <div class="referral-teaser" (click)="gotoReferrals()">
-        <div class="teaser-content">
-          <h4>Refer Captain & Earn ₹500</h4>
-          <p>Invite friends to join the driver fleet.</p>
-        </div>
-        <button class="btn-teaser">SHARE</button>
-      </div>
     </div>
   }
 
@@ -150,10 +227,131 @@
     <!-- Map Background -->
     <div class="map-container">
       <div id="map"></div>
+
+      <!-- Floating Map Action Controls (Reload & Recenter) -->
+      <div class="map-floating-controls">
+        <button class="map-action-btn" (click)="reloadMap()" title="Reload Map" aria-label="Reload Map">
+          <ion-icon name="refresh-outline"></ion-icon>
+        </button>
+        <button class="map-action-btn" (click)="recenterLocation()" title="My Location" aria-label="My Location">
+          <ion-icon name="locate-outline"></ion-icon>
+        </button>
+      </div>
     </div>
 
-    <!-- 1. IDLE / SEARCHING RADAR (When no active ride) -->
-    @if (!activeRide) {
+    <!-- ================= 1. INCOMING RIDE REQUEST BOTTOM SHEET ================= -->
+    @if (currentIncomingRide) {
+      <div class="incoming-ride-sheet">
+        <!-- Countdown Progress Bar -->
+        <div class="incoming-timer-bar">
+          <div class="timer-progress" [style.width.%]="currentIncomingRide.progress"></div>
+        </div>
+
+        <!-- MULTI-OFFER SWITCHER BAR (shown when multiple ride offers are queued) -->
+        @if (incomingRides.length > 1) {
+          <div class="multi-offer-banner">
+            <div class="multi-offer-left">
+              <span class="multi-fire">🔥</span>
+              <span class="multi-count">{{ incomingRides.length }} ORDERS AVAILABLE</span>
+            </div>
+            <div class="multi-offer-nav">
+              <button class="nav-arrow-btn" (click)="prevOffer()" type="button" aria-label="Previous Offer">
+                <ion-icon name="chevron-back-outline"></ion-icon>
+              </button>
+              <span class="offer-counter">{{ selectedOfferIndex + 1 }} / {{ incomingRides.length }}</span>
+              <button class="nav-arrow-btn" (click)="nextOffer()" type="button" aria-label="Next Offer">
+                <ion-icon name="chevron-forward-outline"></ion-icon>
+              </button>
+            </div>
+          </div>
+
+          <!-- Quick switcher pills/chips -->
+          <div class="offer-chips-scroll">
+            @for (offer of incomingRides; track offer.rideId; let idx = $index) {
+              <div 
+                class="offer-chip" 
+                [class.active]="idx === selectedOfferIndex" 
+                (click)="selectOffer(idx)"
+              >
+                <span class="chip-num">#{{ idx + 1 }}</span>
+                <span class="chip-fare">₹{{ offer.fare }}</span>
+                <span class="chip-timer" [class.urgent]="offer.countdown <= 5">{{ offer.countdown }}s</span>
+              </div>
+            }
+          </div>
+        }
+
+        <div class="incoming-header">
+          <div class="d-flex align-items-center gap-2">
+            <span class="pulse-beacon"></span>
+            <span class="incoming-badge">
+              {{ incomingRides.length > 1 ? ('ORDER #' + (selectedOfferIndex + 1) + ' OF ' + incomingRides.length) : 'NEW RIDE OFFER' }}
+            </span>
+            <span class="service-tag">{{ currentIncomingRide.serviceType }}</span>
+          </div>
+          <div class="timer-pill" [class.urgent]="currentIncomingRide.countdown <= 5">
+            <ion-icon name="time-outline"></ion-icon>
+            <span>{{ currentIncomingRide.countdown }}s</span>
+          </div>
+        </div>
+
+        <!-- Big Fare & Distance Highlights -->
+        <div class="incoming-fare-row">
+          <div class="fare-large">
+            <span class="currency">₹</span>{{ currentIncomingRide.fare }}
+          </div>
+          <div class="trip-metrics-chips">
+            <span class="metric-chip">📍 {{ currentIncomingRide.distance }} km</span>
+            <span class="metric-chip">⏱️ {{ currentIncomingRide.duration }} mins</span>
+          </div>
+        </div>
+
+        <!-- Route Timeline (Pickup -> Drop) -->
+        <div class="incoming-route-timeline">
+          <div class="route-point pickup">
+            <div class="point-dot green"></div>
+            <div class="point-text">
+              <span class="point-label">PICKUP</span>
+              <p class="point-address">{{ currentIncomingRide.origin }}</p>
+            </div>
+          </div>
+          <div class="route-connector"></div>
+          <div class="route-point drop">
+            <div class="point-dot red"></div>
+            <div class="point-text">
+              <span class="point-label">DROP OFF</span>
+              <p class="point-address">{{ currentIncomingRide.destination }}</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Customer Summary -->
+        <div class="incoming-customer-bar">
+          <div class="cust-initial">
+            {{ currentIncomingRide.customerName.charAt(0) || 'C' }}
+          </div>
+          <div class="cust-meta">
+            <span class="cust-title">{{ currentIncomingRide.customerName }}</span>
+            <span class="cust-sub">Cash on Drop &bull; Standard Fare</span>
+          </div>
+        </div>
+
+        <!-- Accept & Decline Action Buttons -->
+        <div class="incoming-actions">
+          <button class="btn-decline" (click)="declineIncomingRide(true)">
+            <ion-icon name="close-outline"></ion-icon>
+            {{ incomingRides.length > 1 ? 'PASS THIS' : 'DECLINE' }}
+          </button>
+          <button class="btn-accept" (click)="acceptIncomingRide()">
+            <ion-icon name="checkmark-circle-outline"></ion-icon>
+            ACCEPT RIDE ₹{{ currentIncomingRide.fare }}
+          </button>
+        </div>
+      </div>
+    }
+
+    <!-- ================= IDLE / SEARCHING RADAR (No active trip & No offer) ================= -->
+    @else if (!activeRide) {
       <div class="radar-searching-panel">
         <div class="radar-scan-wrapper">
           <div class="radar-circle circle-1"></div>
@@ -165,12 +363,23 @@
         </div>
         <div class="radar-text-wrapper">
           <h3>Searching for High-Demand Orders...</h3>
-          <p>Stay near active tech parks and metro stations for instant requests.</p>
+          <p>Stay near markets and hospitals for instant requests.</p>
         </div>
+      </div>
+    }
 
-        <button class="btn-simulate-test" (click)="simulateRide()">
-          ⚡ Demo: Simulate Incoming Trip
-        </button>
+    <!-- FLOATING ON-SCREEN LIVE TRIP WIDGET (Always visible on screen) -->
+    @if (activeRide) {
+      <div class="floating-screen-assist" (click)="openNavigation()">
+        <div class="assist-badge" [ngClass]="activeRide.status">
+          <span class="assist-dot"></span>
+          <span>{{ activeRide.status === 'accepted' ? 'TO PICKUP' : (activeRide.status === 'arrived' ? 'AT PICKUP' : 'IN TRIP') }}</span>
+        </div>
+        <div class="assist-body">
+          <span class="assist-dest text-truncate">{{ activeRide.status === 'accepted' ? activeRide.origin.name : activeRide.destination.name }}</span>
+          <span class="assist-fare">₹{{ activeRide.fare }}</span>
+        </div>
+        <ion-icon name="navigate-circle-outline" class="assist-icon"></ion-icon>
       </div>
     }
 
@@ -190,7 +399,13 @@
               <span class="status-dot done"></span> TRIP COMPLETED
             }
           </div>
-          <div class="fare-badge">₹{{ activeRide.fare }}</div>
+          <div class="d-flex align-items-center gap-2">
+            <button type="button" class="btn-large-view" (click)="openRideDetails()" title="Large View">
+              <ion-icon name="scan-outline"></ion-icon>
+              <span>Large View</span>
+            </button>
+            <div class="fare-badge">₹{{ activeRide.fare }}</div>
+          </div>
         </div>
 
         <!-- Customer Profile Strip -->
@@ -298,7 +513,7 @@
             </div>
 
             @if (otpError) {
-              <p class="otp-error-msg">⚠️ Incorrect OTP. Please ask customer or try ({{ activeRide.otp }})</p>
+              <p class="otp-error-msg">Incorrect OTP. Please ask customer for the 4-digit PIN.</p>
             }
 
             <button class="btn-primary-slide start" (click)="verifyOtp()">

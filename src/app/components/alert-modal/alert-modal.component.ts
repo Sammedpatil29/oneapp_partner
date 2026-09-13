@@ -8,7 +8,6 @@ import {
   warningOutline,
   informationCircleOutline,
   helpCircleOutline,
-  closeOutline
 } from 'ionicons/icons';
 
 export type AlertType = 'success' | 'error' | 'warning' | 'info' | 'confirm';
@@ -29,8 +28,8 @@ export class AlertModalComponent {
   @Input() cancelText: string = 'Cancel';
   @Input() showCancel: boolean = false;
 
-  @Output() confirm = new EventEmitter<void>();
-  @Output() cancel = new EventEmitter<void>();
+  @Output() confirmed = new EventEmitter<void>();
+  @Output() cancelled = new EventEmitter<void>();
 
   constructor() {
     addIcons({
@@ -39,16 +38,22 @@ export class AlertModalComponent {
       warningOutline,
       informationCircleOutline,
       helpCircleOutline,
-      closeOutline
     });
   }
 
   onConfirm() {
-    this.confirm.emit();
+    this.confirmed.emit();
   }
 
   onCancel() {
-    this.cancel.emit();
+    this.cancelled.emit();
+  }
+
+  /** Tapping the backdrop only dismisses if there is a cancel option (confirm dialogs).
+   *  Pure info/warning/success/error alerts require pressing the button. */
+  onBackdropClick() {
+    if (this.showCancel) {
+      this.onCancel();
+    }
   }
 }
-

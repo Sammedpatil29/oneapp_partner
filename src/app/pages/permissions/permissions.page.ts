@@ -9,7 +9,6 @@ import {
   IonButtons,
   IonButton,
   IonIcon,
-  IonBadge,
   IonSpinner
 } from '@ionic/angular/standalone';
 import { NavController, ToastController } from '@ionic/angular';
@@ -52,7 +51,6 @@ import { environment } from 'src/environments/environment';
     IonButtons,
     IonButton,
     IonIcon,
-    IonBadge,
     IonSpinner
   ]
 })
@@ -123,8 +121,8 @@ export class PermissionsPage implements OnInit, OnDestroy {
       if (showToast) {
         const toast = await this.toastCtrl.create({
           message: this.permissions.allGranted
-            ? '✅ All driver permissions are active and verified!'
-            : '⚠️ Some permissions are still missing.',
+            ? 'All driver permissions are active and verified!'
+            : 'Some permissions are still missing.',
           duration: 2000,
           position: 'bottom',
           color: this.permissions.allGranted ? 'success' : 'warning'

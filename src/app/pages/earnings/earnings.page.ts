@@ -9,8 +9,6 @@ import {
   IonButtons,
   IonButton,
   IonIcon,
-  IonCard,
-  IonCardContent,
   IonSegment,
   IonSegmentButton,
   IonLabel,
@@ -32,7 +30,6 @@ import { Router } from '@angular/router';
 
 import { LoaderComponent } from 'src/app/components/loader/loader.component';
 import { NoNetworkComponent } from 'src/app/components/no-network/no-network.component';
-import { NoDataComponent } from 'src/app/components/no-data/no-data.component';
 import { ApiErrorComponent } from 'src/app/components/api-error/api-error.component';
 import { NetworkService } from 'src/app/services/network.service';
 
@@ -49,8 +46,6 @@ import { NetworkService } from 'src/app/services/network.service';
     IonButtons,
     IonButton,
     IonIcon,
-    IonCard,
-    IonCardContent,
     IonSegment,
     IonSegmentButton,
     IonLabel,
@@ -59,7 +54,6 @@ import { NetworkService } from 'src/app/services/network.service';
     FormsModule,
     LoaderComponent,
     NoNetworkComponent,
-    NoDataComponent,
     ApiErrorComponent
   ]
 })
@@ -71,29 +65,29 @@ export class EarningsPage implements OnInit {
 
   earningsData: EarningsData = {
     today: {
-      total_earnings: 580,
-      rides_completed: 6,
-      hours_online: '5.2 hrs',
-      fare_earnings: 480,
-      tips: 40,
-      incentives: 60
+      total_earnings: 0,
+      rides_completed: 0,
+      hours_online: '0.0 hrs',
+      fare_earnings: 0,
+      tips: 0,
+      incentives: 0
     },
     this_week: {
-      total_earnings: 3840,
-      rides_completed: 42,
+      total_earnings: 0,
+      rides_completed: 0,
       chart_data: [
-        { day: 'Mon', amount: 520, rides: 5 },
-        { day: 'Tue', amount: 640, rides: 7 },
-        { day: 'Wed', amount: 480, rides: 5 },
-        { day: 'Thu', amount: 720, rides: 8 },
-        { day: 'Fri', amount: 580, rides: 6 },
-        { day: 'Sat', amount: 900, rides: 11 },
+        { day: 'Mon', amount: 0, rides: 0 },
+        { day: 'Tue', amount: 0, rides: 0 },
+        { day: 'Wed', amount: 0, rides: 0 },
+        { day: 'Thu', amount: 0, rides: 0 },
+        { day: 'Fri', amount: 0, rides: 0 },
+        { day: 'Sat', amount: 0, rides: 0 },
         { day: 'Sun', amount: 0, rides: 0 }
       ]
     },
     this_month: {
-      total_earnings: 16450,
-      rides_completed: 188
+      total_earnings: 0,
+      rides_completed: 0
     },
     active_incentives: []
   };

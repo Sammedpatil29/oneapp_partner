@@ -8,8 +8,7 @@ import {
   IonToolbar,
   IonButtons,
   IonButton,
-  IonIcon,
-  IonBadge
+  IonIcon
 } from '@ionic/angular/standalone';
 import { addIcons } from 'ionicons';
 import {
@@ -41,7 +40,6 @@ import { NetworkService } from 'src/app/services/network.service';
     IonButtons,
     IonButton,
     IonIcon,
-    IonBadge,
     CommonModule,
     FormsModule,
     LoaderComponent,

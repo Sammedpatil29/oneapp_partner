@@ -8,6 +8,7 @@ import android.app.Service;
 import android.content.Context;
 import android.content.Intent;
 import android.graphics.Color;
+import android.graphics.Outline;
 import android.graphics.PixelFormat;
 import android.graphics.drawable.GradientDrawable;
 import android.os.Build;
@@ -18,8 +19,11 @@ import android.util.TypedValue;
 import android.view.Gravity;
 import android.view.MotionEvent;
 import android.view.View;
+import android.view.ViewGroup;
+import android.view.ViewOutlineProvider;
 import android.view.WindowManager;
 import android.widget.FrameLayout;
+import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 
@@ -41,8 +45,6 @@ public class FloatingOverlayService extends Service {
     private WindowManager windowManager;
     private View overlayView;
     private WindowManager.LayoutParams params;
-    private TextView earningsTextView;
-    private TextView statusTextView;
 
     private boolean isOverlayAdded = false;
 
@@ -136,9 +138,12 @@ public class FloatingOverlayService extends Service {
             layoutType = WindowManager.LayoutParams.TYPE_PHONE;
         }
 
+        DisplayMetrics dm = getResources().getDisplayMetrics();
+        int bubbleSize = (int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 64, dm);
+
         params = new WindowManager.LayoutParams(
-            WindowManager.LayoutParams.WRAP_CONTENT,
-            WindowManager.LayoutParams.WRAP_CONTENT,
+            bubbleSize,
+            bubbleSize,
             layoutType,
             WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE | WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS,
             PixelFormat.TRANSLUCENT
@@ -162,64 +167,52 @@ public class FloatingOverlayService extends Service {
     private View buildNativeBubbleView() {
         Context ctx = this;
         DisplayMetrics dm = getResources().getDisplayMetrics();
-        int paddingDp8 = (int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 8, dm);
-        int paddingDp6 = (int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 6, dm);
-        int sizeDp56 = (int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 56, dm);
+        int size = (int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 64, dm);
 
-        // Root container (Pill shape)
-        LinearLayout root = new LinearLayout(ctx);
-        root.setOrientation(LinearLayout.HORIZONTAL);
-        root.setGravity(Gravity.CENTER_VERTICAL);
-        root.setPadding(paddingDp6, paddingDp6, paddingDp8 * 2, paddingDp6);
+        // Circular FrameLayout container
+        FrameLayout root = new FrameLayout(ctx);
+        ViewGroup.LayoutParams rootLp = new ViewGroup.LayoutParams(size, size);
+        root.setLayoutParams(rootLp);
 
+        // Circular outline clipping
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+            root.setOutlineProvider(new ViewOutlineProvider() {
+                @Override
+                public void getOutline(View view, Outline outline) {
+                    outline.setOval(0, 0, view.getWidth(), view.getHeight());
+                }
+            });
+            root.setClipToOutline(true);
+            root.setElevation(TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 8, dm));
+        }
+
+        // Circular background
         GradientDrawable rootBg = new GradientDrawable();
-        rootBg.setColor(Color.parseColor("#EE0B1120")); // Dark frosted background
-        rootBg.setCornerRadius(999);
-        rootBg.setStroke(3, Color.parseColor("#34D399")); // Emerald green border
+        rootBg.setShape(GradientDrawable.OVAL);
+        rootBg.setColor(Color.WHITE);
+        rootBg.setStroke((int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 2.5f, dm), Color.parseColor("#a000e2"));
         root.setBackground(rootBg);
 
-        // Circular Icon Badge
-        FrameLayout iconCircle = new FrameLayout(ctx);
-        LinearLayout.LayoutParams circleLp = new LinearLayout.LayoutParams(sizeDp56, sizeDp56);
-        iconCircle.setLayoutParams(circleLp);
+        // ImageView completely filled with our login logo
+        ImageView logoView = new ImageView(ctx);
+        logoView.setImageResource(R.drawable.bubble_logo);
+        logoView.setScaleType(ImageView.ScaleType.CENTER_CROP);
 
-        GradientDrawable circleBg = new GradientDrawable();
-        circleBg.setShape(GradientDrawable.OVAL);
-        circleBg.setColor(Color.parseColor("#059669"));
-        iconCircle.setBackground(circleBg);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+            logoView.setOutlineProvider(new ViewOutlineProvider() {
+                @Override
+                public void getOutline(View view, Outline outline) {
+                    outline.setOval(0, 0, view.getWidth(), view.getHeight());
+                }
+            });
+            logoView.setClipToOutline(true);
+        }
 
-        TextView iconText = new TextView(ctx);
-        iconText.setText("⚡");
-        iconText.setTextSize(TypedValue.COMPLEX_UNIT_SP, 22);
-        iconText.setGravity(Gravity.CENTER);
-        FrameLayout.LayoutParams textLp = new FrameLayout.LayoutParams(
+        FrameLayout.LayoutParams logoLp = new FrameLayout.LayoutParams(
             FrameLayout.LayoutParams.MATCH_PARENT,
             FrameLayout.LayoutParams.MATCH_PARENT
         );
-        iconCircle.addView(iconText, textLp);
-
-        root.addView(iconCircle);
-
-        // Text labels container
-        LinearLayout labels = new LinearLayout(ctx);
-        labels.setOrientation(LinearLayout.VERTICAL);
-        labels.setPadding(paddingDp8, 0, 0, 0);
-
-        statusTextView = new TextView(ctx);
-        statusTextView.setText("ONLINE");
-        statusTextView.setTextColor(Color.parseColor("#34D399"));
-        statusTextView.setTextSize(TypedValue.COMPLEX_UNIT_SP, 10);
-        statusTextView.setTypeface(null, android.graphics.Typeface.BOLD);
-        labels.addView(statusTextView);
-
-        earningsTextView = new TextView(ctx);
-        earningsTextView.setText("₹580");
-        earningsTextView.setTextColor(Color.WHITE);
-        earningsTextView.setTextSize(TypedValue.COMPLEX_UNIT_SP, 14);
-        earningsTextView.setTypeface(null, android.graphics.Typeface.BOLD);
-        labels.addView(earningsTextView);
-
-        root.addView(labels);
+        root.addView(logoView, logoLp);
 
         return root;
     }
@@ -274,19 +267,7 @@ public class FloatingOverlayService extends Service {
     }
 
     public void updateOverlayContent(String earnings, String status) {
-        if (earningsTextView != null && earnings != null && !earnings.isEmpty()) {
-            earningsTextView.setText(earnings.startsWith("₹") ? earnings : "₹" + earnings);
-        }
-        if (statusTextView != null && status != null && !status.isEmpty()) {
-            statusTextView.setText(status.toUpperCase());
-            if ("ON_TRIP".equalsIgnoreCase(status) || "BUSY".equalsIgnoreCase(status)) {
-                statusTextView.setTextColor(Color.parseColor("#FBBF24"));
-            } else if ("ONLINE".equalsIgnoreCase(status)) {
-                statusTextView.setTextColor(Color.parseColor("#34D399"));
-            } else {
-                statusTextView.setTextColor(Color.parseColor("#94A3B8"));
-            }
-        }
+        // Floating bubble is a complete circular logo shortcut; no earnings or status text displayed
     }
 
     private void removeFloatingOverlay() {

@@ -5,5 +5,6 @@
 export const environment = {
   production: false,
   apiUrl: 'http://localhost:3000',
-  socketUrl: 'http://localhost:3000'
+  socketUrl: 'http://localhost:3000',
+  razorpayKeyId: 'rzp_test_TaT9JyM7hmv5t1'
 };
