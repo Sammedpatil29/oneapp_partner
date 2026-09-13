@@ -7,6 +7,7 @@ import { OtaService } from './services/ota.service';
 import { CaptainNativeService } from './services/captain-native.service';
 import { AuthService } from './services/auth.service';
 import { RegisterFcmService } from './services/register-fcm.service';
+import { environment } from '../environments/environment';
 
 @Component({
   selector: 'app-root',
@@ -15,6 +16,7 @@ import { RegisterFcmService } from './services/register-fcm.service';
 })
 export class AppComponent implements OnInit {
 
+  environment = environment;
   lat!: number;
   lng!: number;
   showSplash = true;
