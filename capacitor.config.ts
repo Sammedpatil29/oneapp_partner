@@ -23,6 +23,7 @@ const config: CapacitorConfig = {
       cdnUrl: 'https://pintu-api.democompany.in.net/ota',
       allowInsecureUrls: true,
       resetWhenUpdate: true,
+      appReadyTimeout: 30000,
       autoDeleteFailedBundles: true
     },
     Cordova: {}
