@@ -1,17 +1,53 @@
 import { Injectable, NgZone, inject } from '@angular/core';
 import { Capacitor } from '@capacitor/core';
+import { App } from '@capacitor/app';
 import { BehaviorSubject } from 'rxjs';
 import { OtaKit } from '@otakit/capacitor-updater';
+import { environment } from 'src/environments/environment';
 
 const OTA_UPDATE_FLAG = 'pintu_partner_ota_just_updated';
 const OTA_UPDATE_VERSION_KEY = 'pintu_partner_ota_new_version';
 
-export const CURRENT_APP_VERSION = '0.0.16';
+export const CURRENT_APP_VERSION = '0.0.19';
 
 export interface OtaBannerState {
   show: boolean;
   message: string;
   type: 'downloading' | 'applied';
+}
+
+export interface OtaDiagnosticResult {
+  success: boolean;
+  currentVersion: string;
+  latestVersion?: string;
+  isUpToDate: boolean;
+  updateAvailable: boolean;
+  manifestUrl: string;
+  maskedUrl: string;
+  httpStatus?: number;
+  responseBody?: any;
+  error?: string;
+  errorDetails?: string;
+}
+
+/** Partially masks request url (e.g. https://pintuXXXXX or https://oneappXXXX) for safe debugging */
+export function maskRequestUrl(url: string): string {
+  if (!url) return '';
+  try {
+    const parsed = new URL(url);
+    const host = parsed.hostname;
+    if (host.includes('pintu')) {
+      return 'https://pintuXXXXX';
+    }
+    if (host.includes('oneapp')) {
+      return 'https://oneappXXXX';
+    }
+    return `${parsed.protocol}//${host.slice(0, 5)}XXXXX`;
+  } catch {
+    if (url.includes('pintu')) return 'https://pintuXXXXX';
+    if (url.includes('oneapp')) return 'https://oneappXXXX';
+    return url;
+  }
 }
 
 function isNewerVersion(remote: string, current: string): boolean {
@@ -194,6 +230,123 @@ export class OtaService {
     } catch (e) {
       console.error('[Partner OtaKit] Error in relaunch flow:', e);
       this.isApplyingUpdate = false;
+    }
+  }
+
+  // ─── Manual Check & Diagnostics ───────────────────────────────────
+
+  async getCurrentVersion(): Promise<string> {
+    try {
+      if (Capacitor.isNativePlatform()) {
+        const state = await OtaKit.getState();
+        if (state?.current?.version) {
+          return state.current.version;
+        }
+        const appInfo = await App.getInfo();
+        if (appInfo?.version) {
+          return appInfo.version;
+        }
+      }
+    } catch (e) {
+      console.warn('[Partner OtaService] Error getting version:', e);
+    }
+    return CURRENT_APP_VERSION;
+  }
+
+  async checkUpdateDetails(): Promise<OtaDiagnosticResult> {
+    const currentVersion = await this.getCurrentVersion();
+    const manifestUrl = `${environment.apiUrl}/ota/manifests/io.oneapp.partner/__base__/__default__/manifest.json`;
+    const maskedUrl = maskRequestUrl(manifestUrl);
+
+    try {
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), 9000);
+
+      const res = await fetch(manifestUrl, {
+        cache: 'no-store',
+        headers: {
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'Pragma': 'no-cache'
+        },
+        signal: controller.signal
+      });
+      clearTimeout(timer);
+
+      if (!res.ok) {
+        const text = await res.text().catch(() => '');
+        return {
+          success: false,
+          currentVersion,
+          isUpToDate: false,
+          updateAvailable: false,
+          manifestUrl,
+          maskedUrl,
+          httpStatus: res.status,
+          error: `Server HTTP ${res.status} (${res.statusText || 'Error'})`,
+          errorDetails: text || `Server returned status ${res.status}.`
+        };
+      }
+
+      const manifest = await res.json();
+      const latestVersion = manifest.version || '';
+      const isUpToDate = Boolean(latestVersion && latestVersion === currentVersion);
+      const updateAvailable = Boolean(latestVersion && isNewerVersion(latestVersion, currentVersion));
+
+      if (Capacitor.isNativePlatform()) {
+        try {
+          await OtaKit.check();
+        } catch (e) {}
+      }
+
+      return {
+        success: true,
+        currentVersion,
+        latestVersion,
+        isUpToDate,
+        updateAvailable,
+        manifestUrl,
+        maskedUrl,
+        httpStatus: res.status,
+        responseBody: manifest
+      };
+    } catch (err: any) {
+      const isAbort = err.name === 'AbortError';
+      return {
+        success: false,
+        currentVersion,
+        isUpToDate: false,
+        updateAvailable: false,
+        manifestUrl,
+        maskedUrl,
+        error: isAbort ? 'Request Timeout (> 9s)' : (err.name || 'Network Error'),
+        errorDetails: err.message || String(err)
+      };
+    }
+  }
+
+  async applyUpdateNow(): Promise<{ success: boolean; message: string }> {
+    if (!Capacitor.isNativePlatform()) {
+      return { success: false, message: 'OTA updates can only be downloaded on physical devices.' };
+    }
+
+    try {
+      const state = await OtaKit.getState();
+      if (state?.staged) {
+        const ver = state.staged?.version || '';
+        await this.relaunchAndApplyUpdate(ver);
+        return { success: true, message: 'Update applied! Restarting app...' };
+      }
+
+      this.showBanner('Downloading new update...', 'downloading', 4000);
+      const downloadRes = await OtaKit.download();
+      if (downloadRes.kind === 'staged' || (downloadRes as any).kind === 'already_staged') {
+        const targetVer = (downloadRes as any).bundle?.version || '';
+        await this.relaunchAndApplyUpdate(targetVer);
+        return { success: true, message: 'Update downloaded! Restarting app...' };
+      }
+      return { success: false, message: `Download returned status: ${downloadRes.kind}` };
+    } catch (e: any) {
+      return { success: false, message: e.message || 'Failed to download and apply OTA bundle.' };
     }
   }
 }

@@ -30,7 +30,9 @@ import {
   documentTextOutline,
   chevronForwardOutline,
   callOutline,
-  logoWhatsapp
+  logoWhatsapp,
+  cloudDownloadOutline,
+  refreshOutline
 } from 'ionicons/icons';
 import { CaptainService, CaptainProfile } from 'src/app/services/captain.service';
 import { CaptainNativeService } from 'src/app/services/captain-native.service';
@@ -40,6 +42,7 @@ import { NoDataComponent } from 'src/app/components/no-data/no-data.component';
 import { ApiErrorComponent } from 'src/app/components/api-error/api-error.component';
 import { NetworkService } from 'src/app/services/network.service';
 import { AppDialogService } from 'src/app/services/app-dialog.service';
+import { OtaService } from 'src/app/services/ota.service';
 import { environment } from 'src/environments/environment';
 
 @Component({
@@ -100,10 +103,18 @@ export class ProfilePage implements OnInit {
   private navCtrl = inject(NavController);
   private captainService = inject(CaptainService);
   private dialogService = inject(AppDialogService);
+  private otaService = inject(OtaService);
   public networkService = inject(NetworkService);
   public captainNative = inject(CaptainNativeService);
 
   allPermissionsGranted: boolean = true;
+
+  // OTA Update State
+  currentAppVersion: string = '';
+  latestOtaVersion: string = '';
+  isCheckingOta: boolean = false;
+  isOtaUpToDate: boolean = true;
+  hasOtaUpdateAvailable: boolean = false;
 
   constructor() {
     addIcons({
@@ -121,7 +132,9 @@ export class ProfilePage implements OnInit {
       documentTextOutline,
       chevronForwardOutline,
       callOutline,
-      logoWhatsapp
+      logoWhatsapp,
+      cloudDownloadOutline,
+      refreshOutline
     });
 
     this.networkService.isOnline$.subscribe(online => {
@@ -135,12 +148,91 @@ export class ProfilePage implements OnInit {
   async ngOnInit() {
     this.riderId = localStorage.getItem('riderId') || '';
     this.fetchProfile();
+    this.initAppVersionAndOta();
     try {
       const perms = await this.captainNative.checkPermissions();
       this.allPermissionsGranted = perms.allGranted;
     } catch (e) {
       // ignore
     }
+  }
+
+  async initAppVersionAndOta() {
+    this.currentAppVersion = await this.otaService.getCurrentVersion();
+    const res = await this.otaService.checkUpdateDetails();
+    if (res.success) {
+      this.isOtaUpToDate = res.isUpToDate;
+      this.hasOtaUpdateAvailable = res.updateAvailable;
+      this.latestOtaVersion = res.latestVersion || '';
+    }
+  }
+
+  async checkOtaUpdate(isUserClick: boolean = true) {
+    if (this.isCheckingOta) return;
+    this.isCheckingOta = true;
+
+    const res = await this.otaService.checkUpdateDetails();
+    this.isCheckingOta = false;
+    this.currentAppVersion = res.currentVersion;
+
+    if (res.success) {
+      this.isOtaUpToDate = res.isUpToDate;
+      this.hasOtaUpdateAvailable = res.updateAvailable;
+      this.latestOtaVersion = res.latestVersion || '';
+
+      if (isUserClick) {
+        if (res.isUpToDate) {
+          await this.dialogService.showAlert(
+            'Everything is Up to Date',
+            `You are running the latest version (v${this.currentAppVersion}).\nNo new updates found on the server. 🎉\n\nRequest URL: ${res.maskedUrl}`,
+            'info',
+            'OK'
+          );
+        } else if (res.updateAvailable) {
+          const proceed = await this.dialogService.showConfirm({
+            title: 'New OTA Update Available',
+            message: `Version v${res.latestVersion} is ready to download (current: v${this.currentAppVersion}).\n\nWould you like to apply the update now?\n\nRequest URL: ${res.maskedUrl}`,
+            confirmText: 'Update Now',
+            cancelText: 'Later'
+          });
+
+          if (proceed) {
+            this.dialogService.showToast('Downloading and applying update...', 'success', 3000);
+            const applyRes = await this.otaService.applyUpdateNow();
+            if (!applyRes.success) {
+              await this.dialogService.showAlert(
+                'Update Failed',
+                `${applyRes.message || 'Could not apply update bundle.'}\n\nRequest URL: ${res.maskedUrl}`,
+                'warning',
+                'Close'
+              );
+            }
+          }
+        }
+      }
+    } else {
+      this.isOtaUpToDate = false;
+      if (isUserClick) {
+        const debugDetails = [
+          `Error: ${res.error || 'Server error'}`,
+          res.httpStatus ? `HTTP Status: ${res.httpStatus}` : '',
+          res.errorDetails ? `Server Response: ${res.errorDetails}` : '',
+          `Request URL: ${res.maskedUrl || res.manifestUrl}`
+        ].filter(Boolean).join('\n\n');
+
+        await this.dialogService.showAlert(
+          'OTA Check Failed (Debug)',
+          debugDetails,
+          'warning',
+          'Close'
+        );
+      }
+    }
+  }
+
+  onRefreshOtaClick(event: Event) {
+    event.stopPropagation();
+    this.checkOtaUpdate(true);
   }
 
   fetchProfile(onComplete?: () => void) {
