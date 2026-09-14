@@ -4,6 +4,7 @@
 
 export const environment = {
   production: false,
+  watermark: 'For DEVELOPMENT',
   apiUrl: 'http://localhost:3000',
   socketUrl: 'http://localhost:3000',
   razorpayKeyId: 'rzp_test_TaT9JyM7hmv5t1'

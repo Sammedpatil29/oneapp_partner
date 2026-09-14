@@ -179,6 +179,34 @@
         </div>
       </div>
 
+      <!-- Check for OTA Updates -->
+      <div class="p-3 d-flex align-items-center justify-content-between border-bottom cursor-pointer" (click)="checkOtaUpdate(true)">
+        <div class="d-flex align-items-center gap-3">
+          <ion-icon name="cloud-download-outline" color="primary" class="fs-4"></ion-icon>
+          <div>
+            <span class="fw-semibold text-dark d-block">Check for OTA Updates</span>
+            <div class="d-flex align-items-center gap-2 small text-muted">
+              <span>v{{ currentAppVersion }}</span>
+              @if (isOtaUpToDate) {
+                <span class="badge bg-success-subtle text-success">Up to date</span>
+              } @else if (hasOtaUpdateAvailable) {
+                <span class="badge bg-warning-subtle text-warning">v{{ latestOtaVersion }} Ready</span>
+              }
+            </div>
+          </div>
+        </div>
+        <div class="d-flex align-items-center gap-2">
+          <ion-icon
+            name="refresh-outline"
+            color="medium"
+            class="fs-5"
+            [class.spinning]="isCheckingOta"
+            (click)="onRefreshOtaClick($event)"
+            title="Check for OTA Updates">
+          </ion-icon>
+        </div>
+      </div>
+
       <div class="p-3 d-flex align-items-center justify-content-between border-bottom cursor-pointer" (click)="gotoNeedHelp()">
         <div class="d-flex align-items-center gap-3">
           <ion-icon name="help-circle-outline" color="secondary" class="fs-4"></ion-icon>
